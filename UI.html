@@ -1,32 +1,29 @@
 <!DOCTYPE html>
-<html lang="en" style="width:100%;
-height:100%;">
-<head style="margin:0;
-padding:0;
-overflow:hidden;">
-    <title>
-      PhotoForge
-    </title>
+<html lang="en" style="width:100%; height:100%;">
+<head style="margin:0; padding:0; overflow:hidden;">
+    <title>PhotoForge</title>
 </head>
-<body style="width:100%;
-height:100%;
+<body style="width:100%; height:100%;
 background: url('UI_bg.jpg') no-repeat center center;
 background-size: 100vw 100vh;
 overflow:hidden;">
+    
     <h1 style="color: rgb(60, 181, 192);
     font-size: 80px;
     position: absolute;
-    top: 15%;left: 50%;
+    top: 15%; left: 50%;
     transform: translate(-50%, -50%);">
       PhotoForge
     </h1>
+
     <div style="position: absolute;
     top: 55%;
     left: 50%;
     transform: translate(-50%, -50%);
     display: flex; 
     gap: 20px;">
-        <button style="font-size: 24px;
+        
+        <button id="imageEditBtn" style="font-size: 24px;
         padding: 15px 30px;
         background-color: rgb(14, 158, 225);
         color: white; 
@@ -35,6 +32,7 @@ overflow:hidden;">
         cursor: pointer;">
             Image Editing
         </button>
+
         <button style="font-size: 24px;
         padding: 15px 30px;
         background-color: rgb(63, 210, 132);
@@ -45,5 +43,12 @@ overflow:hidden;">
             Collage
         </button>
     </div>
+    <script>
+        const { ipcRenderer } = require('electron');
+        document.getElementById('imageEditBtn').addEventListener('click', () => {
+            ipcRenderer.send('open-image-editor');
+        });
+    </script>
+
 </body>
 </html>

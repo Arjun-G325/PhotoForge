@@ -1,14 +1,41 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, ipcMain } = require('electron');
 
-function createWindow () {
-  const win = new BrowserWindow({
+let mainWindow;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 650,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      contextIsolation: false
     }
-  })
-  win.loadFile('UI.html')
+  });
+
+  mainWindow.loadFile('UI.html');
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(createWindow);
+
+ipcMain.on('open-image-editor', (event) => {
+  if (mainWindow) {
+    mainWindow.close();
+    mainWindow = null;
+  }
+
+  const editorWindow = new BrowserWindow({
+    width: 1000,
+    height: 700,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  });
+
+  editorWindow.loadFile('UI_editor.html');
+});
+

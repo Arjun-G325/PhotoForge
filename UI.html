@@ -2,6 +2,9 @@
 <html lang="en" style="width:100%; height:100%;">
 <head style="margin:0; padding:0; overflow:hidden;">
     <title>PhotoForge</title>
+
+    <!-- Font Awesome Icons (Important for icons to work) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body style="width:100%; height:100%;
 background: url('UI_bg.jpg') no-repeat center center;
@@ -30,7 +33,7 @@ overflow:hidden;">
         border: none;
         border-radius: 10px; 
         cursor: pointer;">
-            Image Editing
+            <i class="fa-solid fa-pencil"></i> Image Editing
         </button>
 
         <button style="font-size: 24px;
@@ -40,9 +43,10 @@ overflow:hidden;">
         border: none;
         border-radius: 10px; 
         cursor: pointer;">
-            Collage
+            <i class="fa-solid fa-images"></i> Collage
         </button>
     </div>
+    
     <script>
         const { ipcRenderer } = require('electron');
         document.getElementById('imageEditBtn').addEventListener('click', () => {

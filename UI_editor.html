@@ -1,42 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>
-        Image Editor
-    </title>
+    <title>Image Editor</title>
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
+        /* Remove Scrollbars */
+        html, body {
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
         .toolbar {
             background-color: #333;
             display: flex;
-            gap: 20px;
             align-items: center;
-            justify-content: center;
             border: 2px solid #444;
+            width: 100%;
         }
 
         .top-toolbar {
-            height: 50px;
-            padding: 15px;
+            height: 80px; /* Increased height for label */
+            padding: 8px;
             border-bottom: 2px solid #444;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; /* Align items to the left */
         }
 
-        .bottom-toolbar {
-            height: 25px;
-            padding: 10px;
-            border-top: 2px solid #444;
+        .icon-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .label {
+            margin-top: 5px;
+            font-size: 12px;
+            color: white;
+            text-align: center;
+        }
+
+        .partition {
+            width: 2px;
+            height: 50px;
+            background-color: #555;
+            margin-left: 15px;
         }
 
         .toolbar button {
             background: none;
             border: none;
             cursor: pointer;
-            padding: 10px;
+            padding: 5px;
             position: relative;
         }
 
         .toolbar button i {
-            font-size: 24px;
+            font-size: 18px;
             color: white;
         }
 
@@ -49,28 +80,23 @@
             background-color: rgba(0, 0, 0, 0.7);
             color: white;
             text-align: center;
-            padding: 5px 10px;
+            padding: 3px 8px;
             border-radius: 5px;
             position: absolute;
-            bottom: -30px;
+            bottom: -25px;
             left: 50%;
             transform: translateX(-50%);
             white-space: nowrap;
-            font-size: 14px;
+            font-size: 12px;
             opacity: 0;
             transition: opacity 0.3s;
-        }
-
-        .bottom-toolbar .tooltip {
-            bottom: auto;
-            top: -30px;
         }
 
         .toolbar button:hover .tooltip {
             visibility: visible;
             opacity: 1;
-            color:black;
-            background-color:white;
+            color: black;
+            background-color: white;
         }
 
         .content {
@@ -83,23 +109,36 @@
         }
     </style>
 </head>
-<body style="background-color: #222;
-margin: 0;
-display: flex;
-flex-direction: column;
-height: 100vh;
-justify-content: space-between;">
+<body style="background-color: #222; margin: 0; display: flex; flex-direction: column; height: 100vh; justify-content: space-between; align-items: center;">
 
     <div class="toolbar top-toolbar">
-        
+        <div class="icon-container">
+            <div class="icon-grid">
+                <button><i class="fa-solid fa-mouse-pointer"></i><span class="tooltip">Select</span></button>
+                <button><i class="fa-solid fa-paintbrush"></i><span class="tooltip">Brush</span></button>
+                <button><i class="fa-solid fa-fill-drip"></i><span class="tooltip">Fill</span></button>
+                <button><i class="fa-solid fa-eraser"></i><span class="tooltip">Eraser</span></button>
+                <button><i class="fa-solid fa-square"></i><span class="tooltip">Shape</span></button>
+                <button><i class="fa-solid fa-font"></i><span class="tooltip">Text</span></button>
+                <button><i class="fa-solid fa-image"></i><span class="tooltip">Image</span></button>
+                <button><i class="fa-solid fa-save"></i><span class="tooltip">Save</span></button>
+            </div>
+            <div class="label">Basic Tools</div>
+        </div>
+
+        <!-- Partition -->
+        <div class="partition"></div>
+
     </div>
 
     <div class="content">
-        
+        <p>Image Editing Area</p>
     </div>
 
     <div class="toolbar bottom-toolbar">
-        
+        <button><i class="fa-solid fa-undo"></i><span class="tooltip">Undo</span></button>
+        <button><i class="fa-solid fa-redo"></i><span class="tooltip">Redo</span></button>
     </div>
+
 </body>
 </html>

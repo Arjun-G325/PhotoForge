@@ -38,4 +38,3 @@ ipcMain.on('open-image-editor', (event) => {
 
   editorWindow.loadFile('UI_editor.html');
 });
-

@@ -4,7 +4,6 @@
     <title>Image Editor</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
     <style>
         html, body {
             overflow: hidden;
@@ -18,16 +17,20 @@
             align-items: center;
             border: 2px solid #444;
             width: 100%;
+            padding: 8px;
         }
 
         .top-toolbar {
             height: 80px;
-            padding: 8px;
             border-bottom: 2px solid #444;
-            width: 100%;
-            display: flex;
-            align-items: center;
             justify-content: flex-start; 
+        }
+
+        .partition {
+            width: 2px;
+            height: 50px;
+            background-color: #555;
+            margin: 0 15px;
         }
 
         .icon-container {
@@ -38,24 +41,13 @@
 
         .icon-grid {
             display: grid;
-            grid-template-columns: repeat(4, auto);
-            grid-template-rows: repeat(2, 1fr);
             gap: 8px;
             align-items: center;
         }
 
-        .label {
-            margin-top: 5px;
-            font-size: 12px;
-            color: white;
-            text-align: center;
-        }
-
-        .partition {
-            width: 2px;
-            height: 50px;
-            background-color: #555;
-            margin-left: 15px;
+        .grid-2x3 {
+            grid-template-columns: repeat(3, auto);
+            grid-template-rows: repeat(2, auto);
         }
 
         .toolbar button {
@@ -77,32 +69,39 @@
 
         .tooltip {
             visibility: hidden;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: #1e90ff;
             color: white;
             text-align: center;
-            padding: 3px 8px;
-            border-radius: 5px;
+            padding: 6px 12px;
+            border-radius: 6px;
             position: absolute;
-            bottom: -25px;
+            bottom: -30px;
             left: 50%;
             transform: translateX(-50%);
             white-space: nowrap;
             font-size: 12px;
             opacity: 0;
+            font-weight: bold;
             transition: opacity 0.3s;
+            box-shadow: 0px 0px 10px rgba(30, 144, 255, 0.8);
+            z-index: 1000;
         }
 
         .toolbar button:hover .tooltip {
             visibility: visible;
             opacity: 1;
-            color: black;
-            background-color: white;
         }
 
+        /* Height & Width Input */
         .size-input-container {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 3px;
+        }
+
+        .size-label {
+            color: white;
+            font-size: 11px;
         }
 
         .size-input-wrapper {
@@ -110,11 +109,10 @@
         }
 
         .size-input {
-            width: 50px;
-            padding: 5px;
-            padding-right: 20px; /* Space for the unit */
+            width: 42px;
+            padding: 3px;
             text-align: right;
-            font-size: 12px;
+            font-size: 10px;
             border: none;
             border-radius: 4px;
             background-color: #555;
@@ -122,25 +120,21 @@
             appearance: textfield;
         }
 
-        .size-input::-webkit-inner-spin-button,
-        .size-input::-webkit-outer-spin-button {
-            appearance: none;
-            margin: 0;
-        }
-
         .size-input-unit {
             position: absolute;
-            right: 5px;
+            right: 4px;
             top: 50%;
             transform: translateY(-50%);
             color: #bbb;
-            font-size: 12px;
+            font-size: 10px;
             pointer-events: none;
         }
 
-        .size-label {
+        .basic-tools-label {
             color: white;
             font-size: 12px;
+            margin-top: 5px;
+            font-weight: bold;
         }
 
         .content {
@@ -151,18 +145,39 @@
             text-align: center;
             padding: 20px;
         }
+
+        .bottom-toolbar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 200px;
+            padding: 10px;
+            width: 100%;
+        }
     </style>
 </head>
 <body style="background-color: #222; margin: 0; display: flex; flex-direction: column; height: 100vh; justify-content: space-between; align-items: center;">
 
     <div class="toolbar top-toolbar">
+        <!-- Left 2x3 Grid (Updated Advanced Tools) -->
         <div class="icon-container">
-            <div class="icon-grid">
-                <button><i class="fa-solid fa-mouse-pointer"></i><span class="tooltip">Select</span></button>
-                <button><i class="fa-solid fa-paintbrush"></i><span class="tooltip">Brush</span></button>
-                <button><i class="fa-solid fa-fill-drip"></i><span class="tooltip">Fill</span></button>
+            <div class="icon-grid grid-2x3">
+                <button><i class="fa-solid fa-folder-open"></i><span class="tooltip">Open</span></button>
+                <button><i class="fa-solid fa-floppy-disk"></i><span class="tooltip">Save</span></button>
+                <button><i class="fa-solid fa-file-export"></i><span class="tooltip">Save All</span></button>
+                <button><i class="fa-solid fa-trash"></i><span class="tooltip">Remove</span></button>
+                <button><i class="fa-solid fa-trash-can"></i><span class="tooltip">Remove All</span></button>
+            </div>
+        </div>
 
-                <!-- Height Input with Label -->
+        <!-- Left Partition -->
+        <div class="partition"></div>
+
+        <!-- Right 2x3 Grid (Updated Basic Tools) -->
+        <div class="icon-container">
+            <div class="icon-grid grid-2x3">
+                <button><i class="fa-solid fa-crop"></i><span class="tooltip">Crop</span></button>
+                <button><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip</span></button>
                 <div class="size-input-container">
                     <span class="size-label">Height</span>
                     <div class="size-input-wrapper">
@@ -171,11 +186,8 @@
                     </div>
                 </div>
 
-                <button><i class="fa-solid fa-square"></i><span class="tooltip">Shape</span></button>
-                <button><i class="fa-solid fa-font"></i><span class="tooltip">Text</span></button>
-                <button><i class="fa-solid fa-image"></i><span class="tooltip">Image</span></button>
-
-                <!-- Width Input with Label -->
+                <button><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
+                <button><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
                 <div class="size-input-container">
                     <span class="size-label">Width</span>
                     <div class="size-input-wrapper">
@@ -184,11 +196,11 @@
                     </div>
                 </div>
             </div>
-            <div class="label">Basic Tools</div>
+            <div class="basic-tools-label">Basic Tools</div>
         </div>
 
+        <!-- Right Partition (Fixed) -->
         <div class="partition"></div>
-
     </div>
 
     <div class="content">
@@ -196,8 +208,8 @@
     </div>
 
     <div class="toolbar bottom-toolbar">
-        <button><i class="fa-solid fa-undo"></i><span class="tooltip">Undo</span></button>
-        <button><i class="fa-solid fa-redo"></i><span class="tooltip">Redo</span></button>
+        <button><i class="fa-solid fa-caret-left"></i><span class="tooltip">Move Left</span></button>
+        <button><i class="fa-solid fa-caret-right"></i><span class="tooltip">Move Right</span></button>
     </div>
 
 </body>

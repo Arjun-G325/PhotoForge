@@ -2,13 +2,17 @@
 <html lang="en">
 <head>
     <title>Image Editor</title>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         html, body {
-            overflow: hidden;
             margin: 0;
             padding: 0;
+            background-color: #222;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .toolbar {
@@ -17,44 +21,30 @@
             align-items: center;
             border: 2px solid #444;
             width: 100%;
-            padding: 8px;
-        }
-
-        .top-toolbar {
-            height: 80px;
-            border-bottom: 2px solid #444;
-            justify-content: flex-start; 
-        }
-
-        .partition {
-            width: 2px;
-            height: 50px;
-            background-color: #555;
-            margin: 0 15px;
-        }
-
-        .icon-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            padding: 5px;
+            height: 60px;
         }
 
         .icon-grid {
             display: grid;
+            grid-template-columns: repeat(2, auto);
+            grid-template-rows: repeat(2, auto);
             gap: 8px;
-            align-items: center;
+            margin-left: 10px;
         }
 
-        .grid-2x3 {
+        .icon-grid-right {
+            display: grid;
             grid-template-columns: repeat(3, auto);
             grid-template-rows: repeat(2, auto);
+            gap: 8px;
+            margin-left: 20px;
         }
 
         .toolbar button {
             background: none;
             border: none;
             cursor: pointer;
-            padding: 5px;
             position: relative;
         }
 
@@ -72,16 +62,16 @@
             background-color: #1e90ff;
             color: white;
             text-align: center;
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 4px 8px;
+            border-radius: 4px;
             position: absolute;
             bottom: -30px;
             left: 50%;
             transform: translateX(-50%);
             white-space: nowrap;
-            font-size: 12px;
-            opacity: 0;
+            font-size: 10px;
             font-weight: bold;
+            opacity: 0;
             transition: opacity 0.3s;
             box-shadow: 0px 0px 10px rgba(30, 144, 255, 0.8);
             z-index: 1000;
@@ -92,7 +82,13 @@
             opacity: 1;
         }
 
-        /* Height & Width Input */
+        .partition {
+            width: 2px;
+            height: 40px;
+            background-color: #555;
+            margin: 0 15px;
+        }
+
         .size-input-container {
             display: flex;
             align-items: center;
@@ -101,18 +97,14 @@
 
         .size-label {
             color: white;
-            font-size: 11px;
-        }
-
-        .size-input-wrapper {
-            position: relative;
+            font-size: 12px;
         }
 
         .size-input {
-            width: 42px;
+            width: 50px;
             padding: 3px;
             text-align: right;
-            font-size: 10px;
+            font-size: 12px;
             border: none;
             border-radius: 4px;
             background-color: #555;
@@ -120,97 +112,134 @@
             appearance: textfield;
         }
 
-        .size-input-unit {
-            position: absolute;
-            right: 4px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #bbb;
-            font-size: 10px;
-            pointer-events: none;
-        }
-
-        .basic-tools-label {
-            color: white;
-            font-size: 12px;
-            margin-top: 5px;
-            font-weight: bold;
-        }
-
         .content {
             flex-grow: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .bottom-toolbar {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 200px;
-            padding: 10px;
             width: 100%;
         }
+
+        #image-container {
+            width: 95vw;
+            height: 85vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #444;
+            border: 2px solid #555;
+            overflow: hidden;
+        }
+
+        #image-area {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: none;
+            transform-origin: center;
+        }
     </style>
+    <script>
+        let rotationAngle = 0;
+
+        function openImage() {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "image/*";
+            input.onchange = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                let imageArea = document.getElementById("image-area");
+                imageArea.src = URL.createObjectURL(file);
+                imageArea.style.display = "block";
+                rotationAngle = 0;
+                imageArea.style.transform = rotate(${rotationAngle}deg);
+            };
+            input.click();
+        }
+
+        function saveImage() {
+            const image = document.getElementById("image-area");
+            if (!image.src) {
+                alert("No image to save");
+                return;
+            }
+
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            const tempImg = new Image();
+            tempImg.src = image.src;
+            tempImg.onload = () => {
+                canvas.width = tempImg.width;
+                canvas.height = tempImg.height;
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate((rotationAngle * Math.PI) / 180);
+                ctx.drawImage(tempImg, -tempImg.width / 2, -tempImg.height / 2);
+                canvas.toBlob((blob) => {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = "edited_image.png";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+            };
+        }
+
+        function cropImage() {
+            alert("Crop functionality to be implemented.");
+        }
+
+        function flipImage() {
+            alert("Flip functionality to be implemented.");
+        }
+
+        function rotateImage(angle) {
+            let imageArea = document.getElementById("image-area");
+            rotationAngle += angle;
+            imageArea.style.transform = rotate(${rotationAngle}deg);
+            adjustImageSize(imageArea);
+        }
+
+        function adjustImageSize(image) {
+            if (rotationAngle % 180 !== 0) {
+                image.style.maxWidth = "85vh";
+                image.style.maxHeight = "95vw";
+            } else {
+                image.style.maxWidth = "100%";
+                image.style.maxHeight = "100%";
+            }
+        }
+    </script>
 </head>
-<body style="background-color: #222; margin: 0; display: flex; flex-direction: column; height: 100vh; justify-content: space-between; align-items: center;">
-
-    <div class="toolbar top-toolbar">
-        <!-- Left 2x3 Grid (Updated Advanced Tools) -->
-        <div class="icon-container">
-            <div class="icon-grid grid-2x3">
-                <button><i class="fa-solid fa-folder-open"></i><span class="tooltip">Open</span></button>
-                <button><i class="fa-solid fa-floppy-disk"></i><span class="tooltip">Save</span></button>
-                <button><i class="fa-solid fa-file-export"></i><span class="tooltip">Save All</span></button>
-                <button><i class="fa-solid fa-trash"></i><span class="tooltip">Remove</span></button>
-                <button><i class="fa-solid fa-trash-can"></i><span class="tooltip">Remove All</span></button>
-            </div>
+<body>
+    <div class="toolbar">
+        <div class="icon-grid">
+            <button onclick="openImage()"><i class="fa-solid fa-folder-open"></i><span class="tooltip">Open</span></button>
+            <button onclick="saveImage()"><i class="fa-solid fa-floppy-disk"></i><span class="tooltip">Save</span></button>
+            <button><i class="fa-solid fa-trash"></i><span class="tooltip">Remove</span></button>
         </div>
-
-        <!-- Left Partition -->
         <div class="partition"></div>
-
-        <!-- Right 2x3 Grid (Updated Basic Tools) -->
-        <div class="icon-container">
-            <div class="icon-grid grid-2x3">
-                <button><i class="fa-solid fa-crop"></i><span class="tooltip">Crop</span></button>
-                <button><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip</span></button>
-                <div class="size-input-container">
-                    <span class="size-label">Height</span>
-                    <div class="size-input-wrapper">
-                        <input type="number" class="size-input" id="heightInput" value="0">
-                        <span class="size-input-unit">cm</span>
-                    </div>
-                </div>
-
-                <button><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
-                <button><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
-                <div class="size-input-container">
-                    <span class="size-label">Width</span>
-                    <div class="size-input-wrapper">
-                        <input type="number" class="size-input" id="widthInput" value="0">
-                        <span class="size-input-unit">cm</span>
-                    </div>
-                </div>
+        <div class="icon-grid-right">
+            <button onclick="cropImage()"><i class="fa-solid fa-crop"></i><span class="tooltip">Crop</span></button>
+            <button onclick="flipImage()"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip</span></button>
+            <div class="size-input-container">
+                <span class="size-label">Height (cm)</span>
+                <input type="number" class="size-input" id="heightInput" value="0">
             </div>
-            <div class="basic-tools-label">Basic Tools</div>
+            <button onclick="rotateImage(-90)"><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
+            <button onclick="rotateImage(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
+            <div class="size-input-container">
+                <span class="size-label">Width (cm)</span>
+                <input type="number" class="size-input" id="widthInput" value="0">
+            </div>
         </div>
-
-        <!-- Right Partition (Fixed) -->
         <div class="partition"></div>
     </div>
-
     <div class="content">
-        <p>Image Editing Area</p>
+        <div id="image-container">
+            <img id="image-area" src="">
+        </div>
     </div>
-
-    <div class="toolbar bottom-toolbar">
-        <button><i class="fa-solid fa-caret-left"></i><span class="tooltip">Move Left</span></button>
-        <button><i class="fa-solid fa-caret-right"></i><span class="tooltip">Move Right</span></button>
-    </div>
-
 </body>
 </html>

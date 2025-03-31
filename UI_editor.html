@@ -153,7 +153,7 @@
                 imageArea.src = URL.createObjectURL(file);
                 imageArea.style.display = "block";
                 rotationAngle = 0;
-                imageArea.style.transform = rotate(${rotationAngle}deg);
+                imageArea.style.transform = `rotate(${rotationAngle}deg)`;
             };
             input.click();
         }
@@ -197,7 +197,7 @@
         function rotateImage(angle) {
             let imageArea = document.getElementById("image-area");
             rotationAngle += angle;
-            imageArea.style.transform = rotate(${rotationAngle}deg);
+            imageArea.style.transform = `rotate(${rotationAngle}deg)`;
             adjustImageSize(imageArea);
         }
 

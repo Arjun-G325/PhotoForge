@@ -96,11 +96,14 @@
     <button onclick="flipSelected('Y')">⇅ Flip Y</button>
     
 
-    <label>Resize Image:</label>
-    <input type="range" min="50" max="200" value="100" onchange="resizeSelected(this.value)">
+  <label style="color: #1E90FF;">Resize Image:</label>
+<input id="resize-image-slider" type="range" min="50" max="200" value="100" 
+    onchange="resizeSelected(this.value)">
 
-    <label>Resize Box:</label>
-    <input type="range" min="100" max="400" value="200" onchange="resizeImageBox(this.value)">
+<label style="color: #FFA500;">Resize Box:</label>
+<input id="resize-box-slider" type="range" min="100" max="400" value="200" 
+    onchange="resizeImageBox(this.value)">
+
 
     <button onclick="downloadCollage()">Download Collage</button>
 </div>

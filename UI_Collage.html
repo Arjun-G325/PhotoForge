@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>PhotoForge Collage Maker</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         html, body {
@@ -24,6 +23,7 @@
             border: 2px solid #444;
             width: 100%;
             padding: 10px;
+            gap: 10px;
         }
 
         .toolbar button {
@@ -77,30 +77,12 @@
             transition: transform 0.3s;
         }
 
-        .edit-controls {
-            display: flex;
-            background: #333;
-            padding: 4px;
-            position: absolute;
-            bottom: 5px;
-            left: 5px;
-            right: 5px;
-            z-index: 10;
-            justify-content: space-around;
+        .selected {
+            border: 3px solid yellow !important;
         }
 
-        .edit-controls button {
-            background: #1e90ff;
-            color: white;
-            border: none;
-            padding: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            border-radius: 4px;
-        }
-
-        .edit-controls input {
-            width: 50px;
+        .toolbar input[type="range"] {
+            width: 80px;
         }
     </style>
 </head>
@@ -109,6 +91,11 @@
 
 <div class="toolbar">
     <button onclick="openImages()">Open Images</button>
+    <button onclick="rotateSelected(90)">↻ Rotate</button>
+    <button onclick="flipSelected('X')">⇆ Flip X</button>
+    <button onclick="flipSelected('Y')">⇅ Flip Y</button>
+    <button onclick="applyGrayscaleSelected()">BW Grayscale</button>
+    <input type="range" min="50" max="200" value="100" onchange="resizeSelected(this.value)">
     <button onclick="downloadCollage()">Download Collage</button>
 </div>
 
@@ -118,6 +105,7 @@
 
 <script>
     const collageContainer = document.getElementById('collage-container');
+    let selectedImage = null;
 
     function openImages() {
         const input = document.createElement('input');
@@ -141,11 +129,11 @@
                     img.dataset.flipX = '1';
                     img.dataset.flipY = '1';
 
-                    makeDraggable(imageBox);
-                    const controls = createEditControls(img);
                     imageBox.appendChild(img);
-                    imageBox.appendChild(controls);
                     collageContainer.appendChild(imageBox);
+
+                    makeDraggable(imageBox);
+                    imageBox.onclick = () => selectImage(img);
                 };
                 reader.readAsDataURL(file);
             }
@@ -177,69 +165,48 @@
         }
     }
 
-    function createEditControls(img) {
-        const controls = document.createElement('div');
-        controls.classList.add('edit-controls');
-
-        const rotateBtn = document.createElement('button');
-        rotateBtn.textContent = '↻';
-        rotateBtn.onclick = () => rotateImage(img, 90);
-        controls.appendChild(rotateBtn);
-
-        const flipXBtn = document.createElement('button');
-        flipXBtn.textContent = '⇆';
-        flipXBtn.onclick = () => flipImage(img, 'X');
-        controls.appendChild(flipXBtn);
-
-        const flipYBtn = document.createElement('button');
-        flipYBtn.textContent = '⇅';
-        flipYBtn.onclick = () => flipImage(img, 'Y');
-        controls.appendChild(flipYBtn);
-
-        const grayBtn = document.createElement('button');
-        grayBtn.textContent = 'BW';
-        grayBtn.onclick = () => applyGrayscale(img);
-        controls.appendChild(grayBtn);
-
-        const resizeSlider = document.createElement('input');
-        resizeSlider.type = 'range';
-        resizeSlider.min = '50';
-        resizeSlider.max = '200';
-        resizeSlider.value = '100';
-
-        resizeSlider.oninput = () => resizeImage(img, resizeSlider.value);
-        controls.appendChild(resizeSlider);
-
-        return controls;
-    }
-
-    function rotateImage(img, angle) {
-        let rotation = parseInt(img.dataset.rotation) || 0;
-        rotation = (rotation + angle) % 360;
-        img.dataset.rotation = rotation;
-        applyTransformations(img);
-    }
-
-    function flipImage(img, axis) {
-        if (axis === 'X') {
-            img.dataset.flipX *= -1;
-        } else {
-            img.dataset.flipY *= -1;
+    function selectImage(img) {
+        if (selectedImage) {
+            selectedImage.parentElement.classList.remove('selected');
         }
-        applyTransformations(img);
+        selectedImage = img;
+        img.parentElement.classList.add('selected');
     }
 
-    function applyGrayscale(img) {
-        img.style.filter = img.style.filter === 'grayscale(100%)' ? 'none' : 'grayscale(100%)';
+    function rotateSelected(angle) {
+        if (!selectedImage) return;
+        let rotation = parseInt(selectedImage.dataset.rotation) || 0;
+        rotation = (rotation + angle) % 360;
+        selectedImage.dataset.rotation = rotation;
+        applyTransformations(selectedImage);
     }
 
-    function resizeImage(img, size) {
-        img.style.width = size + '%';
-        img.style.height = size + '%';
+    function flipSelected(axis) {
+        if (!selectedImage) return;
+        if (axis === 'X') {
+            selectedImage.dataset.flipX *= -1;
+        } else {
+            selectedImage.dataset.flipY *= -1;
+        }
+        applyTransformations(selectedImage);
+    }
+
+    function applyGrayscaleSelected() {
+        if (!selectedImage) return;
+        selectedImage.style.filter = selectedImage.style.filter === 'grayscale(100%)' ? 'none' : 'grayscale(100%)';
+    }
+
+    function resizeSelected(size) {
+        if (!selectedImage) return;
+        selectedImage.style.width = size + '%';
+        selectedImage.style.height = size + '%';
     }
 
     function applyTransformations(img) {
-        img.style.transform = `rotate(${img.dataset.rotation}deg) scale(${img.dataset.flipX}, ${img.dataset.flipY})`;
+        const rotation = img.dataset.rotation;
+        const flipX = img.dataset.flipX;
+        const flipY = img.dataset.flipY;
+        img.style.transform = `rotate(${rotation}deg) scale(${flipX}, ${flipY})`;
     }
 
     function downloadCollage() {

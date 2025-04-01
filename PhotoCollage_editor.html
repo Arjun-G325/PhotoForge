@@ -279,15 +279,62 @@ function resizeImage(img, size) {
         img.style.transform = `rotate(${rotation}deg) scale(${flipX}, ${flipY})`;
     }
 
-    // Download the entire collage as a single image
-    function downloadCollage() {
-        html2canvas(collageContainer).then(canvas => {
-            const link = document.createElement('a');
-            link.download = 'collage.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        });
-    }
+   function downloadCollage() {
+    const collageContainer = document.getElementById("collage-container");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    // Get collage size
+    const boundingBox = collageContainer.getBoundingClientRect();
+    canvas.width = boundingBox.width;
+    canvas.height = boundingBox.height;
+
+    // Convert image elements to a canvas drawing
+    const images = collageContainer.querySelectorAll(".image-box img");
+    let imagesLoaded = 0;
+
+    images.forEach((img) => {
+        const tempImg = new Image();
+        tempImg.src = img.src;
+
+        tempImg.onload = () => {
+            const parentBox = img.parentElement;
+            const rotationAngle = parseInt(img.dataset.rotation) || 0;
+            const flipX = parseInt(img.dataset.flipX) || 1;
+            const flipY = parseInt(img.dataset.flipY) || 1;
+
+            // Get image position
+            const x = parseFloat(parentBox.style.left);
+            const y = parseFloat(parentBox.style.top);
+            const width = parentBox.offsetWidth;
+            const height = parentBox.offsetHeight;
+
+            ctx.save(); // Save canvas state
+            ctx.translate(x + width / 2, y + height / 2); // Move to center
+            ctx.rotate((rotationAngle * Math.PI) / 180); // Apply rotation
+            ctx.scale(flipX, flipY); // Apply flip
+
+            // Draw image, considering transformation
+            ctx.drawImage(tempImg, -width / 2, -height / 2, width, height);
+
+            ctx.restore(); // Restore canvas state
+
+            // Check if all images are processed
+            imagesLoaded++;
+            if (imagesLoaded === images.length) {
+                canvas.toBlob((blob) => {
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = "collage.png";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+            }
+        };
+    });
+}
+
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>

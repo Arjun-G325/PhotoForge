@@ -94,7 +94,7 @@
     <button onclick="rotateSelected(90)">↻ Rotate</button>
     <button onclick="flipSelected('X')">⇆ Flip X</button>
     <button onclick="flipSelected('Y')">⇅ Flip Y</button>
-    <button onclick="applyGrayscaleSelected()">BW Grayscale</button>
+
     <input type="range" min="50" max="200" value="100" onchange="resizeSelected(this.value)">
     <button onclick="downloadCollage()">Download Collage</button>
 </div>
@@ -191,10 +191,7 @@
         applyTransformations(selectedImage);
     }
 
-    function applyGrayscaleSelected() {
-        if (!selectedImage) return;
-        selectedImage.style.filter = selectedImage.style.filter === 'grayscale(100%)' ? 'none' : 'grayscale(100%)';
-    }
+   
 
     function resizeSelected(size) {
         if (!selectedImage) return;

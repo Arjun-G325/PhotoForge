@@ -61,7 +61,7 @@ function openCollageEditor() {
     }
   });
 
-  collageWindow.loadFile('PhotoCollage_editor.html');  // Load collage editor HTML
+  collageWindow.loadFile('UI_Collage.html');  // Load collage editor HTML
 
   collageWindow.on('closed', () => {
     collageWindow = null;

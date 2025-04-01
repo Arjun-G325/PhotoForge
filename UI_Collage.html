@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PhotoForge Collage Maker with Editing</title>
+    <title>PhotoForge Collage Maker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         html, body {
             margin: 0;
@@ -23,12 +24,6 @@
             border: 2px solid #444;
             width: 100%;
             padding: 10px;
-        }
-
-        .icon-grid {
-            display: flex;
-            gap: 15px;
-            margin: 0 10px;
         }
 
         .toolbar button {
@@ -56,18 +51,14 @@
         #collage-container {
             width: 90vw;
             height: 80vh;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
+            position: relative;
             background: #444;
             border: 2px solid #555;
-            gap: 10px;
-            overflow: auto;
+            overflow: hidden;
         }
 
         .image-box {
-            position: relative;
+            position: absolute;
             width: 200px;
             height: 200px;
             border: 2px solid #ccc;
@@ -76,6 +67,7 @@
             align-items: center;
             overflow: hidden;
             background: #fff;
+            cursor: grab;
         }
 
         .image-box img {
@@ -85,21 +77,16 @@
             transition: transform 0.3s;
         }
 
-        .image-box:hover img {
-            transform: scale(1.05);
-        }
-
         .edit-controls {
             display: flex;
-            justify-content: space-between;
             background: #333;
-            padding: 8px;
-            gap: 8px;
+            padding: 4px;
             position: absolute;
             bottom: 5px;
             left: 5px;
             right: 5px;
             z-index: 10;
+            justify-content: space-around;
         }
 
         .edit-controls button {
@@ -112,8 +99,8 @@
             border-radius: 4px;
         }
 
-        .edit-controls button:hover {
-            background: #0078d7;
+        .edit-controls input {
+            width: 50px;
         }
     </style>
 </head>
@@ -121,10 +108,8 @@
 <body>
 
 <div class="toolbar">
-    <div class="icon-grid">
-        <button onclick="openImages()">Open Images</button>
-        <button onclick="downloadCollage()">Download Collage</button>
-    </div>
+    <button onclick="openImages()">Open Images</button>
+    <button onclick="downloadCollage()">Download Collage</button>
 </div>
 
 <div class="content">
@@ -134,7 +119,6 @@
 <script>
     const collageContainer = document.getElementById('collage-container');
 
-   // Open and display images freely movable
     function openImages() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -148,7 +132,7 @@
                 reader.onload = (e) => {
                     const imageBox = document.createElement('div');
                     imageBox.classList.add('image-box');
-                    imageBox.style.left = Math.random() * 300 + "px";
+                    imageBox.style.left = Math.random() * 500 + "px";
                     imageBox.style.top = Math.random() * 300 + "px";
 
                     const img = document.createElement('img');
@@ -169,7 +153,6 @@
         input.click();
     }
 
-    // Make images draggable
     function makeDraggable(element) {
         let isDragging = false, startX, startY, startLeft, startTop;
 
@@ -194,52 +177,42 @@
         }
     }
 
-
-    // Function to create editing controls
     function createEditControls(img) {
         const controls = document.createElement('div');
         controls.classList.add('edit-controls');
 
-        // Rotate Button
         const rotateBtn = document.createElement('button');
         rotateBtn.textContent = '↻';
         rotateBtn.onclick = () => rotateImage(img, 90);
         controls.appendChild(rotateBtn);
 
-        // Flip Horizontally
         const flipXBtn = document.createElement('button');
         flipXBtn.textContent = '⇆';
         flipXBtn.onclick = () => flipImage(img, 'X');
         controls.appendChild(flipXBtn);
 
-        // Flip Vertically
         const flipYBtn = document.createElement('button');
         flipYBtn.textContent = '⇅';
         flipYBtn.onclick = () => flipImage(img, 'Y');
         controls.appendChild(flipYBtn);
 
-        // Grayscale Filter
         const grayBtn = document.createElement('button');
         grayBtn.textContent = 'BW';
         grayBtn.onclick = () => applyGrayscale(img);
         controls.appendChild(grayBtn);
 
-        // Resize Slider
-    const resizeSlider = document.createElement('input');
-    resizeSlider.type = 'range';
-    resizeSlider.min = '50';  // Minimum size 50%
-    resizeSlider.max = '200'; // Maximum size 200%
-    resizeSlider.value = '100';
-    resizeSlider.style.width = '60px';
+        const resizeSlider = document.createElement('input');
+        resizeSlider.type = 'range';
+        resizeSlider.min = '50';
+        resizeSlider.max = '200';
+        resizeSlider.value = '100';
 
-    resizeSlider.oninput = () => resizeImage(img, resizeSlider.value);
-    controls.appendChild(resizeSlider);
-
+        resizeSlider.oninput = () => resizeImage(img, resizeSlider.value);
+        controls.appendChild(resizeSlider);
 
         return controls;
     }
 
-    // Rotate Image
     function rotateImage(img, angle) {
         let rotation = parseInt(img.dataset.rotation) || 0;
         rotation = (rotation + angle) % 360;
@@ -247,7 +220,6 @@
         applyTransformations(img);
     }
 
-    // Flip Image Horizontally or Vertically
     function flipImage(img, axis) {
         if (axis === 'X') {
             img.dataset.flipX *= -1;
@@ -256,88 +228,29 @@
         }
         applyTransformations(img);
     }
-    // Function to resize image
-function resizeImage(img, size) {
-    img.style.width = size + '%';
-    img.style.height = size + '%';
-}
 
-    // Grayscale Filter
     function applyGrayscale(img) {
-        if (img.style.filter === 'grayscale(100%)') {
-            img.style.filter = 'none';
-        } else {
-            img.style.filter = 'grayscale(100%)';
-        }
+        img.style.filter = img.style.filter === 'grayscale(100%)' ? 'none' : 'grayscale(100%)';
     }
 
-    // Apply transformations
+    function resizeImage(img, size) {
+        img.style.width = size + '%';
+        img.style.height = size + '%';
+    }
+
     function applyTransformations(img) {
-        const rotation = img.dataset.rotation;
-        const flipX = img.dataset.flipX;
-        const flipY = img.dataset.flipY;
-        img.style.transform = `rotate(${rotation}deg) scale(${flipX}, ${flipY})`;
+        img.style.transform = `rotate(${img.dataset.rotation}deg) scale(${img.dataset.flipX}, ${img.dataset.flipY})`;
     }
 
-   function downloadCollage() {
-    const collageContainer = document.getElementById("collage-container");
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    // Get collage size
-    const boundingBox = collageContainer.getBoundingClientRect();
-    canvas.width = boundingBox.width;
-    canvas.height = boundingBox.height;
-
-    // Convert image elements to a canvas drawing
-    const images = collageContainer.querySelectorAll(".image-box img");
-    let imagesLoaded = 0;
-
-    images.forEach((img) => {
-        const tempImg = new Image();
-        tempImg.src = img.src;
-
-        tempImg.onload = () => {
-            const parentBox = img.parentElement;
-            const rotationAngle = parseInt(img.dataset.rotation) || 0;
-            const flipX = parseInt(img.dataset.flipX) || 1;
-            const flipY = parseInt(img.dataset.flipY) || 1;
-
-            // Get image position
-            const x = parseFloat(parentBox.style.left);
-            const y = parseFloat(parentBox.style.top);
-            const width = parentBox.offsetWidth;
-            const height = parentBox.offsetHeight;
-
-            ctx.save(); // Save canvas state
-            ctx.translate(x + width / 2, y + height / 2); // Move to center
-            ctx.rotate((rotationAngle * Math.PI) / 180); // Apply rotation
-            ctx.scale(flipX, flipY); // Apply flip
-
-            // Draw image, considering transformation
-            ctx.drawImage(tempImg, -width / 2, -height / 2, width, height);
-
-            ctx.restore(); // Restore canvas state
-
-            // Check if all images are processed
-            imagesLoaded++;
-            if (imagesLoaded === images.length) {
-                canvas.toBlob((blob) => {
-                    const link = document.createElement("a");
-                    link.href = URL.createObjectURL(blob);
-                    link.download = "collage.png";
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                });
-            }
-        };
-    });
-}
-
+    function downloadCollage() {
+        html2canvas(collageContainer).then(canvas => {
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL("image/png");
+            link.download = "collage.png";
+            link.click();
+        });
+    }
 </script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
 
 </body>
 </html>

@@ -26,7 +26,7 @@
             gap: 10px;
         }
 
-        .toolbar button {
+        .toolbar button, .toolbar input {
             background: #4CAF50;
             color: white;
             border: none;
@@ -82,7 +82,7 @@
         }
 
         .toolbar input[type="range"] {
-            width: 80px;
+            width: 100px;
         }
     </style>
 </head>
@@ -94,8 +94,14 @@
     <button onclick="rotateSelected(90)">↻ Rotate</button>
     <button onclick="flipSelected('X')">⇆ Flip X</button>
     <button onclick="flipSelected('Y')">⇅ Flip Y</button>
+    
 
+    <label>Resize Image:</label>
     <input type="range" min="50" max="200" value="100" onchange="resizeSelected(this.value)">
+
+    <label>Resize Box:</label>
+    <input type="range" min="100" max="400" value="200" onchange="resizeImageBox(this.value)">
+
     <button onclick="downloadCollage()">Download Collage</button>
 </div>
 
@@ -191,12 +197,19 @@
         applyTransformations(selectedImage);
     }
 
-   
+    
 
     function resizeSelected(size) {
         if (!selectedImage) return;
         selectedImage.style.width = size + '%';
         selectedImage.style.height = size + '%';
+    }
+
+    function resizeImageBox(size) {
+        if (!selectedImage) return;
+        let box = selectedImage.parentElement;
+        box.style.width = size + 'px';
+        box.style.height = size + 'px';
     }
 
     function applyTransformations(img) {

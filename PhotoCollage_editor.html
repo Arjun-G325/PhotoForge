@@ -227,6 +227,11 @@
         }
         applyTransformations(img);
     }
+    // Function to resize image
+function resizeImage(img, size) {
+    img.style.width = size + '%';
+    img.style.height = size + '%';
+}
 
     // Grayscale Filter
     function applyGrayscale(img) {

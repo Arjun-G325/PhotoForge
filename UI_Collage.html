@@ -116,39 +116,56 @@
     const collageContainer = document.getElementById('collage-container');
     let selectedImage = null;
 
-    function openImages() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.multiple = true;
+ function openImages() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
 
-        input.onchange = (event) => {
-            const files = event.target.files;
-            for (const file of files) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const imageBox = document.createElement('div');
-                    imageBox.classList.add('image-box');
-                    imageBox.style.left = Math.random() * 500 + "px";
-                    imageBox.style.top = Math.random() * 300 + "px";
+    input.onchange = (event) => {
+        const files = event.target.files;
+        for (const file of files) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imageBox = document.createElement('div');
+                imageBox.classList.add('image-box');
+                imageBox.style.left = Math.random() * 500 + "px";
+                imageBox.style.top = Math.random() * 300 + "px";
 
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.dataset.rotation = '0';
-                    img.dataset.flipX = '1';
-                    img.dataset.flipY = '1';
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.dataset.rotation = '0';
+                img.dataset.flipX = '1';
+                img.dataset.flipY = '1';
 
-                    imageBox.appendChild(img);
-                    collageContainer.appendChild(imageBox);
+                // Create delete button
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "❌";
+                deleteBtn.style.position = "absolute";
+                deleteBtn.style.top = "5px";
+                deleteBtn.style.right = "5px";
+                deleteBtn.style.background = "#FF4444"; // Red color
+                deleteBtn.style.color = "white";
+                deleteBtn.style.border = "none";
+                deleteBtn.style.padding = "5px";
+                deleteBtn.style.cursor = "pointer";
+                deleteBtn.style.borderRadius = "4px";
 
-                    makeDraggable(imageBox);
-                    imageBox.onclick = () => selectImage(img);
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-        input.click();
-    }
+                deleteBtn.onclick = () => deleteImage(imageBox);
+
+                imageBox.appendChild(img);
+                imageBox.appendChild(deleteBtn);
+                collageContainer.appendChild(imageBox);
+
+                makeDraggable(imageBox);
+                imageBox.onclick = () => selectImage(img);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    input.click();
+}
+
 
     function makeDraggable(element) {
         let isDragging = false, startX, startY, startLeft, startTop;

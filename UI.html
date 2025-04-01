@@ -26,6 +26,7 @@ overflow:hidden;">
     display: flex; 
     gap: 20px;">
         
+        <!-- Image Editing Button -->
         <button id="imageEditBtn" style="font-size: 24px;
         padding: 15px 30px;
         background-color: rgb(14, 158, 225);
@@ -36,7 +37,8 @@ overflow:hidden;">
             <i class="fa-solid fa-pencil"></i> Image Editing
         </button>
 
-        <button style="font-size: 24px;
+        <!-- Collage Maker Button -->
+        <button id="collageBtn" style="font-size: 24px;
         padding: 15px 30px;
         background-color: rgb(63, 210, 132);
         color: white; 
@@ -49,8 +51,15 @@ overflow:hidden;">
     
     <script>
         const { ipcRenderer } = require('electron');
+
+        // Open Image Editor
         document.getElementById('imageEditBtn').addEventListener('click', () => {
             ipcRenderer.send('open-image-editor');
+        });
+
+        // Open Collage Maker
+        document.getElementById('collageBtn').addEventListener('click', () => {
+            ipcRenderer.send('open-collage-editor');
         });
     </script>
 

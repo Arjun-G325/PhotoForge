@@ -195,6 +195,18 @@
         grayBtn.onclick = () => applyGrayscale(img);
         controls.appendChild(grayBtn);
 
+        // Resize Slider
+    const resizeSlider = document.createElement('input');
+    resizeSlider.type = 'range';
+    resizeSlider.min = '50';  // Minimum size 50%
+    resizeSlider.max = '200'; // Maximum size 200%
+    resizeSlider.value = '100';
+    resizeSlider.style.width = '60px';
+
+    resizeSlider.oninput = () => resizeImage(img, resizeSlider.value);
+    controls.appendChild(resizeSlider);
+
+
         return controls;
     }
 

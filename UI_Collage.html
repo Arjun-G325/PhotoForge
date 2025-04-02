@@ -91,21 +91,20 @@
 
 <div class="toolbar">
     <button onclick="openImages()">Open Images</button>
-    <button onclick="rotateSelected(90)">↻ Rotate</button>
-    <button onclick="flipSelected('X')">⇆ Flip X</button>
-    <button onclick="flipSelected('Y')">⇅ Flip Y</button>
+    <button onclick="rotateSelected(90)">↻ </button>
+    <button onclick="flipSelected('X')">⇆ </button>
+    <button onclick="flipSelected('Y')">⇅ </button>
     
+    <label style="color: #1E90FF;">Resize Image:</label>
+    <input id="resize-image-slider" type="range" min="50" max="200" value="100" 
+        onchange="resizeSelected(this.value)">
 
-  <label style="color: #1E90FF;">Resize Image:</label>
-<input id="resize-image-slider" type="range" min="50" max="200" value="100" 
-    onchange="resizeSelected(this.value)">
+    <label style="color: #FFA500;">Resize Box:</label>
+    <input id="resize-box-slider" type="range" min="100" max="400" value="200" 
+        onchange="resizeImageBox(this.value)">
 
-<label style="color: #FFA500;">Resize Box:</label>
-<input id="resize-box-slider" type="range" min="100" max="400" value="200" 
-    onchange="resizeImageBox(this.value)">
-
-
-    <button onclick="downloadCollage()">Download Collage</button>
+    <button onclick="deleteSelectedImage()" style="background: #FF4444;">❌ </button>
+    <button onclick="downloadCollage()">Save</button>
 </div>
 
 <div class="content">
@@ -116,56 +115,39 @@
     const collageContainer = document.getElementById('collage-container');
     let selectedImage = null;
 
- function openImages() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.multiple = true;
+    function openImages() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.multiple = true;
 
-    input.onchange = (event) => {
-        const files = event.target.files;
-        for (const file of files) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const imageBox = document.createElement('div');
-                imageBox.classList.add('image-box');
-                imageBox.style.left = Math.random() * 500 + "px";
-                imageBox.style.top = Math.random() * 300 + "px";
+        input.onchange = (event) => {
+            const files = event.target.files;
+            for (const file of files) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const imageBox = document.createElement('div');
+                    imageBox.classList.add('image-box');
+                    imageBox.style.left = Math.random() * 500 + "px";
+                    imageBox.style.top = Math.random() * 300 + "px";
 
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.dataset.rotation = '0';
-                img.dataset.flipX = '1';
-                img.dataset.flipY = '1';
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.dataset.rotation = '0';
+                    img.dataset.flipX = '1';
+                    img.dataset.flipY = '1';
 
-                // Create delete button
-                const deleteBtn = document.createElement("button");
-                deleteBtn.textContent = "❌";
-                deleteBtn.style.position = "absolute";
-                deleteBtn.style.top = "5px";
-                deleteBtn.style.right = "5px";
-                deleteBtn.style.background = "#FF4444"; // Red color
-                deleteBtn.style.color = "white";
-                deleteBtn.style.border = "none";
-                deleteBtn.style.padding = "5px";
-                deleteBtn.style.cursor = "pointer";
-                deleteBtn.style.borderRadius = "4px";
+                    imageBox.appendChild(img);
+                    collageContainer.appendChild(imageBox);
 
-                deleteBtn.onclick = () => deleteImage(imageBox);
-
-                imageBox.appendChild(img);
-                imageBox.appendChild(deleteBtn);
-                collageContainer.appendChild(imageBox);
-
-                makeDraggable(imageBox);
-                imageBox.onclick = () => selectImage(img);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-    input.click();
-}
-
+                    makeDraggable(imageBox);
+                    imageBox.onclick = () => selectImage(img);
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        input.click();
+    }
 
     function makeDraggable(element) {
         let isDragging = false, startX, startY, startLeft, startTop;
@@ -217,8 +199,6 @@
         applyTransformations(selectedImage);
     }
 
-    
-
     function resizeSelected(size) {
         if (!selectedImage) return;
         selectedImage.style.width = size + '%';
@@ -237,6 +217,13 @@
         const flipX = img.dataset.flipX;
         const flipY = img.dataset.flipY;
         img.style.transform = `rotate(${rotation}deg) scale(${flipX}, ${flipY})`;
+    }
+
+    function deleteSelectedImage() {
+        if (!selectedImage) return;
+        const imageBox = selectedImage.parentElement;
+        collageContainer.removeChild(imageBox);
+        selectedImage = null;
     }
 
     function downloadCollage() {

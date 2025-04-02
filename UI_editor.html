@@ -263,6 +263,22 @@ function cropImage() {
         cropBox.style.overflow = "hidden";
         cropBox.setAttribute("id", "crop-box");
         container.appendChild(cropBox);
+        const corners = ["nw", "ne", "sw", "se"];
+      corners.forEach(corner => {
+    const cornerDiv = document.createElement("div");
+    cornerDiv.style.position = "absolute";
+    cornerDiv.style.width = "10px";
+    cornerDiv.style.height = "10px";
+    cornerDiv.style.background = "black";
+    
+    // Position each corner
+    if (corner.includes("n")) cornerDiv.style.top = "-5px";
+    if (corner.includes("s")) cornerDiv.style.bottom = "-5px";
+    if (corner.includes("w")) cornerDiv.style.left = "-5px";
+    if (corner.includes("e")) cornerDiv.style.right = "-5px";
+
+    cropBox.appendChild(cornerDiv);
+    });
         isCropping = true;
 
         // Make crop box draggable

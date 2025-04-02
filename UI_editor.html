@@ -138,65 +138,37 @@
             display: none;
             transform-origin: center;
         }
+        
         /* Remove number input arrows */
- 
         input[type="number"]::-webkit-outer-spin-button,
- 
         input[type="number"]::-webkit-inner-spin-button {
- 
             -webkit-appearance: none;
- 
             margin: 0;
- 
         }
- 
-
- 
         input[type="number"] {
- 
             appearance: textfield;
- 
         }
- 
-
     </style>
     <script>
-        let rotationAngle = 0;
+let rotationAngle = 0;
 let flipX = 1, flipY = 1;
 let aspectRatio=1;
-
 function openImage() {
- 
  const input = document.createElement("input");
-
  input.type = "file";
-
  input.accept = "image/*";
-
  input.onchange = (event) => {
-
      const file = event.target.files[0];
-
      if (!file) return;
-
      let imageArea = document.getElementById("image-area");
-
      imageArea.src = URL.createObjectURL(file);
-
      imageArea.style.display = "block";
-
      imageArea.onload = () => {
-
          // Store the aspect ratio of the image
-
          aspectRatio = imageArea.naturalWidth / imageArea.naturalHeight;
-
      };
-
  };
-
  input.click();
-
 }
 
 function saveImage() {
@@ -375,7 +347,6 @@ function cropImage() {
         };
         message.remove();
     }
-    
 }
 
 function dragCropBox(e) {
@@ -388,14 +359,6 @@ function dragCropBox(e) {
         cropBox.style.top = `${newY}px`;
     }
 }
-
-
-
-
-
-
-
-
 
 function stopDrag() {
     isDragging = false;
@@ -419,14 +382,8 @@ function resizeCropBox(e) {
             cropBox.style.width = newWidth + "px";
             cropBox.style.height = newHeight + "px";
         }
-    } 
-
-   
+    }  
 }
-
-
-
-
 
 function stopResize() {
     isResizing = false;
@@ -451,30 +408,20 @@ function addResizeHandles() {
                 break;
             
         }
-
         handle.setAttribute("data-resize", dir);
         cropBox.appendChild(handle);
     });
 }
 
-
-
-
-
-
-
-        function flipImage() {
+    function flipImage() {
     let imageArea = document.getElementById("image-area");
     if (!imageArea.src) {
         alert("No image to flip");
         return;
     }
-
     flipX *= -1; // Flip horizontally
     imageArea.style.transform = `scale(${flipX}, ${flipY}) rotate(${rotationAngle}deg)`;
 }
-
-
 
 function rotateImage(angle) {
     let imageArea = document.getElementById("image-area");
@@ -493,110 +440,58 @@ function rotateImage(angle) {
             }
         }
         
-        function resizeImage() {
- 
+function resizeImage() {
  let imageArea = document.getElementById("image-area");
-
  let widthInput = document.getElementById("widthInput");
-
  let heightInput = document.getElementById("heightInput");
-
-
-
  if (!imageArea.src) return;
 
-
-
  // Get new values from the input fields
-
  let newWidth = widthInput.value.trim() === "" ? null : parseFloat(widthInput.value);  // If empty, set to null
-
  let newHeight = heightInput.value.trim() === "" ? null : parseFloat(heightInput.value);  // If empty, set to null
 
-
-
  // If width is updated, calculate height based on the aspect ratio
-
  if (newWidth !== null && newHeight === null) {
-
      heightInput.value = "";  // Clear the height field
-
      imageArea.style.width = `${newWidth * 37.795}px`;  // Resize image based on width
-
      imageArea.style.height = "";  // Reset height
-
+     
      // Calculate height based on width and aspect ratio
-
      let calculatedHeight = newWidth / aspectRatio;
-
      imageArea.style.height = `${calculatedHeight * 37.795}px`; // Set calculated height
-
  }
 
  // If height is updated, calculate width based on the aspect ratio
-
  else if (newHeight !== null && newWidth === null) {
-
      widthInput.value = "";  // Clear the width field
-
      imageArea.style.height = `${newHeight * 37.795}px`;  // Resize image based on height
-
      imageArea.style.width = "";  // Reset width
 
      // Calculate width based on height and aspect ratio
-
      let calculatedWidth = newHeight * aspectRatio;
-
      imageArea.style.width = `${calculatedWidth * 37.795}px`; // Set calculated width
-
  }
-
-
-
-
 
  // If both fields are updated (it should not happen), use both values directly
-
-
  if (newWidth !== null && newHeight !== null) {
-
-
      imageArea.style.width = `${newWidth * 37.795}px`;  // Resize image based on width
-
-
      imageArea.style.height = `${newHeight * 37.795}px`;  // Resize image based on height
-
-
  }
-
 }
 
-
-
 // Add listeners to inputs to clear the other field when one is updated
-
 window.onload = function () {
-
  document.getElementById("widthInput").addEventListener("input", function() {
-
      // When width changes, clear height
-
      document.getElementById("heightInput").value = "";
-
      resizeImage();
-
  });
 
  document.getElementById("heightInput").addEventListener("input", function() {
-
      // When height changes, clear width
-
      document.getElementById("widthInput").value = "";
-
      resizeImage();
-
  });
-
 };
     </script>
 </head>

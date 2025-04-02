@@ -99,6 +99,12 @@
 <button onclick="rotateSelected(90)" title="Rotate Image">↻</button>
 <button onclick="flipSelected('X')" title="Flip Horizontally">⇆</button>
 <button onclick="flipSelected('Y')" title="Flip Vertically">⇅</button>
+    <label style="color: #1E90FF;" title="Resize Image">📏</label>
+<input id="resize-image-slider" type="range" min="50" max="200" value="100" onchange="resizeSelected(this.value)" title="Resize the selected image">
+
+<label style="color: #FFA500;" title="Resize Box">⬛</label>
+<input id="resize-box-slider" type="range" min="100" max="400" value="200" onchange="resizeImageBox(this.value)" title="Resize the image container">
+
 
 <label style="color: white;" title="Adjust Brightness">🔆</label>
 <input type="range" id="brightness-slider" min="50" max="200" value="100" onchange="applyFilters()" title="Brightness Control">

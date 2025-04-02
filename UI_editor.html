@@ -112,6 +112,17 @@
             appearance: textfield;
         }
 
+        /* Remove number input arrows */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"] {
+            appearance: textfield;
+        }
+
         .content {
             flex-grow: 1;
             display: flex;
@@ -141,7 +152,8 @@
     </style>
     <script>
         let rotationAngle = 0;
-let flipX = 1, flipY = 1;
+        let flipX = 1, flipY = 1;
+        let aspectRatio = 1;  // To store the aspect ratio of the image
 
 function openImage() {
     const input = document.createElement("input");
@@ -151,315 +163,67 @@ function openImage() {
         const file = event.target.files[0];
         if (!file) return;
         let imageArea = document.getElementById("image-area");
-
-        // Revoke previous object URL
-        if (imageArea.src) {
-            URL.revokeObjectURL(imageArea.src);
-        }
-
         imageArea.src = URL.createObjectURL(file);
         imageArea.style.display = "block";
-        rotationAngle = 0;
-        flipX = 1;
-        flipY = 1;
-        imageArea.style.transform = `rotate(0deg) scale(1, 1)`;
+        imageArea.onload = () => {
+            // Store the aspect ratio of the image
+            aspectRatio = imageArea.naturalWidth / imageArea.naturalHeight;
+        };
     };
     input.click();
 }
 
-function saveImage() {
-    const image = document.getElementById("image-area");
-    if (!image.src) {
-        alert("No image to save");
-        return;
-    }
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const tempImg = new Image();
-    tempImg.crossOrigin = "anonymous"; // Avoid cross-origin issues
-    tempImg.src = image.src;
-
-    tempImg.onload = () => {
-        let imgWidth = tempImg.width;
-        let imgHeight = tempImg.height;
-        let newWidth = imgWidth;
-        let newHeight = imgHeight;
-
-        // Swap width and height if rotated 90 or 270 degrees
-        if (rotationAngle % 180 !== 0) {
-            newWidth = imgHeight;
-            newHeight = imgWidth;
-        }
-
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        ctx.translate(newWidth / 2, newHeight / 2); // Move to center
-        ctx.rotate((rotationAngle * Math.PI) / 180); // Apply rotation
-        ctx.scale(flipX, flipY); // Apply flip
-
-        // Adjust position after transformations
-        ctx.drawImage(tempImg, -imgWidth / 2, -imgHeight / 2);
-
-        canvas.toBlob((blob) => {
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "edited_image.png";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }, "image/png");
-    };
-
-    tempImg.onerror = () => {
-        alert("Failed to load image for saving.");
-    };
-}
-
-
-let cropBox = null;
-let isCropping = false;
-let isDragging = false;
-let isResizing = false;
-let offsetX, offsetY;
-let resizeDirection = null;
-
-function cropImage() {
-    let container = document.getElementById("image-container");
-    let image = document.getElementById("image-area");
-
-    if (!image.src) {
-        alert("No image to crop");
-        return;
-    }
-    let message = document.getElementById("crop-message");
-    if (!message) {
-        message = document.createElement("div");
-        message.id = "crop-message";
-        message.style.position = "absolute";
-        message.style.top = "100px";
-        message.style.left = "50%";
-        message.style.transform = "translateX(-50%)";
-        message.style.color = "white";
-        message.style.background = "rgba(0, 0, 0, 0.7)";
-        message.style.padding = "5px 10px";
-        message.style.borderRadius = "5px";
-        message.style.zIndex = "1000";
-        message.innerText = "Click crop icon again to finish cropping.";
-        container.appendChild(message);
-    }
-    if (!isCropping) {
-        // Create a cropping box
-        cropBox = document.createElement("div");
-        cropBox.style.position = "absolute";
-        cropBox.style.border = "2px dashed white";
-        cropBox.style.cursor = "move";
-        cropBox.style.width = "100px";
-        cropBox.style.height = "100px";
-        cropBox.style.top = "50%";
-        cropBox.style.left = "50%";
-        cropBox.style.transform = "translate(-50%, -50%)";
-        cropBox.style.resize = "ne";
-        cropBox.style.overflow = "hidden";
-        cropBox.setAttribute("id", "crop-box");
-        container.appendChild(cropBox);
-        const corners = ["nw", "ne", "sw", "se"];
-      corners.forEach(corner => {
-    const cornerDiv = document.createElement("div");
-    cornerDiv.style.position = "absolute";
-    cornerDiv.style.width = "10px";
-    cornerDiv.style.height = "10px";
-    cornerDiv.style.background = "black";
-    
-    // Position each corner
-    if (corner.includes("n")) cornerDiv.style.top = "-5px";
-    if (corner.includes("s")) cornerDiv.style.bottom = "-5px";
-    if (corner.includes("w")) cornerDiv.style.left = "-5px";
-    if (corner.includes("e")) cornerDiv.style.right = "-5px";
-
-    cropBox.appendChild(cornerDiv);
-    });
-        isCropping = true;
-
-        // Make crop box draggable
-        cropBox.addEventListener("mousedown", (e) => {
-            if (e.target === cropBox) {
-                isDragging = true;
-                offsetX = e.clientX - cropBox.offsetLeft;
-                offsetY = e.clientY - cropBox.offsetTop;
-
-                // Disable text selection during drag
-                document.body.style.userSelect = "none";
-
-                // Listen to mouse move to drag
-                document.addEventListener("mousemove", dragCropBox);
-                document.addEventListener("mouseup", stopDrag);
-            } else {
-                // Resizing logic
-                isResizing = true;
-                resizeDirection = e.target.getAttribute('data-resize');
-                document.addEventListener("mousemove", resizeCropBox);
-                document.addEventListener("mouseup", stopResize);
-            }
-        });
-
-        // Add resize handles to the crop box
-        addResizeHandles();
-    } else {
-        // Crop logic (same as before)
-        let rect = cropBox.getBoundingClientRect();
-        let imgRect = image.getBoundingClientRect();
-
-        // Calculate correct scaling factors
-        let scaleX = image.naturalWidth / imgRect.width;
-        let scaleY = image.naturalHeight / imgRect.height;
-
-        // Map crop box position to original image
-        let sx = Math.round((rect.left - imgRect.left) * scaleX);
-        let sy = Math.round((rect.top - imgRect.top) * scaleY);
-        let sw = Math.round(rect.width * scaleX);
-        let sh = Math.round(rect.height * scaleY);
-
-        // Ensure the crop area stays inside image boundaries
-        sx = Math.max(0, sx);
-        sy = Math.max(0, sy);
-        sw = Math.min(image.naturalWidth - sx, sw);
-        sh = Math.min(image.naturalHeight - sy, sh);
-
-        let canvas = document.createElement("canvas");
-        canvas.width = sw;
-        canvas.height = sh;
-        let ctx = canvas.getContext("2d");
-
-        let tempImg = new Image();
-        tempImg.src = image.src;
-
-        tempImg.onload = () => {
-            ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
-            image.src = canvas.toDataURL(); // Update image with cropped result
-            container.removeChild(cropBox);
-            cropBox = null;
-            isCropping = false;
-        };
-        message.remove();
-    }
-    
-}
-
-function dragCropBox(e) {
-    if (isDragging && cropBox) {
-        let newX = e.clientX - offsetX;
-        let newY = e.clientY - offsetY;
-
-        // Apply the new position without any limits
-        cropBox.style.left = `${newX}px`;
-        cropBox.style.top = `${newY}px`;
-    }
-}
-
-
-
-
-
-
-
-
-
-function stopDrag() {
-    isDragging = false;
-    document.removeEventListener("mousemove", dragCropBox);
-    document.removeEventListener("mouseup", stopDrag);
-
-    // Re-enable text selection after drag
-    document.body.style.userSelect = "auto";
-}
-
-function resizeCropBox(e) {
-    let rect = cropBox.getBoundingClientRect();
-    let containerRect = document.getElementById("image-container").getBoundingClientRect();
-
-    // Calculate new size based on the direction of resize
-    if (resizeDirection === "ne") {
-        // Resize from the top-right corner (North-East)
-        let newWidth = e.clientX - rect.left;
-        let newHeight = rect.bottom - e.clientY;
-        if (newWidth > 50 && newHeight > 50) {
-            cropBox.style.width = newWidth + "px";
-            cropBox.style.height = newHeight + "px";
-        }
-    } 
-
-   
-}
-
-
-
-
-
-function stopResize() {
-    isResizing = false;
-    document.removeEventListener("mousemove", resizeCropBox);
-    document.removeEventListener("mouseup", stopResize);
-}
-
-function addResizeHandles() {
-    const directions = ["ne"];
-    directions.forEach((dir) => {
-        const handle = document.createElement("div");
-        handle.style.position = "absolute";
-        handle.style.width = "10px";
-        handle.style.height = "10px";
-        handle.style.background = "white";
-        handle.style.cursor = `${dir}-resize`;
-
-        switch (dir) {
-            case "ne":
-                handle.style.top = "0px";
-                handle.style.right = "0px";
-                break;
-            
-        }
-
-        handle.setAttribute("data-resize", dir);
-        cropBox.appendChild(handle);
-    });
-}
-
-
-
-
-
-
-
-        function flipImage() {
+function resizeImage() {
     let imageArea = document.getElementById("image-area");
-    if (!imageArea.src) {
-        alert("No image to flip");
-        return;
+    let widthInput = document.getElementById("widthInput");
+    let heightInput = document.getElementById("heightInput");
+
+    if (!imageArea.src) return;
+
+    // Get new values from the input fields
+    let newWidth = widthInput.value.trim() === "" ? null : parseFloat(widthInput.value);  // If empty, set to null
+    let newHeight = heightInput.value.trim() === "" ? null : parseFloat(heightInput.value);  // If empty, set to null
+
+    // If width is updated, calculate height based on the aspect ratio
+    if (newWidth !== null && newHeight === null) {
+        heightInput.value = "";  // Clear the height field
+        imageArea.style.width = `${newWidth * 37.795}px`;  // Resize image based on width
+        imageArea.style.height = "";  // Reset height
+        // Calculate height based on width and aspect ratio
+        let calculatedHeight = newWidth / aspectRatio;
+        imageArea.style.height = `${calculatedHeight * 37.795}px`; // Set calculated height
+    }
+    // If height is updated, calculate width based on the aspect ratio
+    else if (newHeight !== null && newWidth === null) {
+        widthInput.value = "";  // Clear the width field
+        imageArea.style.height = `${newHeight * 37.795}px`;  // Resize image based on height
+        imageArea.style.width = "";  // Reset width
+        // Calculate width based on height and aspect ratio
+        let calculatedWidth = newHeight * aspectRatio;
+        imageArea.style.width = `${calculatedWidth * 37.795}px`; // Set calculated width
     }
 
-    flipX *= -1; // Flip horizontally
-    imageArea.style.transform = `scale(${flipX}, ${flipY}) rotate(${rotationAngle}deg)`;
+    // If both fields are updated (it should not happen), use both values directly
+    if (newWidth !== null && newHeight !== null) {
+        imageArea.style.width = `${newWidth * 37.795}px`;  // Resize image based on width
+        imageArea.style.height = `${newHeight * 37.795}px`;  // Resize image based on height
+    }
 }
 
+// Add listeners to inputs to clear the other field when one is updated
+window.onload = function () {
+    document.getElementById("widthInput").addEventListener("input", function() {
+        // When width changes, clear height
+        document.getElementById("heightInput").value = "";
+        resizeImage();
+    });
+    document.getElementById("heightInput").addEventListener("input", function() {
+        // When height changes, clear width
+        document.getElementById("widthInput").value = "";
+        resizeImage();
+    });
+};
 
-
-function rotateImage(angle) {
-    let imageArea = document.getElementById("image-area");
-    rotationAngle += angle;
-    imageArea.style.transform = `rotate(${rotationAngle}deg) scale(${flipX}, ${flipY})`;
-    adjustImageSize(imageArea);
-}
-
-        function adjustImageSize(image) {
-            if (rotationAngle % 180 !== 0) {
-                image.style.maxWidth = "85vh";
-                image.style.maxHeight = "95vw";
-            } else {
-                image.style.maxWidth = "100%";
-                image.style.maxHeight = "100%";
-            }
-        }
     </script>
 </head>
 <body>
@@ -475,13 +239,13 @@ function rotateImage(angle) {
             <button onclick="flipImage()"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip</span></button>
             <div class="size-input-container">
                 <span class="size-label">Height (cm)</span>
-                <input type="number" class="size-input" id="heightInput" value="0">
+                <input type="number" class="size-input" id="heightInput" value="">
             </div>
             <button onclick="rotateImage(-90)"><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
             <button onclick="rotateImage(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
             <div class="size-input-container">
                 <span class="size-label">Width (cm)</span>
-                <input type="number" class="size-input" id="widthInput" value="0">
+                <input type="number" class="size-input" id="widthInput" value="">
             </div>
         </div>
         <div class="partition"></div>

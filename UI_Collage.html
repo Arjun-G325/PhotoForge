@@ -93,6 +93,7 @@
     <button onclick="goHome()" style="background: #FFD700; color: black;">🏠 Home</button>
 
     <button onclick="openImages()">Open Images</button>
+     <button onclick="cropImage()">Crop</button>
     <button onclick="rotateSelected(90)">↻ </button>
     <button onclick="flipSelected('X')">⇆ </button>
     <button onclick="flipSelected('Y')">⇅ </button>
@@ -155,6 +156,197 @@
         };
         input.click();
     }
+    let cropBox = null;
+let isCropping = false;
+let isDragging = false;
+let isResizing = false;
+let offsetX, offsetY;
+let resizeDirection = null;
+
+function cropImage() {
+    let container = document.getElementById("image-container");
+    let image = document.getElementById("image-area");
+
+    if (!image.src) {
+        alert("No image to crop");
+        return;
+    }
+    let message = document.getElementById("crop-message");
+    if (!message) {
+        message = document.createElement("div");
+        message.id = "crop-message";
+        message.style.position = "absolute";
+        message.style.top = "100px";
+        message.style.left = "50%";
+        message.style.transform = "translateX(-50%)";
+        message.style.color = "white";
+        message.style.background = "rgba(0, 0, 0, 0.7)";
+        message.style.padding = "5px 10px";
+        message.style.borderRadius = "5px";
+        message.style.zIndex = "1000";
+        message.innerText = "Click crop icon again to finish cropping.";
+        container.appendChild(message);
+    }
+    if (!isCropping) {
+        // Create a cropping box
+        cropBox = document.createElement("div");
+        cropBox.style.position = "absolute";
+        cropBox.style.border = "2px dashed white";
+        cropBox.style.cursor = "move";
+        cropBox.style.width = "100px";
+        cropBox.style.height = "100px";
+        cropBox.style.top = "50%";
+        cropBox.style.left = "50%";
+        cropBox.style.transform = "translate(-50%, -50%)";
+        cropBox.style.resize = "ne";
+        cropBox.style.overflow = "hidden";
+        cropBox.setAttribute("id", "crop-box");
+        container.appendChild(cropBox);
+        const corners = ["nw", "ne", "sw", "se"];
+      corners.forEach(corner => {
+    const cornerDiv = document.createElement("div");
+    cornerDiv.style.position = "absolute";
+    cornerDiv.style.width = "10px";
+    cornerDiv.style.height = "10px";
+    cornerDiv.style.background = "black";
+    
+    // Position each corner
+    if (corner.includes("n")) cornerDiv.style.top = "-5px";
+    if (corner.includes("s")) cornerDiv.style.bottom = "-5px";
+    if (corner.includes("w")) cornerDiv.style.left = "-5px";
+    if (corner.includes("e")) cornerDiv.style.right = "-5px";
+
+    cropBox.appendChild(cornerDiv);
+    });
+        isCropping = true;
+
+        // Make crop box draggable
+        cropBox.addEventListener("mousedown", (e) => {
+            if (e.target === cropBox) {
+                isDragging = true;
+                offsetX = e.clientX - cropBox.offsetLeft;
+                offsetY = e.clientY - cropBox.offsetTop;
+
+                // Disable text selection during drag
+                document.body.style.userSelect = "none";
+
+                // Listen to mouse move to drag
+                document.addEventListener("mousemove", dragCropBox);
+                document.addEventListener("mouseup", stopDrag);
+            } else {
+                // Resizing logic
+                isResizing = true;
+                resizeDirection = e.target.getAttribute('data-resize');
+                document.addEventListener("mousemove", resizeCropBox);
+                document.addEventListener("mouseup", stopResize);
+            }
+        });
+
+        // Add resize handles to the crop box
+        addResizeHandles();
+    } else {
+        // Crop logic (same as before)
+        let rect = cropBox.getBoundingClientRect();
+        let imgRect = image.getBoundingClientRect();
+
+        // Calculate correct scaling factors
+        let scaleX = image.naturalWidth / imgRect.width;
+        let scaleY = image.naturalHeight / imgRect.height;
+
+        // Map crop box position to original image
+        let sx = Math.round((rect.left - imgRect.left) * scaleX);
+        let sy = Math.round((rect.top - imgRect.top) * scaleY);
+        let sw = Math.round(rect.width * scaleX);
+        let sh = Math.round(rect.height * scaleY);
+
+        // Ensure the crop area stays inside image boundaries
+        sx = Math.max(0, sx);
+        sy = Math.max(0, sy);
+        sw = Math.min(image.naturalWidth - sx, sw);
+        sh = Math.min(image.naturalHeight - sy, sh);
+
+        let canvas = document.createElement("canvas");
+        canvas.width = sw;
+        canvas.height = sh;
+        let ctx = canvas.getContext("2d");
+
+        let tempImg = new Image();
+        tempImg.src = image.src;
+
+        tempImg.onload = () => {
+            ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
+            image.src = canvas.toDataURL(); // Update image with cropped result
+            container.removeChild(cropBox);
+            cropBox = null;
+            isCropping = false;
+        };
+        message.remove();
+    }
+}
+
+function dragCropBox(e) {
+    if (isDragging && cropBox) {
+        let newX = e.clientX - offsetX;
+        let newY = e.clientY - offsetY;
+
+        // Apply the new position without any limits
+        cropBox.style.left = `${newX}px`;
+        cropBox.style.top = `${newY}px`;
+    }
+}
+
+function stopDrag() {
+    isDragging = false;
+    document.removeEventListener("mousemove", dragCropBox);
+    document.removeEventListener("mouseup", stopDrag);
+
+    // Re-enable text selection after drag
+    document.body.style.userSelect = "auto";
+}
+
+function resizeCropBox(e) {
+    let rect = cropBox.getBoundingClientRect();
+    let containerRect = document.getElementById("image-container").getBoundingClientRect();
+
+    // Calculate new size based on the direction of resize
+    if (resizeDirection === "ne") {
+        // Resize from the top-right corner (North-East)
+        let newWidth = e.clientX - rect.left;
+        let newHeight = rect.bottom - e.clientY;
+        if (newWidth > 50 && newHeight > 50) {
+            cropBox.style.width = newWidth + "px";
+            cropBox.style.height = newHeight + "px";
+        }
+    }  
+}
+
+function stopResize() {
+    isResizing = false;
+    document.removeEventListener("mousemove", resizeCropBox);
+    document.removeEventListener("mouseup", stopResize);
+}
+
+function addResizeHandles() {
+    const directions = ["ne"];
+    directions.forEach((dir) => {
+        const handle = document.createElement("div");
+        handle.style.position = "absolute";
+        handle.style.width = "10px";
+        handle.style.height = "10px";
+        handle.style.background = "white";
+        handle.style.cursor = `${dir}-resize`;
+
+        switch (dir) {
+            case "ne":
+                handle.style.top = "0px";
+                handle.style.right = "0px";
+                break;
+            
+        }
+        handle.setAttribute("data-resize", dir);
+        cropBox.appendChild(handle);
+    });
+}
 
     function makeDraggable(element) {
         let isDragging = false, startX, startY, startLeft, startTop;

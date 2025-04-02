@@ -202,12 +202,6 @@ function resizeImage() {
         let calculatedWidth = newHeight * aspectRatio;
         imageArea.style.width = `${calculatedWidth * 37.795}px`; // Set calculated width
     }
-
-    // If both fields are updated (it should not happen), use both values directly
-    if (newWidth !== null && newHeight !== null) {
-        imageArea.style.width = `${newWidth * 37.795}px`;  // Resize image based on width
-        imageArea.style.height = `${newHeight * 37.795}px`;  // Resize image based on height
-    }
 }
 
 // Add listeners to inputs to clear the other field when one is updated

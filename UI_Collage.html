@@ -456,23 +456,15 @@ function addResizeHandles() {
         selectedImage = null;
     }
 
- function downloadCollage() {
-    html2canvas(collageContainer, {
-        onclone: (documentClone) => {
-            let images = documentClone.querySelectorAll('.image-box img');
-
-            images.forEach((img, index) => {
-                let original = document.querySelectorAll('.image-box img')[index];
-                img.style.filter = window.getComputedStyle(original).filter;
-            });
-        }
-    }).then(canvas => {
+function downloadCollage() {
+    html2canvas(collageContainer).then(canvas => {
         const link = document.createElement('a');
         link.href = canvas.toDataURL("image/png");
         link.download = "collage.png";
         link.click();
     });
 }
+
 
 </script>
 

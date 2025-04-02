@@ -90,6 +90,8 @@
 <body>
 
 <div class="toolbar">
+    <button onclick="goHome()" style="background: #FFD700; color: black;">🏠 Home</button>
+
     <button onclick="openImages()">Open Images</button>
     <button onclick="rotateSelected(90)">↻ </button>
     <button onclick="flipSelected('X')">⇆ </button>
@@ -114,6 +116,11 @@
 <script>
     const collageContainer = document.getElementById('collage-container');
     let selectedImage = null;
+
+    function goHome() {
+    window.location.href = "UI.html"; // Redirect to the main PhotoForge page
+}
+
 
     function openImages() {
         const input = document.createElement('input');

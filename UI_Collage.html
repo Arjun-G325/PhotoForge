@@ -97,6 +97,18 @@
     <button onclick="rotateSelected(90)">↻ </button>
     <button onclick="flipSelected('X')">⇆ </button>
     <button onclick="flipSelected('Y')">⇅ </button>
+    <label style="color: white;">Brightness:</label>
+<input type="range" id="brightness-slider" min="50" max="200" value="100" onchange="applyFilters()">
+
+<label style="color: white;">Contrast:</label>
+<input type="range" id="contrast-slider" min="50" max="200" value="100" onchange="applyFilters()">
+
+<label style="color: white;">Saturation:</label>
+<input type="range" id="saturation-slider" min="50" max="200" value="100" onchange="applyFilters()">
+
+<label style="color: white;">Sharpness:</label>
+<input type="range" id="sharpness-slider" min="0" max="5" value="1" step="0.1" onchange="applyFilters()">
+
     
     <label style="color: #1E90FF;">Resize Image:</label>
     <input id="resize-image-slider" type="range" min="50" max="200" value="100" 
@@ -156,6 +168,70 @@
         };
         input.click();
     }
+    function applyFilters() {
+    if (!selectedImage) return;
+
+    let brightness = document.getElementById('brightness-slider').value;
+    let contrast = document.getElementById('contrast-slider').value;
+    let saturation = document.getElementById('saturation-slider').value;
+    let sharpness = document.getElementById('sharpness-slider').value;
+
+    selectedImage.style.filter = `
+        brightness(${brightness}%)
+        contrast(${contrast}%)
+        saturate(${saturation}%)
+    `;
+
+    applySharpness(sharpness);
+}
+
+function applySharpness(value) {
+    if (!selectedImage) return;
+
+    let canvas = document.createElement("canvas");
+    let ctx = canvas.getContext("2d");
+
+    canvas.width = selectedImage.width;
+    canvas.height = selectedImage.height;
+    ctx.drawImage(selectedImage, 0, 0);
+
+    let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let data = imageData.data;
+
+    let kernel = [
+        [0, -1, 0],
+        [-1, 4 * value, -1],
+        [0, -1, 0]
+    ];
+
+    let tempData = new Uint8ClampedArray(data);
+
+    for (let y = 1; y < canvas.height - 1; y++) {
+        for (let x = 1; x < canvas.width - 1; x++) {
+            let pixelIndex = (y * canvas.width + x) * 4;
+            let r = 0, g = 0, b = 0;
+
+            for (let ky = -1; ky <= 1; ky++) {
+                for (let kx = -1; kx <= 1; kx++) {
+                    let neighborIndex = ((y + ky) * canvas.width + (x + kx)) * 4;
+                    let weight = kernel[ky + 1][kx + 1];
+
+                    r += tempData[neighborIndex] * weight;
+                    g += tempData[neighborIndex + 1] * weight;
+                    b += tempData[neighborIndex + 2] * weight;
+                }
+            }
+
+            data[pixelIndex] = Math.min(Math.max(r, 0), 255);
+            data[pixelIndex + 1] = Math.min(Math.max(g, 0), 255);
+            data[pixelIndex + 2] = Math.min(Math.max(b, 0), 255);
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    selectedImage.src = canvas.toDataURL();
+}
+
     let cropBox = null;
 let isCropping = false;
 let isDragging = false;

@@ -99,6 +99,11 @@
 <button onclick="rotateSelected(90)" title="Rotate Image">↻</button>
 <button onclick="flipSelected('X')" title="Flip Horizontally">⇆</button>
 <button onclick="flipSelected('Y')" title="Flip Vertically">⇅</button>
+<button onclick="applyFilter('grayscale')" title="Black & White">B/W</button>
+<button onclick="applyFilter('sepia')" title="Sepia">Sepia</button>
+<button onclick="applyFilter('blur')" title="Blur">Blur</button>
+<button onclick="resetFilters()" title="Reset Image">♻ Reset</button>
+
     <label style="color: #1E90FF;" title="Resize Image">📏</label>
 <input id="resize-image-slider" type="range" min="50" max="200" value="100" onchange="resizeSelected(this.value)" title="Resize the selected image">
 
@@ -157,6 +162,29 @@
         };
         input.click();
     }
+    function applyFilter(filterType) {
+    if (!selectedImage) return;
+
+    switch (filterType) {
+        case 'grayscale':
+            selectedImage.style.filter = "grayscale(100%)";
+            break;
+        case 'sepia':
+            selectedImage.style.filter = "sepia(100%)";
+            break;
+        case 'blur':
+            selectedImage.style.filter = "blur(5px)";
+            break;
+        default:
+            console.error("Invalid filter type");
+    }
+}
+
+function resetFilters() {
+    if (!selectedImage) return;
+    selectedImage.style.filter = "none";
+}
+
   
 
     let cropBox = null;

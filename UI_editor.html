@@ -154,6 +154,10 @@
         let rotationAngle = 0;
         let flipX = 1, flipY = 1;
         let aspectRatio = 1;  // To store the aspect ratio of the image
+        function goHome() {
+    window.location.href = "UI.html"; // Redirect to the main PhotoForge page
+}
+
 
 function openImage() {
     const input = document.createElement("input");
@@ -436,6 +440,8 @@ function addResizeHandles() {
 <body>
     <div class="toolbar">
         <div class="icon-grid">
+            <button onclick="goHome()" style="background: #FFD700; color: black;">🏠 Home</button>
+
             <button onclick="openImage()"><i class="fa-solid fa-folder-open"></i><span class="tooltip">Open</span></button>
             <button onclick="saveImage()"><i class="fa-solid fa-floppy-disk"></i><span class="tooltip">Save</span></button>
             <button><i class="fa-solid fa-trash"></i><span class="tooltip">Remove</span></button>

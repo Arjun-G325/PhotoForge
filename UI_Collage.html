@@ -162,23 +162,43 @@
         };
         input.click();
     }
-    function applyFilter(filterType) {
+   function applyFilter(filterType) {
     if (!selectedImage) return;
 
+    // Create a temporary canvas
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas size to match image
+    canvas.width = selectedImage.naturalWidth;
+    canvas.height = selectedImage.naturalHeight;
+
+    // Draw the image onto the canvas
+    ctx.drawImage(selectedImage, 0, 0, canvas.width, canvas.height);
+
+    // Apply filter
     switch (filterType) {
         case 'grayscale':
-            selectedImage.style.filter = "grayscale(100%)";
+            ctx.filter = "grayscale(100%)";
             break;
         case 'sepia':
-            selectedImage.style.filter = "sepia(100%)";
+            ctx.filter = "sepia(100%)";
             break;
         case 'blur':
-            selectedImage.style.filter = "blur(5px)";
+            ctx.filter = "blur(5px)";
             break;
         default:
             console.error("Invalid filter type");
+            return;
     }
+
+    // Redraw the image with the applied filter
+    ctx.drawImage(canvas, 0, 0, canvas.width, canvas.height);
+
+    // Update the image source with the new filtered image
+    selectedImage.src = canvas.toDataURL();
 }
+
 
 function resetFilters() {
     if (!selectedImage) return;

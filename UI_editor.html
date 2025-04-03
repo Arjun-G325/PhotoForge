@@ -487,6 +487,25 @@ window.onload = function () {
      resizeImage();
  });
 };
+function RemoveImage() {
+    let imageArea = document.getElementById("image-area");
+    let widthInput = document.getElementById("widthInput");
+    let heightInput = document.getElementById("heightInput");
+
+    if (!imageArea.src || imageArea.style.display === "none") {
+        alert("No image to remove");
+        return;
+    }
+
+    imageArea.src = "";
+    imageArea.style.display = "none";
+    rotationAngle = 0;
+    flipX = 1;
+    flipY = 1;
+    aspectRatio = 1;
+    widthInput.value = "";
+    heightInput.value = "";
+}
     </script>
 </head>
 <body>
@@ -494,7 +513,7 @@ window.onload = function () {
         <div class="icon-grid">
             <button onclick="openImage()"><i class="fa-solid fa-folder-open"></i><span class="tooltip">Open</span></button>
             <button onclick="saveImage()"><i class="fa-solid fa-floppy-disk"></i><span class="tooltip">Save</span></button>
-            <button><i class="fa-solid fa-trash"></i><span class="tooltip">Remove</span></button>
+            <button onclick="RemoveImage()"><i class="fa-solid fa-trash"></i><span class="tooltip">Remove</span></button>
         </div>
         <div class="partition"></div>
         <div class="icon-grid-right">

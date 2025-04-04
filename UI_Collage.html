@@ -590,56 +590,58 @@ function addResizeHandles() {
         drop-shadow(0px 0px ${sharpness / 50}px black)  /* Simulates sharpness */
     `;
 }
-function downloadCollage() {
+function applyFiltersAndReplaceImages(callback) {
     const collage = document.getElementById("collage-container");
-    
-    html2canvas(collage).then(canvas => {
-        const ctx = canvas.getContext("2d");
 
-        // Loop through each image inside the collage and apply filters manually
-        collage.querySelectorAll(".image-box img").forEach(img => {
-            const rect = img.getBoundingClientRect();
-            const collageRect = collage.getBoundingClientRect();
+    const images = collage.querySelectorAll(".image-box img");
+    let processedImages = 0;
 
-            const imgX = rect.left - collageRect.left;
-            const imgY = rect.top - collageRect.top;
+    images.forEach(img => {
+        const tempCanvas = document.createElement("canvas");
+        const tempCtx = tempCanvas.getContext("2d");
 
-            // Create a temporary canvas for filtering
-            const tempCanvas = document.createElement("canvas");
-            const tempCtx = tempCanvas.getContext("2d");
+        tempCanvas.width = img.naturalWidth;
+        tempCanvas.height = img.naturalHeight;
 
-            // Set canvas size to match the image
-            tempCanvas.width = img.naturalWidth;
-            tempCanvas.height = img.naturalHeight;
+        // Draw the original image on the temporary canvas
+        tempCtx.drawImage(img, 0, 0);
 
-            // Draw image on temporary canvas
-            tempCtx.drawImage(img, 0, 0);
+        // Get current slider values
+        const brightness = document.getElementById("brightness-slider").value;
+        const contrast = document.getElementById("contrast-slider").value;
+        const saturation = document.getElementById("saturation-slider").value;
 
-            // Get slider values
-            const brightness = document.getElementById("brightness-slider").value;
-            const contrast = document.getElementById("contrast-slider").value;
-            const saturation = document.getElementById("saturation-slider").value;
-            const sharpness = document.getElementById("sharpness-slider").value;
+        // Apply filters using canvas context
+        tempCtx.filter = `
+            brightness(${brightness}%)
+            contrast(${contrast}%)
+            saturate(${saturation}%)
+        `;
+        tempCtx.drawImage(tempCanvas, 0, 0);
 
-            // Apply filters using CSS-like effects via canvas
-            tempCtx.filter = `
-                brightness(${brightness}%)
-                contrast(${contrast}%)
-                saturate(${saturation}%)
-            `;
-            tempCtx.drawImage(tempCanvas, 0, 0);
+        // Convert the processed image back to data URL
+        img.src = tempCanvas.toDataURL("image/png");
 
-            // Copy the filtered image back to the main collage canvas
-            ctx.drawImage(tempCanvas, imgX, imgY, rect.width, rect.height);
-        });
-
-        // Convert the final canvas to an image and trigger download
-        const link = document.createElement("a");
-        link.href = canvas.toDataURL("image/png");
-        link.download = "collage.png";
-        link.click();
+        // Ensure all images are processed before calling the callback
+        processedImages++;
+        if (processedImages === images.length) {
+            callback();
+        }
     });
 }
+function downloadCollage() {
+    applyFiltersAndReplaceImages(() => {
+        const collage = document.getElementById("collage-container");
+
+        html2canvas(collage).then(canvas => {
+            const link = document.createElement("a");
+            link.href = canvas.toDataURL("image/png");
+            link.download = "collage.png";
+            link.click();
+        });
+    });
+}
+
 
 
 </script>

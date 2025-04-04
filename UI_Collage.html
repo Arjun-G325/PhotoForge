@@ -176,12 +176,15 @@
         <div class="partition"></div>
 
         <div class="icon-grid">
-            <label>Resize Image</label>
-        <input id="resize-image-slider" type="range" min="50" max="200" value="100" onchange="resizeImage(this.value)">
+          </div>  
+         
+    <label style="color: #1E90FF;" title="Resize Image">📏</label>
+<input id="resize-image-slider" type="range" min="50" max="200" value="100" onchange="resizeSelected(this.value)" title="Resize the selected image">
+
+<label style="color: #FFA500;" title="Resize Box">⬛</label>
+<input id="resize-box-slider" type="range" min="100" max="400" value="200" onchange="resizeImageBox(this.value)" title="Resize the image container">
+
         
-        <label>Resize Box</label>
-        <input id="resize-box-slider" type="range" min="50" max="200" value="100" onchange="resizeBox(this.value)">
-        </div>
     </div>
 
 
@@ -519,27 +522,22 @@ function addResizeHandles() {
         applyTransformations(selectedImage);
     }
 
-   function resizeImage(value) {
-    let selected = getSelectedImage();
-    if (!selected) return;
-    
-    let scale = value / 100; // Convert slider value to scale factor
-    selected.style.transform = `scale(${scale})`; // Adjust image size
-}
+   
 
-function resizeBox(value) {
-    let selected = getSelectedImage();
-    if (!selected) return;
-    
-    let scale = value / 100; // Convert slider value to scale factor
-    selected.style.width = `${selected.naturalWidth * scale}px`;
-    selected.style.height = `${selected.naturalHeight * scale}px`;
-}
 
-// Helper function to get the currently selected image
-function getSelectedImage() {
-    return document.querySelector(".selected-image"); // Ensure selected image has this class
-}
+    function resizeSelected(size) {
+        if (!selectedImage) return;
+        selectedImage.style.width = size + '%';
+        selectedImage.style.height = size + '%';
+    }
+
+    function resizeImageBox(size) {
+        if (!selectedImage) return;
+        let box = selectedImage.parentElement;
+        box.style.width = size + 'px';
+        box.style.height = size + 'px';
+    }
+
 
 
     function applyTransformations(img) {

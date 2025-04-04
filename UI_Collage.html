@@ -591,21 +591,55 @@ function addResizeHandles() {
     `;
 }
 function downloadCollage() {
-    const collage = document.getElementById('collage-container');
+    const collage = document.getElementById("collage-container");
     
-    html2canvas(collage, {
-        allowTaint: true,
-        useCORS: true,
-        logging: false,
-        backgroundColor: null // Ensures transparent background
-    }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = 'collage.png';
-        link.href = canvas.toDataURL();
+    html2canvas(collage).then(canvas => {
+        const ctx = canvas.getContext("2d");
+
+        // Loop through each image inside the collage and apply filters manually
+        collage.querySelectorAll(".image-box img").forEach(img => {
+            const rect = img.getBoundingClientRect();
+            const collageRect = collage.getBoundingClientRect();
+
+            const imgX = rect.left - collageRect.left;
+            const imgY = rect.top - collageRect.top;
+
+            // Create a temporary canvas for filtering
+            const tempCanvas = document.createElement("canvas");
+            const tempCtx = tempCanvas.getContext("2d");
+
+            // Set canvas size to match the image
+            tempCanvas.width = img.naturalWidth;
+            tempCanvas.height = img.naturalHeight;
+
+            // Draw image on temporary canvas
+            tempCtx.drawImage(img, 0, 0);
+
+            // Get slider values
+            const brightness = document.getElementById("brightness-slider").value;
+            const contrast = document.getElementById("contrast-slider").value;
+            const saturation = document.getElementById("saturation-slider").value;
+            const sharpness = document.getElementById("sharpness-slider").value;
+
+            // Apply filters using CSS-like effects via canvas
+            tempCtx.filter = `
+                brightness(${brightness}%)
+                contrast(${contrast}%)
+                saturate(${saturation}%)
+            `;
+            tempCtx.drawImage(tempCanvas, 0, 0);
+
+            // Copy the filtered image back to the main collage canvas
+            ctx.drawImage(tempCanvas, imgX, imgY, rect.width, rect.height);
+        });
+
+        // Convert the final canvas to an image and trigger download
+        const link = document.createElement("a");
+        link.href = canvas.toDataURL("image/png");
+        link.download = "collage.png";
         link.click();
     });
 }
-
 
 
 </script>

@@ -573,95 +573,78 @@ function addResizeHandles() {
         collageContainer.removeChild(imageBox);
         selectedImage = null;
     }
-    function applyAdjustments() {
-    if (!selectedImage) return;
+   
+function applyFiltersToImage(img, callback) {
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
 
-    // Get slider values
-    const brightness = document.getElementById("brightness-slider").value;
-    const contrast = document.getElementById("contrast-slider").value;
-    const saturation = document.getElementById("saturation-slider").value;
-    const sharpness = document.getElementById("sharpness-slider").value;
+    tempCanvas.width = img.naturalWidth;
+    tempCanvas.height = img.naturalHeight;
 
-    // Apply filters using CSS
-    selectedImage.style.filter = `
-        brightness(${brightness}%)
-        contrast(${contrast}%)
-        saturate(${saturation}%)
-        drop-shadow(0px 0px ${sharpness / 50}px black)  /* Simulates sharpness */
-    `;
+    tempCtx.drawImage(img, 0, 0);
+
+    // Get filter values
+    const brightness = parseFloat(document.getElementById("brightness-slider").value) / 100;
+    const contrast = parseFloat(document.getElementById("contrast-slider").value) / 100;
+    const saturation = parseFloat(document.getElementById("saturation-slider").value) / 100;
+
+    // Get image data
+    let imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    let pixels = imageData.data;
+
+    for (let i = 0; i < pixels.length; i += 4) {
+        let r = pixels[i];
+        let g = pixels[i + 1];
+        let b = pixels[i + 2];
+
+        // Apply brightness
+        r *= brightness;
+        g *= brightness;
+        b *= brightness;
+
+        // Apply contrast
+        r = ((r - 128) * contrast) + 128;
+        g = ((g - 128) * contrast) + 128;
+        b = ((b - 128) * contrast) + 128;
+
+        // Apply saturation
+        let gray = 0.3 * r + 0.59 * g + 0.11 * b;
+        r = gray * (1 - saturation) + r * saturation;
+        g = gray * (1 - saturation) + g * saturation;
+        b = gray * (1 - saturation) + b * saturation;
+
+        // Ensure values are in range [0, 255]
+        pixels[i] = Math.min(255, Math.max(0, r));
+        pixels[i + 1] = Math.min(255, Math.max(0, g));
+        pixels[i + 2] = Math.min(255, Math.max(0, b));
+    }
+
+    tempCtx.putImageData(imageData, 0, 0);
+
+    // Update the image source with the processed canvas
+    img.onload = () => {
+        if (callback) callback();
+    };
+    img.src = tempCanvas.toDataURL("image/png");
 }
-
-
-        
-      function applyFiltersAndReplaceImages(callback) {
+function applyFiltersAndReplaceImages(callback) {
     const images = document.querySelectorAll(".image-box img");
-    let processedImages = 0;
+    let processedCount = 0;
 
     images.forEach(img => {
-        const tempCanvas = document.createElement("canvas");
-        const tempCtx = tempCanvas.getContext("2d");
-
-        tempCanvas.width = img.naturalWidth;
-        tempCanvas.height = img.naturalHeight;
-
-        // Draw the image on the temporary canvas
-        tempCtx.drawImage(img, 0, 0);
-
-        // Get filter values
-        const brightness = document.getElementById("brightness-slider").value / 100;
-        const contrast = document.getElementById("contrast-slider").value / 100;
-        const saturation = document.getElementById("saturation-slider").value / 100;
-
-        // Get image data
-        let imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-        let pixels = imageData.data;
-
-        // Apply filters manually
-        for (let i = 0; i < pixels.length; i += 4) {
-            let r = pixels[i];
-            let g = pixels[i + 1];
-            let b = pixels[i + 2];
-
-            // Apply brightness
-            r = r * brightness;
-            g = g * brightness;
-            b = b * brightness;
-
-            // Apply contrast
-            r = ((r - 128) * contrast) + 128;
-            g = ((g - 128) * contrast) + 128;
-            b = ((b - 128) * contrast) + 128;
-
-            // Apply saturation
-            let gray = 0.3 * r + 0.59 * g + 0.11 * b;
-            r = gray * (1 - saturation) + r * saturation;
-            g = gray * (1 - saturation) + g * saturation;
-            b = gray * (1 - saturation) + b * saturation;
-
-            // Set new pixel values
-            pixels[i] = r;
-            pixels[i + 1] = g;
-            pixels[i + 2] = b;
-        }
-
-        // Put modified image data back
-        tempCtx.putImageData(imageData, 0, 0);
-
-        // Replace the original image with processed one
-        img.src = tempCanvas.toDataURL("image/png");
-
-        processedImages++;
-        if (processedImages === images.length) {
-            callback();
-        }
+        applyFiltersToImage(img, () => {
+            processedCount++;
+            if (processedCount === images.length) {
+                callback();
+            }
+        });
     });
 }
-
 function downloadCollage() {
     applyFiltersAndReplaceImages(() => {
         const collage = document.getElementById("collage-container");
 
-        html2canvas(collage).then(canvas => {
+        html2canvas(collage, { useCORS: true }).then(canvas => {
             const link = document.createElement("a");
             link.href = canvas.toDataURL("image/png");
             link.download = "collage.png";
@@ -669,6 +652,11 @@ function downloadCollage() {
         });
     });
 }
+
+        
+    
+        
+
 
 
 

@@ -132,7 +132,7 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
-            transition: transform 0.3s;
+           transition: filter 0.3s ease;
         }
 
         .selected {
@@ -186,6 +186,20 @@
 
         
     </div>
+    <div class="icon-grid">
+    <label>Brightness</label>
+    <input id="brightness-slider" type="range" min="50" max="200" value="100" oninput="applyAdjustments()">
+
+    <label>Contrast</label>
+    <input id="contrast-slider" type="range" min="50" max="200" value="100" oninput="applyAdjustments()">
+
+    <label>Saturation</label>
+    <input id="saturation-slider" type="range" min="0" max="300" value="100" oninput="applyAdjustments()">
+
+    <label>Sharpness</label>
+    <input id="sharpness-slider" type="range" min="0" max="200" value="100" oninput="applyAdjustments()">
+</div>
+
 
 
    
@@ -553,6 +567,24 @@ function addResizeHandles() {
         collageContainer.removeChild(imageBox);
         selectedImage = null;
     }
+    function applyAdjustments() {
+    if (!selectedImage) return;
+
+    // Get slider values
+    const brightness = document.getElementById("brightness-slider").value;
+    const contrast = document.getElementById("contrast-slider").value;
+    const saturation = document.getElementById("saturation-slider").value;
+    const sharpness = document.getElementById("sharpness-slider").value;
+
+    // Apply filters using CSS
+    selectedImage.style.filter = `
+        brightness(${brightness}%)
+        contrast(${contrast}%)
+        saturate(${saturation}%)
+        drop-shadow(0px 0px ${sharpness / 50}px black)  /* Simulates sharpness */
+    `;
+}
+
 
 function downloadCollage() {
     html2canvas(collageContainer).then(canvas => {

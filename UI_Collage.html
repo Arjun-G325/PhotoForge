@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>PhotoForge Collage Maker</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+     <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         html, body {
             margin: 0;
@@ -148,19 +150,19 @@
 <div class="toolbar">
  <div class="icon-grid">
             <button onclick="goHome()"><i class="fa-solid fa-house"></i><span class="tooltip">Home</span></button>
-            <button onclick="openImage()"><i class="fa-regular fa-folder-open"></i><span class="tooltip">Open</span></button>
-            <button onclick="saveImage()"><i class="fa-regular fa-floppy-disk"></i><span class="tooltip">Save</span></button>
-            <button onclick="deleteImage()"><i class="fa-regular fa-trash-can"></i><span class="tooltip">Delete</span></button>
+            <button onclick="openImages()"><i class="fa-regular fa-folder-open"></i><span class="tooltip">Open</span></button>
+            <button onclick="downloadCollage()"><i class="fa-regular fa-floppy-disk"></i><span class="tooltip">Save</span></button>
+            <button onclick="deleteSelectedImage()"><i class="fa-regular fa-trash-can"></i><span class="tooltip">Delete</span></button>
         </div>
         
         <div class="partition"></div>
 
         <div class="icon-grid">
             <button onclick="cropImage()"><i class="fa-solid fa-crop"></i><span class="tooltip">Crop</span></button>
-            <button onclick="rotateImage(-90)"><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
-            <button onclick="rotateImage(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
-            <button onclick="flipImage('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
-            <button onclick="flipImage('Y')"><i class="fa-solid fa-arrows-up-down"></i><span class="tooltip">Flip Vertically</span></button>
+            <button onclick="rotateSelected(-90)"><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
+            <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
+            <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
+            <button onclick="flipSelected('Y')"><i class="fa-solid fa-arrows-up-down"></i><span class="tooltip">Flip Vertically</span></button>
         </div>
 
         <div class="partition"></div>

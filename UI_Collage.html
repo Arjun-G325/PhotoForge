@@ -176,8 +176,11 @@
         <div class="partition"></div>
 
         <div class="icon-grid">
-            <label>Resize</label>
-            <input id="resize-slider" type="range" min="50" max="200" value="100" onchange="resizeImage(this.value)">
+            <label>Resize Image</label>
+        <input id="resize-image-slider" type="range" min="50" max="200" value="100" onchange="resizeImage(this.value)">
+        
+        <label>Resize Box</label>
+        <input id="resize-box-slider" type="range" min="50" max="200" value="100" onchange="resizeBox(this.value)">
         </div>
     </div>
 
@@ -516,18 +519,28 @@ function addResizeHandles() {
         applyTransformations(selectedImage);
     }
 
-    function resizeSelected(size) {
-        if (!selectedImage) return;
-        selectedImage.style.width = size + '%';
-        selectedImage.style.height = size + '%';
-    }
+   function resizeImage(value) {
+    let selected = getSelectedImage();
+    if (!selected) return;
+    
+    let scale = value / 100; // Convert slider value to scale factor
+    selected.style.transform = `scale(${scale})`; // Adjust image size
+}
 
-    function resizeImageBox(size) {
-        if (!selectedImage) return;
-        let box = selectedImage.parentElement;
-        box.style.width = size + 'px';
-        box.style.height = size + 'px';
-    }
+function resizeBox(value) {
+    let selected = getSelectedImage();
+    if (!selected) return;
+    
+    let scale = value / 100; // Convert slider value to scale factor
+    selected.style.width = `${selected.naturalWidth * scale}px`;
+    selected.style.height = `${selected.naturalHeight * scale}px`;
+}
+
+// Helper function to get the currently selected image
+function getSelectedImage() {
+    return document.querySelector(".selected-image"); // Ensure selected image has this class
+}
+
 
     function applyTransformations(img) {
         const rotation = img.dataset.rotation;

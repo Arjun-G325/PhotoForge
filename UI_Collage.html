@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>PhotoForge Collage Maker</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+
      <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
@@ -193,16 +195,16 @@
     </div>
    <div class="icon-grid">
     <label>Brightness</label>
-    <input id="brightness-slider" type="range" min="50" max="200" value="100" oninput="applyFiltersToImage()">
+    <input id="brightness-slider" type="range" min="50" max="200" value="100" oninput="applyFabricFilters()">
 
     <label>Contrast</label>
-    <input id="contrast-slider" type="range" min="50" max="200" value="100" oninput="applyFiltersToImage()">
+    <input id="contrast-slider" type="range" min="50" max="200" value="100" oninput="applyFabricFilters()">
 
     <label>Saturation</label>
-    <input id="saturation-slider" type="range" min="0" max="300" value="100" oninput="applyFiltersToImage()">
+    <input id="saturation-slider" type="range" min="0" max="300" value="100" oninput="applyFabricFilters()">
 
     <label>Sharpness</label>
-    <input id="sharpness-slider" type="range" min="0" max="200" value="100" oninput="applyFiltersToImage()">
+    <input id="sharpness-slider" type="range" min="0" max="200" value="100" oninput="applyFabricFilters()">
 </div>
 
 
@@ -574,82 +576,46 @@ function addResizeHandles() {
         selectedImage = null;
     }
    
-function applyFiltersToImage(img, callback) {
-    const tempCanvas = document.createElement("canvas");
-    const tempCtx = tempCanvas.getContext("2d");
+function applyFabricFilters(callback) {
+    const brightnessValue = parseFloat(document.getElementById("brightness-slider").value) / 100;
+    const contrastValue = parseFloat(document.getElementById("contrast-slider").value) / 100;
+    const saturationValue = parseFloat(document.getElementById("saturation-slider").value) / 100;
 
-    tempCanvas.width = img.naturalWidth;
-    tempCanvas.height = img.naturalHeight;
+    const imageObjects = canvas.getObjects('image');
+    let processed = 0;
 
-    tempCtx.drawImage(img, 0, 0);
+    imageObjects.forEach(imgObj => {
+        imgObj.filters = [];
 
-    // Get filter values
-    const brightness = parseFloat(document.getElementById("brightness-slider").value) / 100;
-    const contrast = parseFloat(document.getElementById("contrast-slider").value) / 100;
-    const saturation = parseFloat(document.getElementById("saturation-slider").value) / 100;
+        // Add Fabric.js filters
+        imgObj.filters.push(new fabric.Image.filters.Brightness({ brightness: brightnessValue }));
+        imgObj.filters.push(new fabric.Image.filters.Contrast({ contrast: contrastValue }));
+        imgObj.filters.push(new fabric.Image.filters.Saturation({ saturation: saturationValue }));
 
-    // Get image data
-    let imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-    let pixels = imageData.data;
+        imgObj.applyFilters();
+        processed++;
 
-    for (let i = 0; i < pixels.length; i += 4) {
-        let r = pixels[i];
-        let g = pixels[i + 1];
-        let b = pixels[i + 2];
-
-        // Apply brightness
-        r *= brightness;
-        g *= brightness;
-        b *= brightness;
-
-        // Apply contrast
-        r = ((r - 128) * contrast) + 128;
-        g = ((g - 128) * contrast) + 128;
-        b = ((b - 128) * contrast) + 128;
-
-        // Apply saturation
-        let gray = 0.3 * r + 0.59 * g + 0.11 * b;
-        r = gray * (1 - saturation) + r * saturation;
-        g = gray * (1 - saturation) + g * saturation;
-        b = gray * (1 - saturation) + b * saturation;
-
-        // Ensure values are in range [0, 255]
-        pixels[i] = Math.min(255, Math.max(0, r));
-        pixels[i + 1] = Math.min(255, Math.max(0, g));
-        pixels[i + 2] = Math.min(255, Math.max(0, b));
-    }
-
-    tempCtx.putImageData(imageData, 0, 0);
-
-    // Update the image source with the processed canvas
-    img.onload = () => {
-        if (callback) callback();
-    };
-    img.src = tempCanvas.toDataURL("image/png");
-}
-function applyFiltersAndReplaceImages(callback) {
-    const images = document.querySelectorAll(".image-box img");
-    let processedCount = 0;
-
-    images.forEach(img => {
-        applyFiltersToImage(img, () => {
-            processedCount++;
-            if (processedCount === images.length) {
-                callback();
-            }
-        });
+        if (processed === imageObjects.length) {
+            canvas.renderAll();
+            if (callback) callback();
+        }
     });
+
+    if (imageObjects.length === 0 && callback) {
+        callback(); // No images but still want to save
+    }
 }
 function downloadCollage() {
-    applyFiltersAndReplaceImages(() => {
-        const collage = document.getElementById("collage-container");
-
-        html2canvas(collage, { useCORS: true }).then(canvas => {
-            const link = document.createElement("a");
-            link.href = canvas.toDataURL("image/png");
-            link.download = "collage.png";
-            link.click();
+    applyFabricFiltersToCanvasImages(() => {
+        const dataURL = canvas.toDataURL({
+            format: 'png',
+            quality: 1
         });
+
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = 'collage.png';
+        link.click();
     });
 }
 

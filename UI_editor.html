@@ -176,30 +176,63 @@ function openImage() {
 
 function saveImage() {
     const image = document.getElementById("image-area");
-    if (!image.src) return;
+    if (!image?.src) return;
 
+    // Setup canvas
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
-    // Use current displayed dimensions instead of natural size
-    canvas.width = image.width;
-    canvas.height = image.height;
+    const imgWidth = image.width;
+    const imgHeight = image.height;
 
-    // Apply the same filter styles to the canvas context
-    const filterString = `
-        sepia(${sepiaValue}%)
-        grayscale(${bwValue}%)
-        blur(${blurValue}px)
+    const angle = rotationAngle || 0;
+    const radians = angle * Math.PI / 180;
+    const rotate90or270 = Math.abs(angle) % 180 === 90;
+
+    canvas.width = rotate90or270 ? imgHeight : imgWidth;
+    canvas.height = rotate90or270 ? imgWidth : imgHeight;
+
+    ctx.save();
+
+    // Move origin to canvas center
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+
+    // Apply rotation
+    ctx.rotate(radians);
+
+    // Apply flip (1 or -1)
+    ctx.scale(flipX, flipY);
+
+    // ✅ APPLY FILTERS BEFORE DRAWING
+    const brightness = document.getElementById("brightnessSlider")?.value || 100;
+    const contrast = document.getElementById("contrastSlider")?.value || 100;
+    const saturation = document.getElementById("saturationSlider")?.value || 100;
+
+    const sepia = typeof sepiaValue !== 'undefined' ? sepiaValue : 0;
+    const grayscale = typeof bwValue !== 'undefined' ? bwValue : 0;
+    const blur = typeof blurValue !== 'undefined' ? blurValue : 0;
+
+    ctx.filter = `
+        brightness(${brightness}%)
+        contrast(${contrast}%)
+        saturate(${saturation}%)
+        sepia(${sepia}%)
+        grayscale(${grayscale}%)
+        blur(${blur}px)
     `.trim();
 
-    ctx.filter = filterString;
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    // Draw image centered
+    ctx.drawImage(image, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
 
+    ctx.restore(); // Now safe to restore
+
+    // Export canvas
     const link = document.createElement("a");
     link.download = "edited-image.png";
     link.href = canvas.toDataURL("image/png");
     link.click();
 }
+
 
 let cropBox = null;
 let isCropping = false;
@@ -498,27 +531,27 @@ function goHome() {
 
 function updateAdvancedFilters() {
     const image = document.getElementById("image-area");
-    if (!image.src) return;
+    if (!image) return;
 
-    const brightness = document.getElementById("brightnessSlider").value;
-    const contrast = document.getElementById("contrastSlider").value;
-    const sharpness = document.getElementById("sharpnessSlider").value;
-    const saturation = document.getElementById("saturationSlider").value;
+    const brightness = document.getElementById("brightnessSlider")?.value || 100;
+    const contrast = document.getElementById("contrastSlider")?.value || 100;
+    const saturation = document.getElementById("saturationSlider")?.value || 100;
 
-    const baseFilters = `
-        sepia(${sepiaValue}%)
-        grayscale(${bwValue}%)
-        blur(${blurValue}px)
-    `;
+    // Your existing values
+    const sepia = typeof sepiaValue !== 'undefined' ? sepiaValue : 0;
+    const grayscale = typeof bwValue !== 'undefined' ? bwValue : 0;
+    const blur = typeof blurValue !== 'undefined' ? blurValue : 0;
 
-    const advancedFilters = `
+    image.style.filter = `
         brightness(${brightness}%)
         contrast(${contrast}%)
         saturate(${saturation}%)
-    `;
-
-    image.style.filter = baseFilters + advancedFilters;
+        sepia(${sepia}%)
+        grayscale(${grayscale}%)
+        blur(${blur}px)
+    `.trim();
 }
+
 
 function RemoveImage() {
     let imageArea = document.getElementById("image-area");

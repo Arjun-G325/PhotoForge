@@ -291,9 +291,7 @@
         };
         input.click();
     }
-       const brightness = document.getElementById("brightnessSlider")?.value || 100;
-    const contrast = document.getElementById("contrastSlider")?.value || 100;
-    const saturation = document.getElementById("saturationSlider")?.value || 100;
+       
 
 
     const sliders = [brightnessSlider, contrastSlider, saturationSlider, sharpnessSlider];
@@ -307,7 +305,9 @@
 
     function applyAdjustments() {
     if (!selectedImage) return;
-
+const brightness = document.getElementById("brightnessSlider")?.value || 100;
+    const contrast = document.getElementById("contrastSlider")?.value || 100;
+    const saturation = document.getElementById("saturationSlider")?.value || 100;
     
 
     const img = new Image();

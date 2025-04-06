@@ -173,8 +173,7 @@
             <button onclick="openImages()"><i class="fa-regular fa-folder-open"></i><span class="tooltip">Open</span></button>
             <button onclick="downloadCollage()"><i class="fa-regular fa-floppy-disk"></i><span class="tooltip">Save</span></button>
             <button onclick="deleteSelectedImage()"><i class="fa-regular fa-trash-can"></i><span class="tooltip">Delete</span></button>
-     <button id="undo-btn">Undo</button>
-<button id="redo-btn">Redo</button>
+   
 
         </div>
         
@@ -232,83 +231,7 @@
     const collageContainer = document.getElementById('collage-container');
     let selectedImage = null;
 
-     const actionStack = [];
-    const redoStack = [];
-
-    function saveState() {
-        const state = [...collageContainer.children].map(box => {
-            const img = box.querySelector('img');
-            return {
-                src: img.src,
-                left: box.style.left,
-                top: box.style.top,
-                width: box.style.width,
-                height: box.style.height,
-                rotation: img.dataset.rotation,
-                flipX: img.dataset.flipX,
-                flipY: img.dataset.flipY
-            };
-        });
-        actionStack.push(JSON.stringify(state));
-        redoStack.length = 0; // Clear redo history after new action
-    }
-
-    function restoreState(stateStr) {
-        collageContainer.innerHTML = '';
-        const state = JSON.parse(stateStr);
-        state.forEach(obj => {
-            const imageBox = document.createElement('div');
-            imageBox.classList.add('image-box');
-            imageBox.style.left = obj.left;
-            imageBox.style.top = obj.top;
-            imageBox.style.width = obj.width;
-            imageBox.style.height = obj.height;
-
-            const img = document.createElement('img');
-            img.src = obj.src;
-            img.dataset.rotation = obj.rotation;
-            img.dataset.flipX = obj.flipX;
-            img.dataset.flipY = obj.flipY;
-
-            imageBox.appendChild(img);
-            collageContainer.appendChild(imageBox);
-
-            makeDraggable(imageBox);
-            imageBox.onclick = () => selectImage(img);
-            applyTransformations(img);
-        });
-    }
-
-    function undo() {
-        if (actionStack.length > 0) {
-            const current = JSON.stringify([...collageContainer.children].map(box => ({
-                src: box.querySelector('img').src,
-                left: box.style.left,
-                top: box.style.top,
-                width: box.style.width,
-                height: box.style.height,
-                rotation: box.querySelector('img').dataset.rotation,
-                flipX: box.querySelector('img').dataset.flipX,
-                flipY: box.querySelector('img').dataset.flipY
-            })));
-
-            const prev = actionStack.pop();
-            redoStack.push(current);
-            restoreState(prev);
-        }
-    }
-
-    function redo() {
-        if (redoStack.length > 0) {
-            const state = redoStack.pop();
-            saveState();  // Push current to undo stack
-            restoreState(state);
-        }
-    }
-
-    document.getElementById("undo-btn").addEventListener("click", undo);
-    document.getElementById("redo-btn").addEventListener("click", redo);
-
+    
     function goHome() {
     window.location.href = "UI.html"; // Redirect to the main PhotoForge page
 }
@@ -364,7 +287,7 @@
 
     function applyAdjustments() {
         if (!selectedImage) return;
- saveState();
+
         const brightness = parseInt(brightnessSlider.value);
         const contrast = parseInt(contrastSlider.value);
         const saturation = parseInt(saturationSlider.value);
@@ -407,7 +330,7 @@
     }
 
     function adjustContrast(value, contrast) {
-         saveState();
+        
         let factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
         return truncate(factor * (value - 128) + 128);
     }
@@ -452,7 +375,7 @@
     }
    function applyFilter(filterType) {
     if (!selectedImage) return;
- saveState();
+
     // Create a temporary canvas
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -503,7 +426,7 @@
     }
 
     function rotateSelected(angle) {
-         saveState();
+        
         if (!selectedImage) return;
         let rotation = parseInt(selectedImage.dataset.rotation) || 0;
         rotation = (rotation + angle) % 360;
@@ -512,7 +435,7 @@
     }
 
     function flipSelected(axis) {
-         saveState();
+       
         if (!selectedImage) return;
         if (axis === 'X') {
             selectedImage.dataset.flipX *= -1;
@@ -526,14 +449,14 @@
 
 
     function resizeSelected(size) {
-         saveState();
+        
         if (!selectedImage) return;
         selectedImage.style.width = size + '%';
         selectedImage.style.height = size + '%';
     }
 
     function resizeImageBox(size) {
-         saveState();
+   
         if (!selectedImage) return;
         let box = selectedImage.parentElement;
         box.style.width = size + 'px';
@@ -543,7 +466,7 @@
 
 
     function applyTransformations(img) {
-        saveState();
+      
         const rotation = img.dataset.rotation;
         const flipX = img.dataset.flipX;
         const flipY = img.dataset.flipY;
@@ -552,7 +475,7 @@
 
     function deleteSelectedImage() {
         if (!selectedImage) return;
-        saveState();
+       
         const imageBox = selectedImage.parentElement;
         collageContainer.removeChild(imageBox);
         selectedImage = null;

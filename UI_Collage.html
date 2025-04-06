@@ -157,9 +157,7 @@
     color: white;
 }
 
-#sliders input[type=range] {
-    flex: 1;
-}
+
 
 
         .selected {
@@ -294,9 +292,10 @@
        
 
 
-   const brightnessSlider = document.getElementById("brightness");
-const contrastSlider = document.getElementById("contrast");
-const saturationSlider = document.getElementById("saturation");
+     const brightness = document.getElementById("brightnessSlider")?.value || 100;
+    const contrast = document.getElementById("contrastSlider")?.value || 100;
+    const saturation = document.getElementById("saturationSlider")?.value || 100;
+
 
 const sliders = [brightnessSlider, contrastSlider, saturationSlider];
 sliders.forEach(slider => {

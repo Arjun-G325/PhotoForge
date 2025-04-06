@@ -307,9 +307,9 @@
     function applyAdjustments() {
     if (!selectedImage) return;
 
-    const brightness = parseInt(brightnessSlider.value);
-    const contrast = parseInt(contrastSlider.value);
-    const saturation = parseInt(saturationSlider.value);
+    const brightness = brightnessSlider.value;
+    const contrast = contrastSlider.value;
+    const saturation = saturationSlider.value;
 
     const img = new Image();
     img.crossOrigin = "Anonymous"; // In case of CORS issues
@@ -324,9 +324,9 @@
 
         // Set CSS-like filter
         ctx.filter = `
-            brightness(${100 + brightness}%)
-            contrast(${100 + contrast}%)
-            saturate(${100 + saturation}%)
+            brightness(${brightness}%)
+            contrast(${contrast}%)
+            saturate(${saturation}%)
         `.trim();
 
 

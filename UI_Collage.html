@@ -464,6 +464,21 @@ let saturationValue = 100;
    
 
 function downloadCollage() {
+    const brightness = document.getElementById("brightnessSlider")?.value || 100;
+    const contrast = document.getElementById("contrastSlider")?.value || 100;
+    const saturation = document.getElementById("saturationSlider")?.value || 100;
+
+    // Apply CSS filter to all images inside collageContainer
+    const images = collageContainer.querySelectorAll('img');
+    images.forEach(img => {
+        img.style.filter = `
+            brightness(${brightness}%)
+            contrast(${contrast}%)
+            saturate(${saturation}%)
+        `.trim();
+    });
+
+    // Now capture the DOM as an image
     html2canvas(collageContainer).then(canvas => {
         const link = document.createElement('a');
         link.href = canvas.toDataURL("image/png");
@@ -471,6 +486,7 @@ function downloadCollage() {
         link.click();
     });
 }
+
 
     
         

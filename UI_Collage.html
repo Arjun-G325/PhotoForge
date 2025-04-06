@@ -686,58 +686,14 @@ function addResizeHandles() {
    
 
 function downloadCollage() {
-    const canvasContainer = document.getElementById("canvas-container");
-    const images = canvasContainer.querySelectorAll("img");
-
-    if (images.length === 0) {
-        alert("No images to download.");
-        return;
-    }
-
-    // Calculate canvas size to fit all images
-    let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
-
-    images.forEach(img => {
-        const rect = img.getBoundingClientRect();
-        const containerRect = canvasContainer.getBoundingClientRect();
-        const left = rect.left - containerRect.left;
-        const top = rect.top - containerRect.top;
-        const right = left + img.offsetWidth;
-        const bottom = top + img.offsetHeight;
-
-        minX = Math.min(minX, left);
-        minY = Math.min(minY, top);
-        maxX = Math.max(maxX, right);
-        maxY = Math.max(maxY, bottom);
+    html2canvas(collageContainer).then(canvas => {
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL("image/png");
+        link.download = "collage.png";
+        link.click();
     });
-
-    const canvasWidth = maxX - minX;
-    const canvasHeight = maxY - minY;
-
-    const collageCanvas = document.createElement("canvas");
-    collageCanvas.width = canvasWidth;
-    collageCanvas.height = canvasHeight;
-    const ctx = collageCanvas.getContext("2d");
-
-    // Draw each image on canvas with correct offsets
-    images.forEach(img => {
-        const rect = img.getBoundingClientRect();
-        const containerRect = canvasContainer.getBoundingClientRect();
-        const x = rect.left - containerRect.left - minX;
-        const y = rect.top - containerRect.top - minY;
-
-        ctx.drawImage(img, x, y, img.width, img.height);
-    });
-
-    // Trigger download
-    const link = document.createElement("a");
-    link.download = "collage.png";
-    link.href = collageCanvas.toDataURL("image/png");
-    link.click();
 }
 
-
-        
     
         
 

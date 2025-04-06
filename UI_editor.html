@@ -153,6 +153,9 @@
 let rotationAngle = 0;
 let flipX = 1, flipY = 1;
 let aspectRatio=1;
+let sepiaValue = 0;
+let bwValue = 0;
+let blurValue = 0;
 function openImage() {
  const input = document.createElement("input");
  input.type = "file";
@@ -173,52 +176,30 @@ function openImage() {
 
 function saveImage() {
     const image = document.getElementById("image-area");
-    if (!image.src) {
-        alert("No image to save");
-        return;
-    }
+    if (!image.src) return;
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    const tempImg = new Image();
-    tempImg.crossOrigin = "anonymous"; // Avoid cross-origin issues
-    tempImg.src = image.src;
 
-    tempImg.onload = () => {
-        let imgWidth = tempImg.width;
-        let imgHeight = tempImg.height;
-        let newWidth = imgWidth;
-        let newHeight = imgHeight;
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
 
-        // Swap width and height if rotated 90 or 270 degrees
-        if (rotationAngle % 180 !== 0) {
-            newWidth = imgHeight;
-            newHeight = imgWidth;
-        }
+    // Apply the same filter styles to the canvas context
+    const filterString = `
+        sepia(${sepiaValue}%)
+        grayscale(${bwValue}%)
+        blur(${blurValue}px)
+    `.trim();
 
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        ctx.translate(newWidth / 2, newHeight / 2); // Move to center
-        ctx.rotate((rotationAngle * Math.PI) / 180); // Apply rotation
-        ctx.scale(flipX, flipY); // Apply flip
+    ctx.filter = filterString;
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-        // Adjust position after transformations
-        ctx.drawImage(tempImg, -imgWidth / 2, -imgHeight / 2);
-
-        canvas.toBlob((blob) => {
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "edited_image.png";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }, "image/png");
-    };
-
-    tempImg.onerror = () => {
-        alert("Failed to load image for saving.");
-    };
+    const link = document.createElement("a");
+    link.download = "edited-image.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
 }
+
 
 
 let cropBox = null;
@@ -487,6 +468,31 @@ window.onload = function () {
      resizeImage();
  });
 };
+function applyFilters() {
+    const image = document.getElementById("image-area");
+    if (!image.src) return;
+
+    image.style.filter = `
+        sepia(${sepiaValue}%)
+        grayscale(${bwValue}%)
+        blur(${blurValue}px)
+    `;
+}
+
+function adjustFilter(type) {
+    switch (type) {
+        case "sepia":
+            sepiaValue = (sepiaValue + 20) % 120; // Loop back after 100
+            break;
+        case "bw":
+            bwValue = (bwValue + 20) % 120;
+            break;
+        case "blur":
+            blurValue = (blurValue + 1) % 11;
+            break;
+    }
+    applyFilters();
+}
 function RemoveImage() {
     let imageArea = document.getElementById("image-area");
     let widthInput = document.getElementById("widthInput");
@@ -531,6 +537,11 @@ function RemoveImage() {
             </div>
         </div>
         <div class="partition"></div>
+    <div class="icon-grid-right" style="gap: 10px;">
+        <button onclick="adjustFilter('sepia')"><i class="fa-solid fa-droplet"></i><span class="tooltip">Sepia</span></button>
+        <button onclick="adjustFilter('bw')"><i class="fa-solid fa-circle-half-stroke"></i><span class="tooltip">B & W</span></button>
+        <button onclick="adjustFilter('blur')"><i class="fa-solid fa-water"></i><span class="tooltip">Blur</span></button>
+    </div>    
     </div>
     <div class="content">
         <div id="image-container">

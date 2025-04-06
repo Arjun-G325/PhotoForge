@@ -309,17 +309,10 @@
        
 
 
-     const brightnessSlider = document.getElementById("brightness");
-const contrastSlider = document.getElementById("contrast");
-const saturationSlider = document.getElementById("saturation");
+    let brightnessValue = 100;
+let contrastValue = 100;
+let saturationValue = 100;
 
-[brightnessSlider, contrastSlider, saturationSlider].forEach(slider => {
-    slider.addEventListener("input", () => {
-        if (selectedImage) {
-            applyAdjustments();
-        }
-    });
-});
 
 
    function applyAdjustments() {

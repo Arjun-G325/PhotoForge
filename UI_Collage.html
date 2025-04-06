@@ -292,13 +292,11 @@
        
 
 
-     const brightness = document.getElementById("brightnessSlider")?.value || 100;
-    const contrast = document.getElementById("contrastSlider")?.value || 100;
-    const saturation = document.getElementById("saturationSlider")?.value || 100;
+     const brightnessSlider = document.getElementById("brightness");
+const contrastSlider = document.getElementById("contrast");
+const saturationSlider = document.getElementById("saturation");
 
-
-const sliders = [brightnessSlider, contrastSlider, saturationSlider];
-sliders.forEach(slider => {
+[brightnessSlider, contrastSlider, saturationSlider].forEach(slider => {
     slider.addEventListener("input", () => {
         if (selectedImage) {
             applyAdjustments();
@@ -306,8 +304,9 @@ sliders.forEach(slider => {
     });
 });
 
-    function applyAdjustments() {
-   const brightness = parseFloat(brightnessSlider.value) + 100;
+
+   function applyAdjustments() {
+    const brightness = parseFloat(brightnessSlider.value) + 100;
     const contrast = parseFloat(contrastSlider.value) + 100;
     const saturation = parseFloat(saturationSlider.value) + 100;
 
@@ -322,7 +321,6 @@ sliders.forEach(slider => {
         canvas.width = img.width;
         canvas.height = img.height;
 
-        // Apply CSS-like filters
         ctx.filter = `
             brightness(${brightness}%)
             contrast(${contrast}%)
@@ -330,13 +328,10 @@ sliders.forEach(slider => {
         `.trim();
 
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        // Update the selected image permanently
-        selectedImage.src = canvas.toDataURL("image/png");
-
-       
+        selectedImage.src = canvas.toDataURL();
     };
 }
+
       
      function makeDraggable(element) {
         let isDragging = false, startX, startY, startLeft, startTop;

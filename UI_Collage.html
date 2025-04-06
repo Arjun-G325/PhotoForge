@@ -210,11 +210,24 @@
     </div>
    
 <div id="sliders">
-    <label>Brightness <input type="range" id="brightness" min="-100" max="100" value="0"></label>
-    <label>Contrast <input type="range" id="contrast" min="-100" max="100" value="0"></label>
-    <label>Saturation <input type="range" id="saturation" min="-100" max="100" value="0"></label>
-    <label>Sharpness <input type="range" id="sharpness" min="0" max="5" value="0"></label>
+    <label title="Brightness">
+        <i class="fas fa-sun"></i>
+        <input type="range" id="brightness" min="-100" max="100" value="0">
+    </label>
+    <label title="Contrast">
+        <i class="fas fa-adjust"></i>
+        <input type="range" id="contrast" min="-100" max="100" value="0">
+    </label>
+    <label title="Saturation">
+        <i class="fas fa-fill-drip"></i>
+        <input type="range" id="saturation" min="-100" max="100" value="0">
+    </label>
+    <label title="Sharpness">
+        <i class="fas fa-eye"></i>
+        <input type="range" id="sharpness" min="0" max="5" value="0">
+    </label>
 </div>
+
 
 
 
@@ -286,93 +299,38 @@
     });
 
     function applyAdjustments() {
-        if (!selectedImage) return;
+    if (!selectedImage) return;
 
-        const brightness = parseInt(brightnessSlider.value);
-        const contrast = parseInt(contrastSlider.value);
-        const saturation = parseInt(saturationSlider.value);
-        const sharpness = parseInt(sharpnessSlider.value);
+    const brightness = parseInt(brightnessSlider.value);
+    const contrast = parseInt(contrastSlider.value);
+    const saturation = parseInt(saturationSlider.value);
 
+    const img = new Image();
+    img.crossOrigin = "Anonymous"; // In case of CORS issues
+    img.src = selectedImage.src;
+
+    img.onload = () => {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-        canvas.width = selectedImage.naturalWidth;
-        canvas.height = selectedImage.naturalHeight;
-        ctx.drawImage(selectedImage, 0, 0);
 
-        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let data = imageData.data;
+        canvas.width = img.width;
+        canvas.height = img.height;
 
-        for (let i = 0; i < data.length; i += 4) {
-            // Brightness
-            data[i] += brightness;
-            data[i + 1] += brightness;
-            data[i + 2] += brightness;
+        // Set CSS-like filter
+        ctx.filter = `
+            brightness(${100 + brightness}%)
+            contrast(${100 + contrast}%)
+            saturate(${100 + saturation}%)
+        `;
 
-            // Contrast
-            data[i] = adjustContrast(data[i], contrast);
-            data[i + 1] = adjustContrast(data[i + 1], contrast);
-            data[i + 2] = adjustContrast(data[i + 2], contrast);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-            // Saturation
-            let gray = 0.3 * data[i] + 0.59 * data[i + 1] + 0.11 * data[i + 2];
-            data[i] = gray + (data[i] - gray) * (1 + saturation / 100);
-            data[i + 1] = gray + (data[i + 1] - gray) * (1 + saturation / 100);
-            data[i + 2] = gray + (data[i + 2] - gray) * (1 + saturation / 100);
-        }
+        // Update image with the filtered result
+        selectedImage.src = canvas.toDataURL();
+     
+    };
+}
 
-        // Sharpness (simple kernel)
-        if (sharpness > 0) {
-            imageData = applySharpen(imageData, sharpness);
-        }
-
-        ctx.putImageData(imageData, 0, 0);
-        selectedImage.src = canvas.toDataURL("image/png");
-    }
-
-    function adjustContrast(value, contrast) {
-        
-        let factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-        return truncate(factor * (value - 128) + 128);
-    }
-
-    function truncate(value) {
-        return Math.min(255, Math.max(0, value));
-    }
-
-    function applySharpen(imageData, level) {
-        const w = imageData.width;
-        const h = imageData.height;
-        const src = imageData.data;
-        const output = new Uint8ClampedArray(src);
-
-        const kernel = [
-            0, -1, 0,
-            -1, 5 + level, -1,
-            0, -1, 0
-        ];
-
-        for (let y = 1; y < h - 1; y++) {
-            for (let x = 1; x < w - 1; x++) {
-                for (let c = 0; c < 3; c++) {
-                    let i = (y * w + x) * 4 + c;
-                    let sum = 0;
-                    for (let ky = -1; ky <= 1; ky++) {
-                        for (let kx = -1; kx <= 1; kx++) {
-                            let ki = ((ky + 1) * 3 + (kx + 1));
-                            let ni = ((y + ky) * w + (x + kx)) * 4 + c;
-                            sum += src[ni] * kernel[ki];
-                        }
-                    }
-                    output[i] = truncate(sum);
-                }
-            }
-        }
-
-        for (let i = 0; i < output.length; i++) {
-            imageData.data[i] = output[i];
-        }
-        return imageData;
-    }
    function applyFilter(filterType) {
     if (!selectedImage) return;
 

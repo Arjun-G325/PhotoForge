@@ -154,6 +154,7 @@
     align-items: center;
     gap: 10px;
     font-size: 1.2em;
+    color: white;
 }
 
 #sliders input[type=range] {
@@ -290,10 +291,10 @@
         };
         input.click();
     }
-     const brightnessSlider = document.getElementById("brightness");
-    const contrastSlider = document.getElementById("contrast");
-    const saturationSlider = document.getElementById("saturation");
-    const sharpnessSlider = document.getElementById("sharpness");
+       const brightness = document.getElementById("brightnessSlider")?.value || 100;
+    const contrast = document.getElementById("contrastSlider")?.value || 100;
+    const saturation = document.getElementById("saturationSlider")?.value || 100;
+
 
     const sliders = [brightnessSlider, contrastSlider, saturationSlider, sharpnessSlider];
 
@@ -307,9 +308,7 @@
     function applyAdjustments() {
     if (!selectedImage) return;
 
-    const brightness = brightnessSlider.value;
-    const contrast = contrastSlider.value;
-    const saturation = saturationSlider.value;
+    
 
     const img = new Image();
     img.crossOrigin = "Anonymous"; // In case of CORS issues

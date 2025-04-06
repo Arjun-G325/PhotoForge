@@ -153,9 +153,13 @@
 let rotationAngle = 0;
 let flipX = 1, flipY = 1;
 let aspectRatio=1;
+let brightnessValue = 100;
+let contrastValue = 100;
+let saturationValue = 100;
 let sepiaValue = 0;
 let bwValue = 0;
 let blurValue = 0;
+
 function openImage() {
  const input = document.createElement("input");
  input.type = "file";
@@ -533,23 +537,17 @@ function updateAdvancedFilters() {
     const image = document.getElementById("image-area");
     if (!image) return;
 
-    const brightness = document.getElementById("brightnessSlider")?.value || 100;
-    const contrast = document.getElementById("contrastSlider")?.value || 100;
-    const saturation = document.getElementById("saturationSlider")?.value || 100;
-
-    // Your existing values
-    const sepia = typeof sepiaValue !== 'undefined' ? sepiaValue : 0;
-    const grayscale = typeof bwValue !== 'undefined' ? bwValue : 0;
-    const blur = typeof blurValue !== 'undefined' ? blurValue : 0;
-
-    image.style.filter = `
-        brightness(${brightness}%)
-        contrast(${contrast}%)
-        saturate(${saturation}%)
-        sepia(${sepia}%)
-        grayscale(${grayscale}%)
-        blur(${blur}px)
+    // Apply combined filters
+    const filterString = `
+        brightness(${brightnessValue}%)
+        contrast(${contrastValue}%)
+        saturate(${saturationValue}%)
+        sepia(${sepiaValue}%)
+        grayscale(${bwValue}%)
+        blur(${blurValue}px)
     `.trim();
+
+    image.style.filter = filterString;
 }
 
 
@@ -604,24 +602,48 @@ function RemoveImage() {
         <button onclick="adjustFilter('blur')"><i class="fa-solid fa-water"></i><span class="tooltip">Blur</span></button>
     </div>    
     <div class="partition"></div>
-    <div class="icon-grid-right" style="gap: 10px;">
-        <div style="display: flex; align-items: center; gap: 5px;">
-            <i class="fa-solid fa-sun" style="color: white;" title="Brightness"></i>
-            <input type="range" min="0" max="200" value="100" id="brightnessSlider" title="Brightness" style="width: 100px;" onchange="updateAdvancedFilters()">
-        </div>
-        <div style="display: flex; align-items: center; gap: 5px;">
-            <i class="fa-solid fa-eye" style="color: white;" title="Contrast"></i>
-            <input type="range" min="0" max="200" value="100" id="contrastSlider" title="Contrast" style="width: 100px;" onchange="updateAdvancedFilters()">
-        </div>        
-        <div style="display: flex; align-items: center; gap: 5px;">
-            <i class="fa-solid fa-wand-magic-sparkles" style="color: white;" title="Saturation"></i>
-            <input type="range" min="0" max="200" value="100" id="saturationSlider" title="Saturation" style="width: 100px;" onchange="updateAdvancedFilters()">
-        </div>
-        <div style="display: flex; align-items: center; gap: 5px;">
-            <i class="fa-solid fa-star" style="color: white;" title="Sharpness"></i>
-            <input type="range" min="0" max="200" value="100" id="sharpnessSlider" title="Sharpness" style="width: 100px;" onchange="updateAdvancedFilters()">
-        </div>
+    <div class="icon-grid-right" style="
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    max-width: 200px;
+">
+    <!-- Brightness -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-sun" style="color: white; font-size: 14px;" title="Brightness"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="brightnessSlider"
+            style="width: 80px; height: 4px;"
+            oninput="brightnessValue = this.value; updateAdvancedFilters();">
     </div>
+
+    <!-- Contrast -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-eye" style="color: white; font-size: 14px;" title="Contrast"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="contrastSlider"
+            style="width: 80px; height: 4px;"
+            oninput="contrastValue = this.value; updateAdvancedFilters();">
+    </div>
+
+    <!-- Saturation -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-wand-magic-sparkles" style="color: white; font-size: 14px;" title="Saturation"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="saturationSlider"
+            style="width: 80px; height: 4px;"
+            oninput="saturationValue = this.value; updateAdvancedFilters();">
+    </div>
+
+    <!-- Sharpness -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-star" style="color: white; font-size: 14px;" title="Sharpness"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="sharpnessSlider"
+            style="width: 80px; height: 4px;"
+            oninput="sharpnessValue = this.value; updateAdvancedFilters();">
+    </div>
+</div>
         
     </div>
     <div class="content">

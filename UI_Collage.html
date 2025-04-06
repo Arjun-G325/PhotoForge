@@ -315,15 +315,22 @@ let saturationValue = 100;
   function updateAdvancedFilters() {
     if (!selectedImage) return;
 
-    // Apply combined filters
-    const filterString = `
-        brightness(${brightnessValue}%)
-        contrast(${contrastValue}%)
-        saturate(${saturationValue}%)
-       
-    `.trim();
+   const brightness = parseFloat(document.getElementById("brightnessSlider").value) / 100; // 1 is normal
+    const contrast = parseFloat(document.getElementById("contrastSlider").value) / 100;
+    const saturation = parseFloat(document.getElementById("saturationSlider").value) / 100;
 
-    selectedImage.style.filter = filterString;
+    canvas.getObjects().forEach(obj => {
+        if (obj.type === 'image') {
+            obj.filters = [
+                new fabric.Image.filters.Brightness({ brightness: brightness - 1 }), // -1 to 1
+                new fabric.Image.filters.Contrast({ contrast: contrast - 1 }),       // -1 to 1
+                new fabric.Image.filters.Saturation({ saturation: saturation })      // 0 to 1+
+            ];
+            obj.applyFilters();
+        }
+    });
+
+    canvas.renderAll();
 }
 
 
@@ -464,28 +471,17 @@ let saturationValue = 100;
    
 
 function downloadCollage() {
-    const brightness = document.getElementById("brightnessSlider")?.value || 100;
-    const contrast = document.getElementById("contrastSlider")?.value || 100;
-    const saturation = document.getElementById("saturationSlider")?.value || 100;
-
-    // Apply CSS filter to all images inside collageContainer
-    const images = collageContainer.querySelectorAll('img');
-    images.forEach(img => {
-        img.style.filter = `
-            brightness(${brightness}%)
-            contrast(${contrast}%)
-            saturate(${saturation}%)
-        `.trim();
+    const dataURL = canvas.toDataURL({
+        format: 'png',
+        quality: 1.0
     });
 
-    // Now capture the DOM as an image
-    html2canvas(collageContainer).then(canvas => {
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL("image/png");
-        link.download = "collage.png";
-        link.click();
-    });
+    const link = document.createElement('a');
+    link.href = dataURL;
+    link.download = 'collage.png';
+    link.click();
 }
+
 
 
     

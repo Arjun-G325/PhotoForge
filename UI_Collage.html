@@ -173,6 +173,9 @@
             <button onclick="openImages()"><i class="fa-regular fa-folder-open"></i><span class="tooltip">Open</span></button>
             <button onclick="downloadCollage()"><i class="fa-regular fa-floppy-disk"></i><span class="tooltip">Save</span></button>
             <button onclick="deleteSelectedImage()"><i class="fa-regular fa-trash-can"></i><span class="tooltip">Delete</span></button>
+     <button id="undo-btn">Undo</button>
+<button id="redo-btn">Redo</button>
+
         </div>
         
         <div class="partition"></div>
@@ -229,10 +232,87 @@
     const collageContainer = document.getElementById('collage-container');
     let selectedImage = null;
 
+     const actionStack = [];
+    const redoStack = [];
+
+    function saveState() {
+        const state = [...collageContainer.children].map(box => {
+            const img = box.querySelector('img');
+            return {
+                src: img.src,
+                left: box.style.left,
+                top: box.style.top,
+                width: box.style.width,
+                height: box.style.height,
+                rotation: img.dataset.rotation,
+                flipX: img.dataset.flipX,
+                flipY: img.dataset.flipY
+            };
+        });
+        actionStack.push(JSON.stringify(state));
+        redoStack.length = 0; // Clear redo history after new action
+    }
+
+    function restoreState(stateStr) {
+        collageContainer.innerHTML = '';
+        const state = JSON.parse(stateStr);
+        state.forEach(obj => {
+            const imageBox = document.createElement('div');
+            imageBox.classList.add('image-box');
+            imageBox.style.left = obj.left;
+            imageBox.style.top = obj.top;
+            imageBox.style.width = obj.width;
+            imageBox.style.height = obj.height;
+
+            const img = document.createElement('img');
+            img.src = obj.src;
+            img.dataset.rotation = obj.rotation;
+            img.dataset.flipX = obj.flipX;
+            img.dataset.flipY = obj.flipY;
+
+            imageBox.appendChild(img);
+            collageContainer.appendChild(imageBox);
+
+            makeDraggable(imageBox);
+            imageBox.onclick = () => selectImage(img);
+            applyTransformations(img);
+        });
+    }
+
+    function undo() {
+        if (actionStack.length > 0) {
+            const current = JSON.stringify([...collageContainer.children].map(box => ({
+                src: box.querySelector('img').src,
+                left: box.style.left,
+                top: box.style.top,
+                width: box.style.width,
+                height: box.style.height,
+                rotation: box.querySelector('img').dataset.rotation,
+                flipX: box.querySelector('img').dataset.flipX,
+                flipY: box.querySelector('img').dataset.flipY
+            })));
+
+            const prev = actionStack.pop();
+            redoStack.push(current);
+            restoreState(prev);
+        }
+    }
+
+    function redo() {
+        if (redoStack.length > 0) {
+            const state = redoStack.pop();
+            saveState();  // Push current to undo stack
+            restoreState(state);
+        }
+    }
+
+    document.getElementById("undo-btn").addEventListener("click", undo);
+    document.getElementById("redo-btn").addEventListener("click", redo);
+
     function goHome() {
     window.location.href = "UI.html"; // Redirect to the main PhotoForge page
 }
-
+    
 
     function openImages() {
         const input = document.createElement('input');
@@ -261,6 +341,7 @@
 
                     makeDraggable(imageBox);
                     imageBox.onclick = () => selectImage(img);
+                    saveState();
                 };
                 reader.readAsDataURL(file);
             }
@@ -283,7 +364,7 @@
 
     function applyAdjustments() {
         if (!selectedImage) return;
-
+ saveState();
         const brightness = parseInt(brightnessSlider.value);
         const contrast = parseInt(contrastSlider.value);
         const saturation = parseInt(saturationSlider.value);
@@ -326,6 +407,7 @@
     }
 
     function adjustContrast(value, contrast) {
+         saveState();
         let factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
         return truncate(factor * (value - 128) + 128);
     }
@@ -370,7 +452,7 @@
     }
    function applyFilter(filterType) {
     if (!selectedImage) return;
-
+ saveState();
     // Create a temporary canvas
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -410,221 +492,7 @@
 
   
 
-    let cropBox = null;
-let isCropping = false;
-let isDragging = false;
-let isResizing = false;
-let offsetX, offsetY;
-let resizeDirection = null;
-
-function cropImage() {
-    let container = document.getElementById("image-container");
-    let image = document.getElementById("image-area");
-
-    if (!image.src) {
-        alert("No image to crop");
-        return;
-    }
-    let message = document.getElementById("crop-message");
-    if (!message) {
-        message = document.createElement("div");
-        message.id = "crop-message";
-        message.style.position = "absolute";
-        message.style.top = "100px";
-        message.style.left = "50%";
-        message.style.transform = "translateX(-50%)";
-        message.style.color = "white";
-        message.style.background = "rgba(0, 0, 0, 0.7)";
-        message.style.padding = "5px 10px";
-        message.style.borderRadius = "5px";
-        message.style.zIndex = "1000";
-        message.innerText = "Click crop icon again to finish cropping.";
-        container.appendChild(message);
-    }
-    if (!isCropping) {
-        // Create a cropping box
-        cropBox = document.createElement("div");
-        cropBox.style.position = "absolute";
-        cropBox.style.border = "2px dashed white";
-        cropBox.style.cursor = "move";
-        cropBox.style.width = "100px";
-        cropBox.style.height = "100px";
-        cropBox.style.top = "50%";
-        cropBox.style.left = "50%";
-        cropBox.style.transform = "translate(-50%, -50%)";
-        cropBox.style.resize = "ne";
-        cropBox.style.overflow = "hidden";
-        cropBox.setAttribute("id", "crop-box");
-        container.appendChild(cropBox);
-        const corners = ["nw", "ne", "sw", "se"];
-      corners.forEach(corner => {
-    const cornerDiv = document.createElement("div");
-    cornerDiv.style.position = "absolute";
-    cornerDiv.style.width = "10px";
-    cornerDiv.style.height = "10px";
-    cornerDiv.style.background = "black";
-    
-    // Position each corner
-    if (corner.includes("n")) cornerDiv.style.top = "-5px";
-    if (corner.includes("s")) cornerDiv.style.bottom = "-5px";
-    if (corner.includes("w")) cornerDiv.style.left = "-5px";
-    if (corner.includes("e")) cornerDiv.style.right = "-5px";
-
-    cropBox.appendChild(cornerDiv);
-    });
-        isCropping = true;
-
-        // Make crop box draggable
-        cropBox.addEventListener("mousedown", (e) => {
-            if (e.target === cropBox) {
-                isDragging = true;
-                offsetX = e.clientX - cropBox.offsetLeft;
-                offsetY = e.clientY - cropBox.offsetTop;
-
-                // Disable text selection during drag
-                document.body.style.userSelect = "none";
-
-                // Listen to mouse move to drag
-                document.addEventListener("mousemove", dragCropBox);
-                document.addEventListener("mouseup", stopDrag);
-            } else {
-                // Resizing logic
-                isResizing = true;
-                resizeDirection = e.target.getAttribute('data-resize');
-                document.addEventListener("mousemove", resizeCropBox);
-                document.addEventListener("mouseup", stopResize);
-            }
-        });
-
-        // Add resize handles to the crop box
-        addResizeHandles();
-    } else {
-        // Crop logic (same as before)
-        let rect = cropBox.getBoundingClientRect();
-        let imgRect = image.getBoundingClientRect();
-
-        // Calculate correct scaling factors
-        let scaleX = image.naturalWidth / imgRect.width;
-        let scaleY = image.naturalHeight / imgRect.height;
-
-        // Map crop box position to original image
-        let sx = Math.round((rect.left - imgRect.left) * scaleX);
-        let sy = Math.round((rect.top - imgRect.top) * scaleY);
-        let sw = Math.round(rect.width * scaleX);
-        let sh = Math.round(rect.height * scaleY);
-
-        // Ensure the crop area stays inside image boundaries
-        sx = Math.max(0, sx);
-        sy = Math.max(0, sy);
-        sw = Math.min(image.naturalWidth - sx, sw);
-        sh = Math.min(image.naturalHeight - sy, sh);
-
-        let canvas = document.createElement("canvas");
-        canvas.width = sw;
-        canvas.height = sh;
-        let ctx = canvas.getContext("2d");
-
-        let tempImg = new Image();
-        tempImg.src = image.src;
-
-        tempImg.onload = () => {
-            ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
-            image.src = canvas.toDataURL(); // Update image with cropped result
-            container.removeChild(cropBox);
-            cropBox = null;
-            isCropping = false;
-        };
-        message.remove();
-    }
-}
-
-function dragCropBox(e) {
-    if (isDragging && cropBox) {
-        let newX = e.clientX - offsetX;
-        let newY = e.clientY - offsetY;
-
-        // Apply the new position without any limits
-        cropBox.style.left = `${newX}px`;
-        cropBox.style.top = `${newY}px`;
-    }
-}
-
-function stopDrag() {
-    isDragging = false;
-    document.removeEventListener("mousemove", dragCropBox);
-    document.removeEventListener("mouseup", stopDrag);
-
-    // Re-enable text selection after drag
-    document.body.style.userSelect = "auto";
-}
-
-function resizeCropBox(e) {
-    let rect = cropBox.getBoundingClientRect();
-    let containerRect = document.getElementById("image-container").getBoundingClientRect();
-
-    // Calculate new size based on the direction of resize
-    if (resizeDirection === "ne") {
-        // Resize from the top-right corner (North-East)
-        let newWidth = e.clientX - rect.left;
-        let newHeight = rect.bottom - e.clientY;
-        if (newWidth > 50 && newHeight > 50) {
-            cropBox.style.width = newWidth + "px";
-            cropBox.style.height = newHeight + "px";
-        }
-    }  
-}
-
-function stopResize() {
-    isResizing = false;
-    document.removeEventListener("mousemove", resizeCropBox);
-    document.removeEventListener("mouseup", stopResize);
-}
-
-function addResizeHandles() {
-    const directions = ["ne"];
-    directions.forEach((dir) => {
-        const handle = document.createElement("div");
-        handle.style.position = "absolute";
-        handle.style.width = "10px";
-        handle.style.height = "10px";
-        handle.style.background = "white";
-        handle.style.cursor = `${dir}-resize`;
-
-        switch (dir) {
-            case "ne":
-                handle.style.top = "0px";
-                handle.style.right = "0px";
-                break;
-            
-        }
-        handle.setAttribute("data-resize", dir);
-        cropBox.appendChild(handle);
-    });
-}
-
-    function makeDraggable(element) {
-        let isDragging = false, startX, startY, startLeft, startTop;
-
-        element.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            startLeft = parseInt(element.style.left || 0);
-            startTop = parseInt(element.style.top || 0);
-
-            document.addEventListener('mousemove', dragMove);
-            document.addEventListener('mouseup', () => {
-                isDragging = false;
-                document.removeEventListener('mousemove', dragMove);
-            });
-        });
-
-        function dragMove(e) {
-            if (!isDragging) return;
-            element.style.left = startLeft + (e.clientX - startX) + "px";
-            element.style.top = startTop + (e.clientY - startY) + "px";
-        }
-    }
+   
 
     function selectImage(img) {
         if (selectedImage) {
@@ -635,6 +503,7 @@ function addResizeHandles() {
     }
 
     function rotateSelected(angle) {
+         saveState();
         if (!selectedImage) return;
         let rotation = parseInt(selectedImage.dataset.rotation) || 0;
         rotation = (rotation + angle) % 360;
@@ -643,6 +512,7 @@ function addResizeHandles() {
     }
 
     function flipSelected(axis) {
+         saveState();
         if (!selectedImage) return;
         if (axis === 'X') {
             selectedImage.dataset.flipX *= -1;
@@ -656,12 +526,14 @@ function addResizeHandles() {
 
 
     function resizeSelected(size) {
+         saveState();
         if (!selectedImage) return;
         selectedImage.style.width = size + '%';
         selectedImage.style.height = size + '%';
     }
 
     function resizeImageBox(size) {
+         saveState();
         if (!selectedImage) return;
         let box = selectedImage.parentElement;
         box.style.width = size + 'px';
@@ -671,6 +543,7 @@ function addResizeHandles() {
 
 
     function applyTransformations(img) {
+        saveState();
         const rotation = img.dataset.rotation;
         const flipX = img.dataset.flipX;
         const flipY = img.dataset.flipY;
@@ -679,6 +552,7 @@ function addResizeHandles() {
 
     function deleteSelectedImage() {
         if (!selectedImage) return;
+        saveState();
         const imageBox = selectedImage.parentElement;
         collageContainer.removeChild(imageBox);
         selectedImage = null;

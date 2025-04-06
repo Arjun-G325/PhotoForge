@@ -294,24 +294,26 @@
        
 
 
-    const sliders = [brightnessSlider, contrastSlider, saturationSlider, sharpnessSlider];
+   const brightnessSlider = document.getElementById("brightness");
+const contrastSlider = document.getElementById("contrast");
+const saturationSlider = document.getElementById("saturation");
 
-    sliders.forEach(slider => {
-        slider.addEventListener("input", () => {
-            if (!selectedImage) return;
+const sliders = [brightnessSlider, contrastSlider, saturationSlider];
+sliders.forEach(slider => {
+    slider.addEventListener("input", () => {
+        if (selectedImage) {
             applyAdjustments();
-        });
+        }
     });
+});
 
     function applyAdjustments() {
-    if (!selectedImage) return;
-const brightness = document.getElementById("brightnessSlider")?.value || 100;
-    const contrast = document.getElementById("contrastSlider")?.value || 100;
-    const saturation = document.getElementById("saturationSlider")?.value || 100;
-    
+   const brightness = parseFloat(brightnessSlider.value) + 100;
+    const contrast = parseFloat(contrastSlider.value) + 100;
+    const saturation = parseFloat(saturationSlider.value) + 100;
 
     const img = new Image();
-    img.crossOrigin = "Anonymous"; // In case of CORS issues
+    img.crossOrigin = "anonymous";
     img.src = selectedImage.src;
 
     img.onload = () => {
@@ -321,21 +323,22 @@ const brightness = document.getElementById("brightnessSlider")?.value || 100;
         canvas.width = img.width;
         canvas.height = img.height;
 
-        // Set CSS-like filter
+        // Apply CSS-like filters
         ctx.filter = `
             brightness(${brightness}%)
             contrast(${contrast}%)
             saturate(${saturation}%)
         `.trim();
 
-
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        // Update image with the filtered result
-        selectedImage.src = canvas.toDataURL();
-     
+        // Update the selected image permanently
+        selectedImage.src = canvas.toDataURL("image/png");
+
+       
     };
 }
+      
      function makeDraggable(element) {
         let isDragging = false, startX, startY, startLeft, startTop;
 

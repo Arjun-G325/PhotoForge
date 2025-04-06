@@ -220,7 +220,7 @@
         <input type="range" min="0" max="200" value="100"
             id="brightnessSlider"
             style="width: 80px; height: 4px;"
-            oninput="brightnessValue = this.value; applyAdjustments();">
+            oninput="brightnessValue = this.value; updateAdvancedFilters();">
     </div>
 
     <!-- Contrast -->
@@ -229,7 +229,7 @@
         <input type="range" min="0" max="200" value="100"
             id="contrastSlider"
             style="width: 80px; height: 4px;"
-            oninput="contrastValue = this.value; applyAdjustments();">
+            oninput="contrastValue = this.value; updateAdvancedFilters();">
     </div>
 
     <!-- Saturation -->
@@ -238,7 +238,7 @@
         <input type="range" min="0" max="200" value="100"
             id="saturationSlider"
             style="width: 80px; height: 4px;"
-            oninput="saturationValue = this.value; applyAdjustments();">
+            oninput="saturationValue = this.value; updateAdvancedFilters();">
     </div>
 
     <!-- Sharpness -->
@@ -247,7 +247,7 @@
         <input type="range" min="0" max="200" value="100"
             id="sharpnessSlider"
             style="width: 80px; height: 4px;"
-            oninput="sharpnessValue = this.value; applyAdjustments();">
+            oninput="sharpnessValue = this.value; updateAdvancedFilters();">
     </div>
 
 
@@ -312,31 +312,20 @@ let saturationValue = 100;
 
 
 
-   function applyAdjustments() {
-    const brightnessValue = brightnessSlider.value;
-    const contrastValue = contrastSlider.value;
-    const saturationValue = saturationSlider.value;
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = selectedImage.src;
+  function updateAdvancedFilters() {
+    if (!selectedImage) return;
 
-    img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
+    // Apply combined filters
+    const filterString = `
+        brightness(${brightnessValue}%)
+        contrast(${contrastValue}%)
+        saturate(${saturationValue}%)
+       
+    `.trim();
 
-        canvas.width = img.width;
-        canvas.height = img.height;
-
-        ctx.filter = `
-            brightness(${brightness}%)
-            contrast(${contrast}%)
-            saturate(${saturation}%)
-        `.trim();
-
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        selectedImage.src = canvas.toDataURL();
-    };
+    selectedImage.style.filter = filterString;
 }
+
 
       
      function makeDraggable(element) {

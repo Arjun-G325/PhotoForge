@@ -214,24 +214,41 @@
         
     </div>
    
-<div id="sliders">
-    <label title="Brightness">
-        <i class="fas fa-sun"></i>
-        <input type="range" id="brightness" min="-100" max="100" value="0">
-    </label>
-    <label title="Contrast">
-        <i class="fas fa-adjust"></i>
-        <input type="range" id="contrast" min="-100" max="100" value="0">
-    </label>
-    <label title="Saturation">
-        <i class="fas fa-fill-drip"></i>
-        <input type="range" id="saturation" min="-100" max="100" value="0">
-    </label>
-    <label title="Sharpness">
-        <i class="fas fa-eye"></i>
-        <input type="range" id="sharpness" min="0" max="5" value="0">
-    </label>
-</div>
+ <!-- Brightness -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-sun" style="color: white; font-size: 14px;" title="Brightness"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="brightnessSlider"
+            style="width: 80px; height: 4px;"
+            oninput="brightnessValue = this.value; updateAdvancedFilters();">
+    </div>
+
+    <!-- Contrast -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-eye" style="color: white; font-size: 14px;" title="Contrast"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="contrastSlider"
+            style="width: 80px; height: 4px;"
+            oninput="contrastValue = this.value; updateAdvancedFilters();">
+    </div>
+
+    <!-- Saturation -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-wand-magic-sparkles" style="color: white; font-size: 14px;" title="Saturation"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="saturationSlider"
+            style="width: 80px; height: 4px;"
+            oninput="saturationValue = this.value; updateAdvancedFilters();">
+    </div>
+
+    <!-- Sharpness -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-star" style="color: white; font-size: 14px;" title="Sharpness"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="sharpnessSlider"
+            style="width: 80px; height: 4px;"
+            oninput="sharpnessValue = this.value; updateAdvancedFilters();">
+    </div>
 
 
 

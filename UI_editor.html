@@ -181,8 +181,9 @@ function saveImage() {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
+    // Use current displayed dimensions instead of natural size
+    canvas.width = image.width;
+    canvas.height = image.height;
 
     // Apply the same filter styles to the canvas context
     const filterString = `
@@ -199,8 +200,6 @@ function saveImage() {
     link.href = canvas.toDataURL("image/png");
     link.click();
 }
-
-
 
 let cropBox = null;
 let isCropping = false;
@@ -493,6 +492,10 @@ function adjustFilter(type) {
     }
     applyFilters();
 }
+function goHome() {
+    window.location.href = "UI.html";
+}
+
 function RemoveImage() {
     let imageArea = document.getElementById("image-area");
     let widthInput = document.getElementById("widthInput");
@@ -517,10 +520,11 @@ function RemoveImage() {
 <body>
     <div class="toolbar">
         <div class="icon-grid">
+            <button onclick="goHome()"><i class="fa-solid fa-house"></i><span class="tooltip">Home</span></button>
             <button onclick="openImage()"><i class="fa-solid fa-folder-open"></i><span class="tooltip">Open</span></button>
             <button onclick="saveImage()"><i class="fa-solid fa-floppy-disk"></i><span class="tooltip">Save</span></button>
             <button onclick="RemoveImage()"><i class="fa-solid fa-trash"></i><span class="tooltip">Remove</span></button>
-        </div>
+        </div>        
         <div class="partition"></div>
         <div class="icon-grid-right">
             <button onclick="cropImage()"><i class="fa-solid fa-crop"></i><span class="tooltip">Crop</span></button>

@@ -330,6 +330,31 @@
      
     };
 }
+     function makeDraggable(element) {
+        let isDragging = false, startX, startY, startLeft, startTop;
+
+        element.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = parseInt(element.style.left || 0);
+            startTop = parseInt(element.style.top || 0);
+
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                document.removeEventListener('mousemove', dragMove);
+            });
+        });
+
+        function dragMove(e) {
+            if (!isDragging) return;
+            element.style.left = startLeft + (e.clientX - startX) + "px";
+            element.style.top = startTop + (e.clientY - startY) + "px";
+        }
+    }
+
+
 
    function applyFilter(filterType) {
     if (!selectedImage) return;

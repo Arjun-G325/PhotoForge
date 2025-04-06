@@ -306,9 +306,9 @@ const saturationSlider = document.getElementById("saturation");
 
 
    function applyAdjustments() {
-    const brightness = parseFloat(brightnessSlider.value) + 100;
-    const contrast = parseFloat(contrastSlider.value) + 100;
-    const saturation = parseFloat(saturationSlider.value) + 100;
+   const brightness = 1 + parseFloat(brightnessSlider.value) / 100;
+const contrast = 1 + parseFloat(contrastSlider.value) / 100;
+const saturation = 1 + parseFloat(saturationSlider.value) / 100;
 
     const img = new Image();
     img.crossOrigin = "anonymous";

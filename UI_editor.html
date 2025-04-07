@@ -241,7 +241,6 @@ function saveImage() {
     link.click();
 }
 
-
 let cropBox = null;
 let isCropping = false;
 let isDragging = false;
@@ -450,7 +449,7 @@ function rotateImage(angle) {
     imageArea.style.transform = `rotate(${rotationAngle}deg) scale(${flipX}, ${flipY})`;
     adjustImageSize(imageArea);
 }
-
+        
         function adjustImageSize(image) {
             if (rotationAngle % 180 !== 0) {
                 image.style.maxWidth = "85vh";
@@ -553,7 +552,6 @@ function updateAdvancedFilters() {
 
     image.style.filter = filterString;
 }
-
 
 function RemoveImage() {
     let imageArea = document.getElementById("image-area");

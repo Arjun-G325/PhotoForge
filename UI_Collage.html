@@ -176,6 +176,7 @@
             <button onclick="downloadCollage()"><i class="fa-regular fa-floppy-disk"></i><span class="tooltip">Save</span></button>
             <button onclick="deleteSelectedImage()"><i class="fa-regular fa-trash-can"></i><span class="tooltip">Delete</span></button>
    
+
         </div>
         
         <div class="partition"></div>
@@ -435,13 +436,50 @@ let saturationValue = 100;
         selectedImage = null;
     }
    
+    function bakeAllSliderFilters(image) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+
+    const brightness = document.getElementById('brightnessSlider').value || 100;
+    const contrast = document.getElementById('contrastSlider').value || 100;
+    const saturation = document.getElementById('saturationSlider').value || 100;
+
+    ctx.filter = `
+        brightness(${brightness}%)
+        contrast(${contrast}%)
+        saturate(${saturation}%)
+    `;
+
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    // Replace the image source with the processed one
+    image.src = canvas.toDataURL();
+    image.style.filter = ''; // clear CSS filter so it's not applied again
+}
+
 function downloadCollage() {
-    html2canvas(collageContainer).then(canvas => {
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL("image/png");
-        link.download = "collage.png";
-        link.click();
+    // Get all images in the collage
+    const images = collageContainer.querySelectorAll('img');
+
+    // For each image, rasterize the slider-based filters
+    images.forEach(img => {
+        if (img.style.filter && img.style.filter !== 'none') {
+            bakeAllSliderFilters(img);
+        }
     });
+
+    // Allow time for images to update before rendering
+    setTimeout(() => {
+        html2canvas(collageContainer).then(canvas => {
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL("image/png");
+            link.download = "collage.png";
+            link.click();
+        });
+    }, 200); // slight delay ensures images have reloaded
 }
 
 </script>

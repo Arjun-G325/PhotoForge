@@ -135,14 +135,6 @@
             background: #fff;
             cursor: grab;
         }
-          #cropBox {
-    position: absolute;
-    border: 2px dashed #fff;
-    pointer-events: auto;
-    resize: both;
-    overflow: hidden;
-    z-index: 9999;
-  }
 
         .image-box img {
             max-width: 100%;
@@ -165,9 +157,6 @@
     color: white;
 }
 
-
-
-
         .selected {
             border: 3px solid yellow !important;
         }
@@ -187,22 +176,12 @@
             <button onclick="downloadCollage()"><i class="fa-regular fa-floppy-disk"></i><span class="tooltip">Save</span></button>
             <button onclick="deleteSelectedImage()"><i class="fa-regular fa-trash-can"></i><span class="tooltip">Delete</span></button>
    
-
         </div>
         
         <div class="partition"></div>
 
         <div class="icon-grid">
-            <button onclick="toggleCropMode()">
-        <i class="fa-solid fa-crop"></i>
-        <span class="tooltip">Crop</span>
-    </button>
-
-    <!-- Apply Crop -->
-    <button onclick="applyCrop()" id="cropApplyBtn" style="display: none;">
-        <i class="fa-solid fa-check"></i>
-        <span class="tooltip">Apply Crop</span>
-    </button>
+            <button onclick="cropImage()"><i class="fa-solid fa-crop"></i><span class="tooltip">Crop</span></button>
             <button onclick="rotateSelected(-90)"><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
             <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
             <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
@@ -231,40 +210,45 @@
         
     </div>
    
-<!-- Brightness -->
-<div style="display: flex; align-items: center; gap: 4px;">
-    <i class="fa-solid fa-sun" style="color: white; font-size: 14px;" title="Brightness"></i>
-    <input type="range" min="0" max="200" value="100"
-        id="brightnessSlider"
-        style="width: 80px; height: 4px;"
-        oninput="updateCollageFilters()">
-</div>
+<!-- Controls Container -->
+<div style="display: flex; flex-direction: row; gap: 16px; align-items: center; flex-wrap: wrap; margin-top: 16px;">
 
-<!-- Contrast -->
-<div style="display: flex; align-items: center; gap: 4px;">
-    <i class="fa-solid fa-eye" style="color: white; font-size: 14px;" title="Contrast"></i>
-    <input type="range" min="0" max="200" value="100"
-        id="contrastSlider"
-        style="width: 80px; height: 4px;"
-        oninput="updateCollageFilters()">
-</div>
+    <!-- Brightness -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-sun" style="color: white; font-size: 14px;" title="Brightness"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="brightnessSlider"
+            style="width: 80px; height: 4px;"
+            oninput="brightnessValue = this.value; updateAdvancedFilters();">
+    </div>
 
-<!-- Saturation -->
-<div style="display: flex; align-items: center; gap: 4px;">
-    <i class="fa-solid fa-wand-magic-sparkles" style="color: white; font-size: 14px;" title="Saturation"></i>
-    <input type="range" min="0" max="200" value="100"
-        id="saturationSlider"
-        style="width: 80px; height: 4px;"
-        oninput="updateCollageFilters()">
-</div>
+    <!-- Contrast -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-eye" style="color: white; font-size: 14px;" title="Contrast"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="contrastSlider"
+            style="width: 80px; height: 4px;"
+            oninput="contrastValue = this.value; updateAdvancedFilters();">
+    </div>
 
-<!-- Sharpness -->
-<div style="display: flex; align-items: center; gap: 4px;">
-    <i class="fa-solid fa-star" style="color: white; font-size: 14px;" title="Sharpness"></i>
-    <input type="range" min="0" max="200" value="0"
-        id="sharpnessSlider"
-        style="width: 80px; height: 4px;"
-        oninput="updateCollageFilters()">
+    <!-- Saturation -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-wand-magic-sparkles" style="color: white; font-size: 14px;" title="Saturation"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="saturationSlider"
+            style="width: 80px; height: 4px;"
+            oninput="saturationValue = this.value; updateAdvancedFilters();">
+    </div>
+
+    <!-- Sharpness -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-star" style="color: white; font-size: 14px;" title="Sharpness"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="sharpnessSlider"
+            style="width: 80px; height: 4px;"
+            oninput="sharpnessValue = this.value; updateAdvancedFilters();">
+    </div>
+
 </div>
 
 <div class="content">
@@ -277,100 +261,11 @@
   let brightnessValue = 100;
 let contrastValue = 100;
 let saturationValue = 100;
-let sharpnessValue = 0;
-
     
     function goHome() {
     window.location.href = "UI.html"; // Redirect to the main PhotoForge page
 }
-    let cropBox = null;
-let isCropping = false;
-
-function toggleCropMode() {
-    const image = document.getElementById("image-area");
-    const container = image.parentElement;
-
-    if (isCropping) {
-        // Exit cropping mode
-        cropBox?.remove();
-        cropBox = null;
-        document.getElementById("cropApplyBtn").style.display = "none";
-        isCropping = false;
-        return;
-    }
-
-    // Enter crop mode
-    cropBox = document.createElement("div");
-    cropBox.id = "cropBox";
-
-    // Initial size centered on the image
-    cropBox.style.width = "150px";
-    cropBox.style.height = "150px";
-    cropBox.style.left = `${(image.offsetLeft + image.width / 2) - 75}px`;
-    cropBox.style.top = `${(image.offsetTop + image.height / 2) - 75}px`;
-
-    // Allow dragging
-    makeDraggable(cropBox);
-    container.appendChild(cropBox);
-
-    isCropping = true;
-    document.getElementById("cropApplyBtn").style.display = "inline-block";
-}
-
-function makeDraggable(el) {
-    let isDragging = false;
-    let offsetX, offsetY;
-
-    el.addEventListener('mousedown', function (e) {
-        isDragging = true;
-        offsetX = e.clientX - el.offsetLeft;
-        offsetY = e.clientY - el.offsetTop;
-    });
-
-    window.addEventListener('mousemove', function (e) {
-        if (!isDragging) return;
-        el.style.left = `${e.clientX - offsetX}px`;
-        el.style.top = `${e.clientY - offsetY}px`;
-    });
-
-    window.addEventListener('mouseup', function () {
-        isDragging = false;
-    });
-}
-
-function applyCrop() {
-    const image = document.getElementById("image-area");
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    const cropRect = cropBox.getBoundingClientRect();
-    const imageRect = image.getBoundingClientRect();
-
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-
-    const cropX = (cropRect.left - imageRect.left) * scaleX;
-    const cropY = (cropRect.top - imageRect.top) * scaleY;
-    const cropW = cropBox.offsetWidth * scaleX;
-    const cropH = cropBox.offsetHeight * scaleY;
-
-    canvas.width = cropW;
-    canvas.height = cropH;
-
-    ctx.drawImage(image, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-
-    const croppedDataUrl = canvas.toDataURL("image/png");
-
-    // Replace the original image
-    image.src = croppedDataUrl;
-
-    // Cleanup
-    cropBox.remove();
-    cropBox = null;
-    isCropping = false;
-    document.getElementById("cropApplyBtn").style.display = "none";
-}
-
+    
     function openImages() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -405,35 +300,21 @@ function applyCrop() {
         };
         input.click();
     }
+    
+  function updateAdvancedFilters() {
+    if (!selectedImage) return;
+
+    // Apply combined filters
+    const filterString = `
+        brightness(${brightnessValue}%)
+        contrast(${contrastValue}%)
+        saturate(${saturationValue}%)
        
-function updateCollageFilters() {
-    const brightness = parseFloat(document.getElementById("brightnessSlider")?.value || 100) / 100;
-    const contrast = parseFloat(document.getElementById("contrastSlider")?.value || 100) / 100;
-    const saturation = parseFloat(document.getElementById("saturationSlider")?.value || 100) / 100;
-    const sepia = parseFloat(document.getElementById("sepiaSlider")?.value || 0) / 100;
-    const grayscale = parseFloat(document.getElementById("bwSlider")?.value || 0) / 100;
-    const blur = parseFloat(document.getElementById("blurSlider")?.value || 0);
+    `.trim();
 
-    const sharpness = parseFloat(document.getElementById("sharpnessSlider")?.value || 0) / 100;
-
-    canvas.getObjects().forEach(obj => {
-        if (obj.type === "image") {
-            obj.filters = [
-                new fabric.Image.filters.Brightness({ brightness: brightness - 1 }),
-                new fabric.Image.filters.Contrast({ contrast: contrast - 1 }),
-                new fabric.Image.filters.Saturation({ saturation: saturation }),
-                new fabric.Image.filters.Sepia({ }),
-                new fabric.Image.filters.Grayscale({ }),
-                new fabric.Image.filters.Blur({ blur: blur }),
-                new fabric.Image.filters.Convolute({ matrix: getSharpnessKernel(sharpness) })
-            ];
-            obj.applyFilters();
-        }
-    });
-
-    canvas.renderAll();
+    selectedImage.style.filter = filterString;
 }
- 
+
      function makeDraggable(element) {
         let isDragging = false, startX, startY, startLeft, startTop;
 
@@ -538,8 +419,6 @@ function updateCollageFilters() {
         box.style.height = size + 'px';
     }
 
-
-
     function applyTransformations(img) {
       
         const rotation = img.dataset.rotation;
@@ -556,26 +435,13 @@ function updateCollageFilters() {
         selectedImage = null;
     }
    
-
 function downloadCollage() {
-   canvas.getObjects().forEach(obj => {
-        if (obj.type === "image") {
-            obj.applyFilters();
-        }
+    html2canvas(collageContainer).then(canvas => {
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL("image/png");
+        link.download = "collage.png";
+        link.click();
     });
-
-    canvas.renderAll();
-
-    // Export canvas to image
-    const dataURL = canvas.toDataURL({
-        format: "png",
-        quality: 1.0
-    });
-
-    const link = document.createElement("a");
-    link.href = dataURL;
-    link.download = "collage.png";
-    link.click();
 }
 
 </script>

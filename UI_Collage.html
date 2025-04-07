@@ -144,7 +144,6 @@
     z-index: 9999;
   }
 
-
         .image-box img {
             max-width: 100%;
             max-height: 100%;
@@ -165,6 +164,9 @@
     font-size: 1.2em;
     color: white;
 }
+
+
+
 
         .selected {
             border: 3px solid yellow !important;
@@ -229,44 +231,42 @@
         
     </div>
    
-    <div style="display: flex; flex-direction: row; align-items: center; gap: 12px; margin-top: 10px;">
-        <!-- Brightness -->
-        <div style="display: flex; align-items: center; gap: 4px;">
-            <i class="fa-solid fa-sun" style="color: white; font-size: 14px;" title="Brightness"></i>
-            <input type="range" min="0" max="200" value="100"
-                id="brightnessSlider"
-                style="width: 80px; height: 4px;"
-                oninput="updateCollageFilters()">
-        </div>
-    
-        <!-- Contrast -->
-        <div style="display: flex; align-items: center; gap: 4px;">
-            <i class="fa-solid fa-eye" style="color: white; font-size: 14px;" title="Contrast"></i>
-            <input type="range" min="0" max="200" value="100"
-                id="contrastSlider"
-                style="width: 80px; height: 4px;"
-                oninput="updateCollageFilters()">
-        </div>
-    
-        <!-- Saturation -->
-        <div style="display: flex; align-items: center; gap: 4px;">
-            <i class="fa-solid fa-wand-magic-sparkles" style="color: white; font-size: 14px;" title="Saturation"></i>
-            <input type="range" min="0" max="200" value="100"
-                id="saturationSlider"
-                style="width: 80px; height: 4px;"
-                oninput="updateCollageFilters()">
-        </div>
-    
-        <!-- Sharpness -->
-        <div style="display: flex; align-items: center; gap: 4px;">
-            <i class="fa-solid fa-star" style="color: white; font-size: 14px;" title="Sharpness"></i>
-            <input type="range" min="0" max="200" value="0"
-                id="sharpnessSlider"
-                style="width: 80px; height: 4px;"
-                oninput="updateCollageFilters()">
-        </div>
-    </div>
-    
+<!-- Brightness -->
+<div style="display: flex; align-items: center; gap: 4px;">
+    <i class="fa-solid fa-sun" style="color: white; font-size: 14px;" title="Brightness"></i>
+    <input type="range" min="0" max="200" value="100"
+        id="brightnessSlider"
+        style="width: 80px; height: 4px;"
+        oninput="updateCollageFilters()">
+</div>
+
+<!-- Contrast -->
+<div style="display: flex; align-items: center; gap: 4px;">
+    <i class="fa-solid fa-eye" style="color: white; font-size: 14px;" title="Contrast"></i>
+    <input type="range" min="0" max="200" value="100"
+        id="contrastSlider"
+        style="width: 80px; height: 4px;"
+        oninput="updateCollageFilters()">
+</div>
+
+<!-- Saturation -->
+<div style="display: flex; align-items: center; gap: 4px;">
+    <i class="fa-solid fa-wand-magic-sparkles" style="color: white; font-size: 14px;" title="Saturation"></i>
+    <input type="range" min="0" max="200" value="100"
+        id="saturationSlider"
+        style="width: 80px; height: 4px;"
+        oninput="updateCollageFilters()">
+</div>
+
+<!-- Sharpness -->
+<div style="display: flex; align-items: center; gap: 4px;">
+    <i class="fa-solid fa-star" style="color: white; font-size: 14px;" title="Sharpness"></i>
+    <input type="range" min="0" max="200" value="0"
+        id="sharpnessSlider"
+        style="width: 80px; height: 4px;"
+        oninput="updateCollageFilters()">
+</div>
+
 <div class="content">
     <div id="collage-container"></div>
 </div>
@@ -278,7 +278,8 @@
 let contrastValue = 100;
 let saturationValue = 100;
 let sharpnessValue = 0;
- 
+
+    
     function goHome() {
     window.location.href = "UI.html"; // Redirect to the main PhotoForge page
 }
@@ -432,7 +433,7 @@ function updateCollageFilters() {
 
     canvas.renderAll();
 }
-
+ 
      function makeDraggable(element) {
         let isDragging = false, startX, startY, startLeft, startTop;
 
@@ -536,6 +537,8 @@ function updateCollageFilters() {
         box.style.width = size + 'px';
         box.style.height = size + 'px';
     }
+
+
 
     function applyTransformations(img) {
       

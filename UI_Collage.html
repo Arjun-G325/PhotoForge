@@ -135,6 +135,15 @@
             background: #fff;
             cursor: grab;
         }
+          #cropBox {
+    position: absolute;
+    border: 2px dashed #fff;
+    pointer-events: auto;
+    resize: both;
+    overflow: hidden;
+    z-index: 9999;
+  }
+
 
         .image-box img {
             max-width: 100%;
@@ -185,7 +194,16 @@
         <div class="partition"></div>
 
         <div class="icon-grid">
-            <button onclick="cropImage()"><i class="fa-solid fa-crop"></i><span class="tooltip">Crop</span></button>
+            <button onclick="toggleCropMode()">
+        <i class="fa-solid fa-crop"></i>
+        <span class="tooltip">Crop</span>
+    </button>
+
+    <!-- Apply Crop -->
+    <button onclick="applyCrop()" id="cropApplyBtn" style="display: none;">
+        <i class="fa-solid fa-check"></i>
+        <span class="tooltip">Apply Crop</span>
+    </button>
             <button onclick="rotateSelected(-90)"><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
             <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
             <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
@@ -274,6 +292,94 @@ let sharpnessValue = 0;
     function goHome() {
     window.location.href = "UI.html"; // Redirect to the main PhotoForge page
 }
+    let cropBox = null;
+let isCropping = false;
+
+function toggleCropMode() {
+    const image = document.getElementById("image-area");
+    const container = image.parentElement;
+
+    if (isCropping) {
+        // Exit cropping mode
+        cropBox?.remove();
+        cropBox = null;
+        document.getElementById("cropApplyBtn").style.display = "none";
+        isCropping = false;
+        return;
+    }
+
+    // Enter crop mode
+    cropBox = document.createElement("div");
+    cropBox.id = "cropBox";
+
+    // Initial size centered on the image
+    cropBox.style.width = "150px";
+    cropBox.style.height = "150px";
+    cropBox.style.left = `${(image.offsetLeft + image.width / 2) - 75}px`;
+    cropBox.style.top = `${(image.offsetTop + image.height / 2) - 75}px`;
+
+    // Allow dragging
+    makeDraggable(cropBox);
+    container.appendChild(cropBox);
+
+    isCropping = true;
+    document.getElementById("cropApplyBtn").style.display = "inline-block";
+}
+
+function makeDraggable(el) {
+    let isDragging = false;
+    let offsetX, offsetY;
+
+    el.addEventListener('mousedown', function (e) {
+        isDragging = true;
+        offsetX = e.clientX - el.offsetLeft;
+        offsetY = e.clientY - el.offsetTop;
+    });
+
+    window.addEventListener('mousemove', function (e) {
+        if (!isDragging) return;
+        el.style.left = `${e.clientX - offsetX}px`;
+        el.style.top = `${e.clientY - offsetY}px`;
+    });
+
+    window.addEventListener('mouseup', function () {
+        isDragging = false;
+    });
+}
+
+function applyCrop() {
+    const image = document.getElementById("image-area");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const cropRect = cropBox.getBoundingClientRect();
+    const imageRect = image.getBoundingClientRect();
+
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+
+    const cropX = (cropRect.left - imageRect.left) * scaleX;
+    const cropY = (cropRect.top - imageRect.top) * scaleY;
+    const cropW = cropBox.offsetWidth * scaleX;
+    const cropH = cropBox.offsetHeight * scaleY;
+
+    canvas.width = cropW;
+    canvas.height = cropH;
+
+    ctx.drawImage(image, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+    const croppedDataUrl = canvas.toDataURL("image/png");
+
+    // Replace the original image
+    image.src = croppedDataUrl;
+
+    // Cleanup
+    cropBox.remove();
+    cropBox = null;
+    isCropping = false;
+    document.getElementById("cropApplyBtn").style.display = "none";
+}
+
     
 
     function openImages() {

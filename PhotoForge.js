@@ -4,7 +4,7 @@ let mainWindow;
 let editorWindow;
 let collageWindow;
 
-// 🛠️ Function to create the main window
+// Create main window
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
@@ -22,12 +22,9 @@ function createWindow() {
   });
 }
 
-// 🌟 Function to open the image editor
+// Open image editor
 function openImageEditor() {
-  if (mainWindow) {
-    mainWindow.close();
-    mainWindow = null;
-  }
+  if (editorWindow) return;
 
   editorWindow = new BrowserWindow({
     width: 1200,
@@ -38,19 +35,18 @@ function openImageEditor() {
     }
   });
 
+  mainWindow.hide(); // just hide, don't close
   editorWindow.loadFile('UI_editor.html');
 
   editorWindow.on('closed', () => {
     editorWindow = null;
+    mainWindow.show(); // show main window again when editor is closed
   });
 }
 
-// 🌟 Function to open the collage maker
+// Open collage editor
 function openCollageEditor() {
-  if (mainWindow) {
-    mainWindow.close();
-    mainWindow = null;
-  }
+  if (collageWindow) return;
 
   collageWindow = new BrowserWindow({
     width: 1200,
@@ -61,25 +57,22 @@ function openCollageEditor() {
     }
   });
 
-  collageWindow.loadFile('UI_Collage.html');  // Load collage editor HTML
+  mainWindow.hide(); // again, just hide
+  collageWindow.loadFile('UI_Collage.html');
 
   collageWindow.on('closed', () => {
     collageWindow = null;
+    mainWindow.show(); // show main when collage is closed
   });
 }
 
-// 🛠️ Listen for app ready event
 app.whenReady().then(createWindow);
 
-// ✅ Event handlers for opening editors
 ipcMain.on('open-image-editor', openImageEditor);
 ipcMain.on('open-collage-editor', openCollageEditor);
 
-// 💡 Quit app when all windows are closed
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('activate', () => {
@@ -87,4 +80,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-

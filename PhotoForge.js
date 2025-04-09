@@ -96,7 +96,6 @@ ipcMain.on("request-save-dialog", async (event) => {
   }
 });
 
-
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });

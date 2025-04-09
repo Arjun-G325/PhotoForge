@@ -187,7 +187,7 @@
             <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
             <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
             <button onclick="flipSelected('Y')"><i class="fa-solid fa-arrows-up-down"></i><span class="tooltip">Flip Vertically</span></button>
-            <button onclick="startCrop()">Crop</button>
+           <button onclick="cropImage()">Crop</button>
 
         </div>
 
@@ -304,78 +304,161 @@ let saturationValue = 100;
         input.click();
     }
 
-    let croppingRect = null;
-  let isCropping = false;
+   let cropBox = null;
+let isCropping = false;
+let isDragging = false;
+let isResizing = false;
+let offsetX, offsetY;
+let resizeDirection = null;
 
-  function startCrop() {
-    if (isCropping) {
-      return;
+function cropImage() {
+    let container = document.getElementById("collage-container"); // Use your image wrapper div ID
+    let image = document.getElementById("collage-image"); // ID of the actual image
+
+    if (!image.src) {
+        alert("No image to crop");
+        return;
     }
 
-    isCropping = true;
-
-    croppingRect = new fabric.Rect({
-      left: 100,
-      top: 100,
-      width: 200,
-      height: 200,
-      fill: 'rgba(0,0,0,0.3)',
-      stroke: 'red',
-      strokeWidth: 2,
-      hasBorders: true,
-      hasControls: true,
-      selectable: true
-    });
-
-    canvas.add(croppingRect);
-    canvas.setActiveObject(croppingRect);
-
-    const cropConfirmBtn = document.createElement("button");
-    cropConfirmBtn.textContent = "Apply Crop";
-    cropConfirmBtn.id = "cropConfirmBtn";
-    cropConfirmBtn.style.marginLeft = "10px";
-    cropConfirmBtn.onclick = applyCrop;
-    document.body.appendChild(cropConfirmBtn);
-  }
-
-  function applyCrop() {
-    const activeObject = canvas.getActiveObject();
-
-    if (!croppingRect || !activeObject) {
-      return;
+    let message = document.getElementById("crop-message");
+    if (!message) {
+        message = document.createElement("div");
+        message.id = "crop-message";
+        message.style.position = "absolute";
+        message.style.top = "100px";
+        message.style.left = "50%";
+        message.style.transform = "translateX(-50%)";
+        message.style.color = "white";
+        message.style.background = "rgba(0, 0, 0, 0.7)";
+        message.style.padding = "5px 10px";
+        message.style.borderRadius = "5px";
+        message.style.zIndex = "1000";
+        message.innerText = "Click crop icon again to finish cropping.";
+        container.appendChild(message);
     }
 
-    // Get crop region
-    const left = croppingRect.left;
-    const top = croppingRect.top;
-    const width = croppingRect.width * croppingRect.scaleX;
-    const height = croppingRect.height * croppingRect.scaleY;
+    if (!isCropping) {
+        cropBox = document.createElement("div");
+        cropBox.style.position = "absolute";
+        cropBox.style.border = "2px dashed white";
+        cropBox.style.cursor = "move";
+        cropBox.style.width = "100px";
+        cropBox.style.height = "100px";
+        cropBox.style.top = "50%";
+        cropBox.style.left = "50%";
+        cropBox.style.transform = "translate(-50%, -50%)";
+        cropBox.style.overflow = "hidden";
+        cropBox.setAttribute("id", "crop-box");
+        container.appendChild(cropBox);
 
-    const cropped = canvas.toDataURL({
-      left: left,
-      top: top,
-      width: width,
-      height: height
-    });
+        addResizeHandles();
 
-    fabric.Image.fromURL(cropped, function(img) {
-      canvas.clear(); // Clear everything
-      canvas.setBackgroundColor(null, canvas.renderAll.bind(canvas));
-      canvas.add(img);
-      img.center();
-      img.setCoords();
-      canvas.setActiveObject(img);
-    });
+        isCropping = true;
 
-    canvas.remove(croppingRect);
-    croppingRect = null;
-    isCropping = false;
+        cropBox.addEventListener("mousedown", (e) => {
+            if (e.target === cropBox) {
+                isDragging = true;
+                offsetX = e.clientX - cropBox.offsetLeft;
+                offsetY = e.clientY - cropBox.offsetTop;
+                document.body.style.userSelect = "none";
+                document.addEventListener("mousemove", dragCropBox);
+                document.addEventListener("mouseup", stopDrag);
+            } else {
+                isResizing = true;
+                resizeDirection = e.target.getAttribute("data-resize");
+                document.addEventListener("mousemove", resizeCropBox);
+                document.addEventListener("mouseup", stopResize);
+            }
+        });
+    } else {
+        let rect = cropBox.getBoundingClientRect();
+        let imgRect = image.getBoundingClientRect();
 
-    const btn = document.getElementById("cropConfirmBtn");
-    if (btn) {
-      btn.remove();
+        let scaleX = image.naturalWidth / imgRect.width;
+        let scaleY = image.naturalHeight / imgRect.height;
+
+        let sx = Math.round((rect.left - imgRect.left) * scaleX);
+        let sy = Math.round((rect.top - imgRect.top) * scaleY);
+        let sw = Math.round(rect.width * scaleX);
+        let sh = Math.round(rect.height * scaleY);
+
+        sx = Math.max(0, sx);
+        sy = Math.max(0, sy);
+        sw = Math.min(image.naturalWidth - sx, sw);
+        sh = Math.min(image.naturalHeight - sy, sh);
+
+        let canvas = document.createElement("canvas");
+        canvas.width = sw;
+        canvas.height = sh;
+        let ctx = canvas.getContext("2d");
+
+        let tempImg = new Image();
+        tempImg.src = image.src;
+
+        tempImg.onload = () => {
+            ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
+            image.src = canvas.toDataURL();
+            container.removeChild(cropBox);
+            cropBox = null;
+            isCropping = false;
+            if (message) message.remove();
+        };
     }
-  }
+}
+
+function dragCropBox(e) {
+    if (isDragging && cropBox) {
+        let newX = e.clientX - offsetX;
+        let newY = e.clientY - offsetY;
+        cropBox.style.left = `${newX}px`;
+        cropBox.style.top = `${newY}px`;
+    }
+}
+
+function stopDrag() {
+    isDragging = false;
+    document.removeEventListener("mousemove", dragCropBox);
+    document.removeEventListener("mouseup", stopDrag);
+    document.body.style.userSelect = "auto";
+}
+
+function resizeCropBox(e) {
+    let rect = cropBox.getBoundingClientRect();
+    if (resizeDirection === "ne") {
+        let newWidth = e.clientX - rect.left;
+        let newHeight = rect.bottom - e.clientY;
+        if (newWidth > 50 && newHeight > 50) {
+            cropBox.style.width = newWidth + "px";
+            cropBox.style.height = newHeight + "px";
+        }
+    }
+}
+
+function stopResize() {
+    isResizing = false;
+    document.removeEventListener("mousemove", resizeCropBox);
+    document.removeEventListener("mouseup", stopResize);
+}
+
+function addResizeHandles() {
+    const directions = ["ne"];
+    directions.forEach((dir) => {
+        const handle = document.createElement("div");
+        handle.style.position = "absolute";
+        handle.style.width = "10px";
+        handle.style.height = "10px";
+        handle.style.background = "white";
+        handle.style.cursor = `${dir}-resize`;
+
+        if (dir === "ne") {
+            handle.style.top = "0px";
+            handle.style.right = "0px";
+        }
+
+        handle.setAttribute("data-resize", dir);
+        cropBox.appendChild(handle);
+    });
+}
     
   function updateAdvancedFilters() {
     if (!selectedImage) return;

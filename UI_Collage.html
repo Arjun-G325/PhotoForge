@@ -182,11 +182,13 @@
         <div class="partition"></div>
 
         <div class="icon-grid">
-            <button onclick="cropImage()"><i class="fa-solid fa-crop"></i><span class="tooltip">Crop</span></button>
+            
             <button onclick="rotateSelected(-90)"><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
             <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
             <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
             <button onclick="flipSelected('Y')"><i class="fa-solid fa-arrows-up-down"></i><span class="tooltip">Flip Vertically</span></button>
+            <button onclick="startCrop()">Crop</button>
+
         </div>
 
         <div class="partition"></div>
@@ -301,6 +303,79 @@ let saturationValue = 100;
         };
         input.click();
     }
+
+    let croppingRect = null;
+  let isCropping = false;
+
+  function startCrop() {
+    if (isCropping) {
+      return;
+    }
+
+    isCropping = true;
+
+    croppingRect = new fabric.Rect({
+      left: 100,
+      top: 100,
+      width: 200,
+      height: 200,
+      fill: 'rgba(0,0,0,0.3)',
+      stroke: 'red',
+      strokeWidth: 2,
+      hasBorders: true,
+      hasControls: true,
+      selectable: true
+    });
+
+    canvas.add(croppingRect);
+    canvas.setActiveObject(croppingRect);
+
+    const cropConfirmBtn = document.createElement("button");
+    cropConfirmBtn.textContent = "Apply Crop";
+    cropConfirmBtn.id = "cropConfirmBtn";
+    cropConfirmBtn.style.marginLeft = "10px";
+    cropConfirmBtn.onclick = applyCrop;
+    document.body.appendChild(cropConfirmBtn);
+  }
+
+  function applyCrop() {
+    const activeObject = canvas.getActiveObject();
+
+    if (!croppingRect || !activeObject) {
+      return;
+    }
+
+    // Get crop region
+    const left = croppingRect.left;
+    const top = croppingRect.top;
+    const width = croppingRect.width * croppingRect.scaleX;
+    const height = croppingRect.height * croppingRect.scaleY;
+
+    const cropped = canvas.toDataURL({
+      left: left,
+      top: top,
+      width: width,
+      height: height
+    });
+
+    fabric.Image.fromURL(cropped, function(img) {
+      canvas.clear(); // Clear everything
+      canvas.setBackgroundColor(null, canvas.renderAll.bind(canvas));
+      canvas.add(img);
+      img.center();
+      img.setCoords();
+      canvas.setActiveObject(img);
+    });
+
+    canvas.remove(croppingRect);
+    croppingRect = null;
+    isCropping = false;
+
+    const btn = document.getElementById("cropConfirmBtn");
+    if (btn) {
+      btn.remove();
+    }
+  }
     
   function updateAdvancedFilters() {
     if (!selectedImage) return;

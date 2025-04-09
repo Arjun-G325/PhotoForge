@@ -187,6 +187,8 @@
             <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
             <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
             <button onclick="flipSelected('Y')"><i class="fa-solid fa-arrows-up-down"></i><span class="tooltip">Flip Vertically</span></button>
+            <button id="crop-btn">Crop</button>
+
           
   <i class="fa-solid fa-crop"></i>
   <span class="tooltip">Crop</span>
@@ -306,6 +308,87 @@ let saturationValue = 100;
         };
         input.click();
     }
+
+    let cropMode = false;
+let cropRect = null;
+let activeImageBeforeCrop = null;
+
+document.getElementById('crop-btn').addEventListener('click', function () {
+    const activeObject = canvas.getActiveObject();
+
+    if (!cropMode && activeObject && activeObject.type === 'image') {
+        cropMode = true;
+        activeImageBeforeCrop = activeObject;
+
+        cropRect = new fabric.Rect({
+            left: activeObject.left + 20,
+            top: activeObject.top + 20,
+            width: activeObject.width * activeObject.scaleX - 40,
+            height: activeObject.height * activeObject.scaleY - 40,
+            fill: 'rgba(0,0,0,0)',
+            stroke: 'black',
+            strokeDashArray: [5, 5],
+            strokeWidth: 1,
+            selectable: true,
+            hasBorders: true,
+            hasControls: true,
+            lockRotation: true,
+        });
+
+        canvas.add(cropRect);
+        canvas.setActiveObject(cropRect);
+        canvas.renderAll();
+
+    } else if (cropMode && cropRect && activeImageBeforeCrop) {
+        const scaleX = activeImageBeforeCrop.scaleX;
+        const scaleY = activeImageBeforeCrop.scaleY;
+
+        const leftOffset = cropRect.left - activeImageBeforeCrop.left;
+        const topOffset = cropRect.top - activeImageBeforeCrop.top;
+
+        const cropLeft = leftOffset / scaleX;
+        const cropTop = topOffset / scaleY;
+        const cropWidth = cropRect.width / scaleX;
+        const cropHeight = cropRect.height / scaleY;
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = cropWidth;
+        tempCanvas.height = cropHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+
+        const imageElement = activeImageBeforeCrop._element;
+
+        tempCtx.drawImage(
+            imageElement,
+            cropLeft,
+            cropTop,
+            cropWidth,
+            cropHeight,
+            0,
+            0,
+            cropWidth,
+            cropHeight
+        );
+
+        const croppedDataUrl = tempCanvas.toDataURL();
+        fabric.Image.fromURL(croppedDataUrl, function (img) {
+            img.set({
+                left: activeImageBeforeCrop.left,
+                top: activeImageBeforeCrop.top,
+                scaleX: 1,
+                scaleY: 1
+            });
+            canvas.remove(activeImageBeforeCrop);
+            canvas.add(img);
+            canvas.setActiveObject(img);
+            canvas.remove(cropRect);
+            cropRect = null;
+            cropMode = false;
+            activeImageBeforeCrop = null;
+            canvas.renderAll();
+        });
+    }
+});
 
 
 

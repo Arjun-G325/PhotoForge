@@ -307,16 +307,22 @@ let saturationValue = 100;
         input.click();
     }
 
-  let cropRect;
+ let cropRect = null;
 let isCropping = false;
+let objectToCrop = null;
 
 function toggleCrop() {
-    const activeObject = canvas.getActiveObject();
-    if (!activeObject || activeObject.type !== "image") return;
-
     if (!isCropping) {
-        // Start crop mode
-        const bounds = activeObject.getBoundingRect();
+        const active = canvas.getActiveObject();
+
+        if (!active || active.type !== "image") {
+            alert("Select an image to crop.");
+            return;
+        }
+
+        objectToCrop = active;
+
+        const bounds = active.getBoundingRect();
 
         cropRect = new fabric.Rect({
             left: bounds.left + 10,
@@ -324,52 +330,69 @@ function toggleCrop() {
             width: bounds.width - 20,
             height: bounds.height - 20,
             fill: "rgba(0,0,0,0.2)",
-            stroke: "#ccc",
+            stroke: "#ffffff",
             strokeDashArray: [5, 5],
-            selectable: true,
             hasBorders: true,
             hasControls: true,
             lockRotation: true,
-            cornerColor: "blue",
+            cornerColor: "red",
+            transparentCorners: false
         });
 
         canvas.add(cropRect);
         canvas.setActiveObject(cropRect);
         isCropping = true;
     } else {
-        // Finalize crop
-        const left = cropRect.left - activeObject.left;
-        const top = cropRect.top - activeObject.top;
+        if (!cropRect || !objectToCrop) return;
+
+        const left = cropRect.left - objectToCrop.left;
+        const top = cropRect.top - objectToCrop.top;
         const width = cropRect.width * cropRect.scaleX;
         const height = cropRect.height * cropRect.scaleY;
-
-        const cropped = new Image();
-        cropped.onload = function () {
-            const imgInstance = new fabric.Image(cropped, {
-                left: activeObject.left,
-                top: activeObject.top,
-                angle: activeObject.angle,
-                scaleX: activeObject.scaleX,
-                scaleY: activeObject.scaleY,
-            });
-            canvas.remove(activeObject);
-            canvas.add(imgInstance);
-            canvas.setActiveObject(imgInstance);
-        };
 
         const tempCanvas = document.createElement("canvas");
         tempCanvas.width = width;
         tempCanvas.height = height;
-        const tempCtx = tempCanvas.getContext("2d");
 
-        const source = activeObject.toCanvasElement();
-        tempCtx.drawImage(source, left, top, width, height, 0, 0, width, height);
+        const ctx = tempCanvas.getContext("2d");
+        const imageElement = objectToCrop._element;
 
-        cropped.src = tempCanvas.toDataURL();
+        const scaleX = objectToCrop.scaleX;
+        const scaleY = objectToCrop.scaleY;
 
-        canvas.remove(cropRect);
-        cropRect = null;
-        isCropping = false;
+        ctx.drawImage(
+            imageElement,
+            left / scaleX,
+            top / scaleY,
+            width / scaleX,
+            height / scaleY,
+            0,
+            0,
+            width,
+            height
+        );
+
+        const croppedImg = new Image();
+        croppedImg.onload = function () {
+            const newImage = new fabric.Image(croppedImg, {
+                left: objectToCrop.left,
+                top: objectToCrop.top,
+                angle: objectToCrop.angle,
+                scaleX: 1,
+                scaleY: 1
+            });
+
+            canvas.remove(objectToCrop);
+            canvas.remove(cropRect);
+            canvas.add(newImage);
+            canvas.setActiveObject(newImage);
+
+            cropRect = null;
+            objectToCrop = null;
+            isCropping = false;
+        };
+
+        croppedImg.src = tempCanvas.toDataURL();
     }
 
     canvas.renderAll();

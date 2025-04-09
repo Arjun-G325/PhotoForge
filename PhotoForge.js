@@ -71,6 +71,32 @@ app.whenReady().then(createWindow);
 ipcMain.on('open-image-editor', openImageEditor);
 ipcMain.on('open-collage-editor', openCollageEditor);
 
+const { dialog } = require('electron');
+const path = require('path');
+
+ipcMain.on("request-save-dialog", async (event) => {
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: "Save Image As",
+    defaultPath: "edited-image.png",
+    filters: [
+      { name: "PNG(.png)", extensions: ["png"] },
+      { name: "JPEG(.jpg)", extensions: ["jpg", "jpeg"] },
+      { name: "Bitmap(.bmp)", extensions: ["bmp"] },
+      { name: "TIFF(.tiff)", extensions: ["tiff"] },
+      { name: "WebP(.webp)", extensions: ["webp"] }
+    ]
+  });
+
+  if (!canceled && filePath) {
+    const ext = path.extname(filePath).toLowerCase().replace('.', '');
+    event.sender.send("save-file-path", {
+      filePath,
+      extension: ext
+    });
+  }
+});
+
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });

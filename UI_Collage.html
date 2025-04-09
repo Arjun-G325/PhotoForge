@@ -187,7 +187,7 @@
             <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
             <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
             <button onclick="flipSelected('Y')"><i class="fa-solid fa-arrows-up-down"></i><span class="tooltip">Flip Vertically</span></button>
-           <button onclick="toggleCrop()">
+          
   <i class="fa-solid fa-crop"></i>
   <span class="tooltip">Crop</span>
 </button>
@@ -268,10 +268,10 @@
 let contrastValue = 100;
 let saturationValue = 100;
     
-    function goHome() {
-    window.close(); // Redirect to the main PhotoForge page
+     function goHome() {
+    window.location.href = "UI.html"; // Redirect to the main PhotoForge page
 }
-    
+
     function openImages() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -307,96 +307,6 @@ let saturationValue = 100;
         input.click();
     }
 
- let cropRect = null;
-let isCropping = false;
-let objectToCrop = null;
-
-function toggleCrop() {
-    if (!isCropping) {
-        const active = canvas.getActiveObject();
-
-        if (!active || active.type !== "image") {
-            alert("Select an image to crop.");
-            return;
-        }
-
-        objectToCrop = active;
-
-        const bounds = active.getBoundingRect();
-
-        cropRect = new fabric.Rect({
-            left: bounds.left + 10,
-            top: bounds.top + 10,
-            width: bounds.width - 20,
-            height: bounds.height - 20,
-            fill: "rgba(0,0,0,0.2)",
-            stroke: "#ffffff",
-            strokeDashArray: [5, 5],
-            hasBorders: true,
-            hasControls: true,
-            lockRotation: true,
-            cornerColor: "red",
-            transparentCorners: false
-        });
-
-        canvas.add(cropRect);
-        canvas.setActiveObject(cropRect);
-        isCropping = true;
-    } else {
-        if (!cropRect || !objectToCrop) return;
-
-        const left = cropRect.left - objectToCrop.left;
-        const top = cropRect.top - objectToCrop.top;
-        const width = cropRect.width * cropRect.scaleX;
-        const height = cropRect.height * cropRect.scaleY;
-
-        const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = width;
-        tempCanvas.height = height;
-
-        const ctx = tempCanvas.getContext("2d");
-        const imageElement = objectToCrop._element;
-
-        const scaleX = objectToCrop.scaleX;
-        const scaleY = objectToCrop.scaleY;
-
-        ctx.drawImage(
-            imageElement,
-            left / scaleX,
-            top / scaleY,
-            width / scaleX,
-            height / scaleY,
-            0,
-            0,
-            width,
-            height
-        );
-
-        const croppedImg = new Image();
-        croppedImg.onload = function () {
-            const newImage = new fabric.Image(croppedImg, {
-                left: objectToCrop.left,
-                top: objectToCrop.top,
-                angle: objectToCrop.angle,
-                scaleX: 1,
-                scaleY: 1
-            });
-
-            canvas.remove(objectToCrop);
-            canvas.remove(cropRect);
-            canvas.add(newImage);
-            canvas.setActiveObject(newImage);
-
-            cropRect = null;
-            objectToCrop = null;
-            isCropping = false;
-        };
-
-        croppedImg.src = tempCanvas.toDataURL();
-    }
-
-    canvas.renderAll();
-}
 
 
    function applyFilter(filterType) {

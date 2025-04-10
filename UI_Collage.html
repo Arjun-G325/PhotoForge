@@ -423,49 +423,53 @@ function stopDrag() {
 }
 
 function resizeCropBox(e) {
+    if (!cropBox || !resizeDirection) return;
+
     const minSize = 40;
-
-    const parentRect = document.getElementById("collage-container").getBoundingClientRect();
-    const cropRect = cropBox.getBoundingClientRect();
-
-    const initialLeft = cropBox.offsetLeft;
-    const initialTop = cropBox.offsetTop;
-    const initialWidth = cropBox.offsetWidth;
-    const initialHeight = cropBox.offsetHeight;
-
-    let newLeft = initialLeft;
-    let newTop = initialTop;
-    let newWidth = initialWidth;
-    let newHeight = initialHeight;
+    const parent = document.getElementById("collage-container");
+    const parentRect = parent.getBoundingClientRect();
 
     const mouseX = e.clientX - parentRect.left;
     const mouseY = e.clientY - parentRect.top;
 
+    let boxLeft = cropBox.offsetLeft;
+    let boxTop = cropBox.offsetTop;
+    let boxWidth = cropBox.offsetWidth;
+    let boxHeight = cropBox.offsetHeight;
+
     if (resizeDirection.includes("n")) {
-        newHeight = (initialTop + initialHeight) - mouseY;
-        newTop = mouseY;
-    }
-    if (resizeDirection.includes("s")) {
-        newHeight = mouseY - initialTop;
-    }
-    if (resizeDirection.includes("w")) {
-        newWidth = (initialLeft + initialWidth) - mouseX;
-        newLeft = mouseX;
-    }
-    if (resizeDirection.includes("e")) {
-        newWidth = mouseX - initialLeft;
+        const diff = mouseY - boxTop;
+        const newHeight = boxHeight - diff;
+        if (newHeight >= minSize) {
+            cropBox.style.top = boxTop + diff + "px";
+            cropBox.style.height = newHeight + "px";
+        }
     }
 
-    // Enforce min size
-    if (newWidth >= minSize) {
-        cropBox.style.left = newLeft + "px";
-        cropBox.style.width = newWidth + "px";
+    if (resizeDirection.includes("s")) {
+        const newHeight = mouseY - boxTop;
+        if (newHeight >= minSize) {
+            cropBox.style.height = newHeight + "px";
+        }
     }
-    if (newHeight >= minSize) {
-        cropBox.style.top = newTop + "px";
-        cropBox.style.height = newHeight + "px";
+
+    if (resizeDirection.includes("w")) {
+        const diff = mouseX - boxLeft;
+        const newWidth = boxWidth - diff;
+        if (newWidth >= minSize) {
+            cropBox.style.left = boxLeft + diff + "px";
+            cropBox.style.width = newWidth + "px";
+        }
+    }
+
+    if (resizeDirection.includes("e")) {
+        const newWidth = mouseX - boxLeft;
+        if (newWidth >= minSize) {
+            cropBox.style.width = newWidth + "px";
+        }
     }
 }
+
 
 function stopResize() {
     isResizing = false;
@@ -473,7 +477,8 @@ function stopResize() {
     document.removeEventListener("mouseup", stopResize);
 }
 function addResizeHandles() {
-    const directions = ["nw", "ne", "sw", "se"];
+    const directions = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
+
     directions.forEach((dir) => {
         const handle = document.createElement("div");
         Object.assign(handle.style, {
@@ -485,6 +490,7 @@ function addResizeHandles() {
             zIndex: "1000"
         });
 
+        // Positioning each handle
         if (dir.includes("n")) handle.style.top = "-5px";
         if (dir.includes("s")) handle.style.bottom = "-5px";
         if (dir.includes("w")) handle.style.left = "-5px";

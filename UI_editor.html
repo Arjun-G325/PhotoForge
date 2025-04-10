@@ -239,20 +239,32 @@ const { ipcRenderer } = require('electron');
         ctx.drawImage(image, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
         ctx.restore();
 
-        const mimeType = extension === 'jpg' ? 'image/jpeg' :
-                         extension === 'webp' ? 'image/webp' :
-                         'image/png'; // PNG for bmp/tiff fallback
+        if (extension === 'tif' || extension === 'tiff') {
+    // Use sharp in the main process for TIFF encoding
+    canvas.toBlob(async (blob) => {
+        const arrayBuffer = await blob.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        ipcRenderer.send('save-as-tiff', { filePath, buffer });
+    }, 'image/png'); // use PNG as input for sharp
+} else {
+    // Use native canvas toBlob for other formats
+    const mimeType = extension === 'jpg' ? 'image/jpeg' :
+                     extension === 'jpeg' ? 'image/jpeg' :
+                     extension === 'webp' ? 'image/webp' :
+                     extension === 'bmp' ? 'image/bmp' :
+                     'image/png';
 
-        canvas.toBlob(async (blob) => {
-            const arrayBuffer = await blob.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            const fs = require('fs');
-            fs.writeFile(filePath, buffer, (err) => {
-                if (err) {
-                    alert("Failed to save file: " + err.message);
-                }
-            });
-        }, mimeType);
+    canvas.toBlob(async (blob) => {
+        const arrayBuffer = await blob.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const fs = require('fs');
+        fs.writeFile(filePath, buffer, (err) => {
+            if (err) {
+                alert("Failed to save file: " + err.message);
+            }
+        });
+    }, mimeType);
+}
     });
 
 let startX, startY;

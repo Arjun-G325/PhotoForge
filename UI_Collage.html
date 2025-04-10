@@ -328,55 +328,154 @@ let saturationValue = 100;
         input.click();
     }
 
- let cropping = false;
 let cropBox = null;
+let isCropping = false;
+let isDragging = false;
+let isResizing = false;
+let offsetX, offsetY;
+let resizeDirection = null;
 
 function cropSelectedImage() {
-    if (!selectedImage) return;
+    if (!selectedImage) {
+        alert("No image selected");
+        return;
+    }
 
-    if (!cropping) {
-        // Start cropping
-        const crop = document.createElement('div');
-        crop.className = 'crop-box';
-        crop.style.left = (selectedImage.offsetLeft + 20) + 'px';
-        crop.style.top = (selectedImage.offsetTop + 20) + 'px';
-        crop.style.width = '100px';
-        crop.style.height = '100px';
-        crop.innerHTML = '<div style="width:100%; height:100%"></div>'; // allow resizing
+    const imgBox = selectedImage.parentElement;
 
-        collageContainer.appendChild(crop);
-        cropBox = crop;
-        makeDraggable(crop);
-        makeResizable(crop);
-        cropping = true;
+    if (!isCropping) {
+        // Create crop box over the selected image
+        cropBox = document.createElement("div");
+        cropBox.id = "crop-box";
+        Object.assign(cropBox.style, {
+            position: "absolute",
+            border: "2px dashed yellow",
+            width: "100px",
+            height: "100px",
+            top: imgBox.offsetTop + 20 + "px",
+            left: imgBox.offsetLeft + 20 + "px",
+            zIndex: "999",
+            cursor: "move",
+            boxSizing: "border-box"
+        });
+
+        document.getElementById("collage-container").appendChild(cropBox);
+        addResizeHandles();
+
+        // Dragging
+        cropBox.addEventListener("mousedown", (e) => {
+            if (e.target.classList.contains("resize-handle")) {
+                isResizing = true;
+                resizeDirection = e.target.dataset.resize;
+                document.addEventListener("mousemove", resizeCropBox);
+                document.addEventListener("mouseup", stopResize);
+            } else {
+                isDragging = true;
+                offsetX = e.clientX - cropBox.offsetLeft;
+                offsetY = e.clientY - cropBox.offsetTop;
+                document.body.style.userSelect = "none";
+                document.addEventListener("mousemove", dragCropBox);
+                document.addEventListener("mouseup", stopDrag);
+            }
+        });
+
+        isCropping = true;
     } else {
-        // Crop image
-        const sx = cropBox.offsetLeft - selectedImage.offsetLeft;
-        const sy = cropBox.offsetTop - selectedImage.offsetTop;
-        const sw = cropBox.offsetWidth;
-        const sh = cropBox.offsetHeight;
+        // Crop logic
+        const rect = cropBox.getBoundingClientRect();
+        const imgRect = selectedImage.getBoundingClientRect();
 
-        const canvas = document.createElement('canvas');
+        const scaleX = selectedImage.naturalWidth / imgRect.width;
+        const scaleY = selectedImage.naturalHeight / imgRect.height;
+
+        let sx = Math.round((rect.left - imgRect.left) * scaleX);
+        let sy = Math.round((rect.top - imgRect.top) * scaleY);
+        let sw = Math.round(rect.width * scaleX);
+        let sh = Math.round(rect.height * scaleY);
+
+        sx = Math.max(0, sx);
+        sy = Math.max(0, sy);
+        sw = Math.min(selectedImage.naturalWidth - sx, sw);
+        sh = Math.min(selectedImage.naturalHeight - sy, sh);
+
+        const canvas = document.createElement("canvas");
         canvas.width = sw;
         canvas.height = sh;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
 
         const tempImg = new Image();
+        tempImg.src = selectedImage.src;
         tempImg.onload = () => {
             ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
             selectedImage.src = canvas.toDataURL();
-        };
-        tempImg.src = selectedImage.src;
 
-        cropBox.remove();
-        cropBox = null;
-        cropping = false;
+            cropBox.remove();
+            cropBox = null;
+            isCropping = false;
+        };
     }
 }
+function dragCropBox(e) {
+    if (!isDragging || !cropBox) return;
+    cropBox.style.left = `${e.clientX - offsetX}px`;
+    cropBox.style.top = `${e.clientY - offsetY}px`;
+}
 
-function makeResizable(el) {
-    el.style.resize = 'both';
-    el.style.overflow = 'auto';
+function stopDrag() {
+    isDragging = false;
+    document.body.style.userSelect = "auto";
+    document.removeEventListener("mousemove", dragCropBox);
+    document.removeEventListener("mouseup", stopDrag);
+}
+
+function resizeCropBox(e) {
+    const rect = cropBox.getBoundingClientRect();
+    const minSize = 40;
+    const startLeft = rect.left;
+    const startTop = rect.top;
+    const startRight = rect.right;
+    const startBottom = rect.bottom;
+
+    let newLeft = startLeft, newTop = startTop, newRight = startRight, newBottom = startBottom;
+
+    if (resizeDirection.includes("n")) newTop = Math.min(e.clientY, startBottom - minSize);
+    if (resizeDirection.includes("s")) newBottom = Math.max(e.clientY, startTop + minSize);
+    if (resizeDirection.includes("w")) newLeft = Math.min(e.clientX, startRight - minSize);
+    if (resizeDirection.includes("e")) newRight = Math.max(e.clientX, startLeft + minSize);
+
+    cropBox.style.left = newLeft + "px";
+    cropBox.style.top = newTop + "px";
+    cropBox.style.width = (newRight - newLeft) + "px";
+    cropBox.style.height = (newBottom - newTop) + "px";
+}
+
+function stopResize() {
+    isResizing = false;
+    document.removeEventListener("mousemove", resizeCropBox);
+    document.removeEventListener("mouseup", stopResize);
+}
+function addResizeHandles() {
+    const directions = ["nw", "ne", "sw", "se"];
+    directions.forEach((dir) => {
+        const handle = document.createElement("div");
+        Object.assign(handle.style, {
+            width: "10px",
+            height: "10px",
+            background: "white",
+            position: "absolute",
+            cursor: `${dir}-resize`,
+            zIndex: "1000"
+        });
+
+        if (dir.includes("n")) handle.style.top = "-5px";
+        if (dir.includes("s")) handle.style.bottom = "-5px";
+        if (dir.includes("w")) handle.style.left = "-5px";
+        if (dir.includes("e")) handle.style.right = "-5px";
+
+        handle.classList.add("resize-handle");
+        handle.dataset.resize = dir;
+        cropBox.appendChild(handle);
+    });
 }
 
 

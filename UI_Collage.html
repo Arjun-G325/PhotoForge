@@ -654,27 +654,53 @@ function addResizeHandles() {
     image.style.filter = ''; // clear CSS filter so it's not applied again
 }
 
-function downloadCollage() {
-    // Get all images in the collage
-    const images = collageContainer.querySelectorAll('img');
+const { ipcRenderer } = require('electron');
+const fs = require('fs');
 
-    // For each image, rasterize the slider-based filters
+// Called from download button
+function downloadCollage() {
+    const images = collageContainer.querySelectorAll('img');
     images.forEach(img => {
         if (img.style.filter && img.style.filter !== 'none') {
             bakeAllSliderFilters(img);
         }
     });
 
-    // Allow time for images to update before rendering
     setTimeout(() => {
         html2canvas(collageContainer).then(canvas => {
-            const link = document.createElement('a');
-            link.href = canvas.toDataURL("image/png");
-            link.download = "collage.png";
-            link.click();
+            ipcRenderer.send("request-save-dialog"); // Ask main for path
+            ipcRenderer.once("save-file-path", (event, { filePath, extension }) => {
+                const mimeTypes = {
+                    png: 'image/png',
+                    jpeg: 'image/jpeg',
+                    jpg: 'image/jpeg',
+                    bmp: 'image/bmp',
+                    webp: 'image/webp',
+                    tiff: 'image/tiff'
+                };
+
+                const mime = mimeTypes[extension] || 'image/png';
+
+                canvas.toBlob(blob => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const buffer = Buffer.from(reader.result);
+                        fs.writeFile(filePath, buffer, err => {
+                            if (err) {
+                                console.error("Failed to save image:", err);
+                            } else {
+                                console.log("Image saved to:", filePath);
+                            }
+                        });
+                    };
+                    reader.readAsArrayBuffer(blob);
+                }, mime);
+            });
         });
-    }, 200); // slight delay ensures images have reloaded
+    }, 200);
 }
+</script>
+
 
 </script>
 

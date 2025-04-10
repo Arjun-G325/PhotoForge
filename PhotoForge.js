@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
+const sharp = require('sharp');
 
 let mainWindow;
 let editorWindow;
@@ -95,6 +96,19 @@ ipcMain.on("request-save-dialog", async (event) => {
     });
   }
 });
+
+ipcMain.on('save-as-tiff', async (event, { filePath, buffer }) => {
+  try {
+      await sharp(buffer)
+          .tiff({ compression: 'lzw' })
+          .toFile(filePath);
+
+      console.log("TIFF saved:", filePath);
+  } catch (err) {
+      console.error("Error saving TIFF:", err);
+  }
+});
+
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

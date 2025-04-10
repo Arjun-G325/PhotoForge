@@ -657,9 +657,9 @@ function addResizeHandles() {
 const { ipcRenderer } = require('electron');
 const fs = require('fs');
 
-// Called from download button
 function downloadCollage() {
     const images = collageContainer.querySelectorAll('img');
+
     images.forEach(img => {
         if (img.style.filter && img.style.filter !== 'none') {
             bakeAllSliderFilters(img);
@@ -668,39 +668,56 @@ function downloadCollage() {
 
     setTimeout(() => {
         html2canvas(collageContainer).then(canvas => {
-            ipcRenderer.send("request-save-dialog"); // Ask main for path
+            ipcRenderer.send("request-save-dialog");
+
             ipcRenderer.once("save-file-path", (event, { filePath, extension }) => {
-                const mimeTypes = {
-                    png: 'image/png',
-                    jpeg: 'image/jpeg',
-                    jpg: 'image/jpeg',
-                    bmp: 'image/bmp',
-                    webp: 'image/webp',
-                    tiff: 'image/tiff'
+    const mimeMap = {
+        png: 'image/png',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        webp: 'image/webp',
+        bmp: 'image/bmp',
+        tif: 'image/tiff',
+        tiff: 'image/tiff'
+    };
+
+    const mime = mimeMap[extension] || 'image/png';
+
+    html2canvas(collageContainer).then(canvas => {
+        if (extension === 'tif' || extension === 'tiff') {
+            // Send PNG buffer for TIFF conversion
+            canvas.toBlob(blob => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const buffer = Buffer.from(reader.result);
+                    ipcRenderer.send('save-as-tiff', { filePath, buffer });
                 };
+                reader.readAsArrayBuffer(blob);
+            }, 'image/png'); // intermediate
+        } else {
+            canvas.toBlob(blob => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const buffer = Buffer.from(reader.result);
+                    fs.writeFile(filePath, buffer, err => {
+                        if (err) {
+                            console.error("Failed to save image:", err);
+                        } else {
+                            console.log("Saved:", filePath);
+                        }
+                    });
+                };
+                reader.readAsArrayBuffer(blob);
+            }, mime);
+        }
+    });
+});
 
-                const mime = mimeTypes[extension] || 'image/png';
-
-                canvas.toBlob(blob => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        const buffer = Buffer.from(reader.result);
-                        fs.writeFile(filePath, buffer, err => {
-                            if (err) {
-                                console.error("Failed to save image:", err);
-                            } else {
-                                console.log("Image saved to:", filePath);
-                            }
-                        });
-                    };
-                    reader.readAsArrayBuffer(blob);
-                }, mime);
-            });
         });
     }, 200);
 }
-</script>
 
+</script>
 
 </script>
 

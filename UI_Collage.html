@@ -420,24 +420,48 @@ function stopDrag() {
 }
 
 function resizeCropBox(e) {
-    const rect = cropBox.getBoundingClientRect();
     const minSize = 40;
-    const startLeft = rect.left;
-    const startTop = rect.top;
-    const startRight = rect.right;
-    const startBottom = rect.bottom;
 
-    let newLeft = startLeft, newTop = startTop, newRight = startRight, newBottom = startBottom;
+    const parentRect = document.getElementById("collage-container").getBoundingClientRect();
+    const cropRect = cropBox.getBoundingClientRect();
 
-    if (resizeDirection.includes("n")) newTop = Math.min(e.clientY, startBottom - minSize);
-    if (resizeDirection.includes("s")) newBottom = Math.max(e.clientY, startTop + minSize);
-    if (resizeDirection.includes("w")) newLeft = Math.min(e.clientX, startRight - minSize);
-    if (resizeDirection.includes("e")) newRight = Math.max(e.clientX, startLeft + minSize);
+    const initialLeft = cropBox.offsetLeft;
+    const initialTop = cropBox.offsetTop;
+    const initialWidth = cropBox.offsetWidth;
+    const initialHeight = cropBox.offsetHeight;
 
-    cropBox.style.left = newLeft + "px";
-    cropBox.style.top = newTop + "px";
-    cropBox.style.width = (newRight - newLeft) + "px";
-    cropBox.style.height = (newBottom - newTop) + "px";
+    let newLeft = initialLeft;
+    let newTop = initialTop;
+    let newWidth = initialWidth;
+    let newHeight = initialHeight;
+
+    const mouseX = e.clientX - parentRect.left;
+    const mouseY = e.clientY - parentRect.top;
+
+    if (resizeDirection.includes("n")) {
+        newHeight = (initialTop + initialHeight) - mouseY;
+        newTop = mouseY;
+    }
+    if (resizeDirection.includes("s")) {
+        newHeight = mouseY - initialTop;
+    }
+    if (resizeDirection.includes("w")) {
+        newWidth = (initialLeft + initialWidth) - mouseX;
+        newLeft = mouseX;
+    }
+    if (resizeDirection.includes("e")) {
+        newWidth = mouseX - initialLeft;
+    }
+
+    // Enforce min size
+    if (newWidth >= minSize) {
+        cropBox.style.left = newLeft + "px";
+        cropBox.style.width = newWidth + "px";
+    }
+    if (newHeight >= minSize) {
+        cropBox.style.top = newTop + "px";
+        cropBox.style.height = newHeight + "px";
+    }
 }
 
 function stopResize() {

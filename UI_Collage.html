@@ -164,6 +164,17 @@
       .toolbar input[type="range"] {
     width: 80px; /* Reduced width */
 }
+        .crop-box {
+    position: absolute;
+    border: 2px dashed yellow;
+    resize: both;
+    overflow: auto;
+    z-index: 999;
+    cursor: move;
+    background: rgba(255, 255, 0, 0.1); /* optional transparent yellow tint */
+    box-sizing: border-box;
+}
+
     </style>
 </head>
 
@@ -187,7 +198,8 @@
             <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
             <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
             <button onclick="flipSelected('Y')"><i class="fa-solid fa-arrows-up-down"></i><span class="tooltip">Flip Vertically</span></button>
-            <button id="crop-btn">Crop</button>
+            <button onclick="cropSelectedImage()">Crop</button>
+
 
           
   <i class="fa-solid fa-crop"></i>
@@ -309,86 +321,60 @@ let saturationValue = 100;
         input.click();
     }
 
-    let cropMode = false;
-let cropRect = null;
-let activeImageBeforeCrop = null;
+  let cropping = false;
+let cropBox = null;
 
-document.getElementById('crop-btn').addEventListener('click', function () {
-    const activeObject = canvas.getActiveObject();
+function cropSelectedImage() {
+    if (!selectedImage) return;
 
-    if (!cropMode && activeObject && activeObject.type === 'image') {
-        cropMode = true;
-        activeImageBeforeCrop = activeObject;
+    if (!cropping) {
+        // Begin crop mode
+        const imgRect = selectedImage.getBoundingClientRect();
+        const containerRect = collageContainer.getBoundingClientRect();
 
-        cropRect = new fabric.Rect({
-            left: activeObject.left + 20,
-            top: activeObject.top + 20,
-            width: activeObject.width * activeObject.scaleX - 40,
-            height: activeObject.height * activeObject.scaleY - 40,
-            fill: 'rgba(0,0,0,0)',
-            stroke: 'black',
-            strokeDashArray: [5, 5],
-            strokeWidth: 1,
-            selectable: true,
-            hasBorders: true,
-            hasControls: true,
-            lockRotation: true,
-        });
+        cropBox = document.createElement('div');
+        cropBox.classList.add('crop-box');
+        cropBox.style.left = (imgRect.left - containerRect.left + 20) + 'px';
+        cropBox.style.top = (imgRect.top - containerRect.top + 20) + 'px';
+        cropBox.style.width = '100px';
+        cropBox.style.height = '100px';
 
-        canvas.add(cropRect);
-        canvas.setActiveObject(cropRect);
-        canvas.renderAll();
+        collageContainer.appendChild(cropBox);
+        makeDraggable(cropBox);
+        makeResizable(cropBox);
+        cropping = true;
+    } else {
+        // Finalize crop
+        const cropRect = cropBox.getBoundingClientRect();
+        const imgRect = selectedImage.getBoundingClientRect();
 
-    } else if (cropMode && cropRect && activeImageBeforeCrop) {
-        const scaleX = activeImageBeforeCrop.scaleX;
-        const scaleY = activeImageBeforeCrop.scaleY;
+        const sx = cropRect.left - imgRect.left;
+        const sy = cropRect.top - imgRect.top;
+        const sw = cropRect.width;
+        const sh = cropRect.height;
 
-        const leftOffset = cropRect.left - activeImageBeforeCrop.left;
-        const topOffset = cropRect.top - activeImageBeforeCrop.top;
+        const canvas = document.createElement('canvas');
+        canvas.width = sw;
+        canvas.height = sh;
+        const ctx = canvas.getContext('2d');
 
-        const cropLeft = leftOffset / scaleX;
-        const cropTop = topOffset / scaleY;
-        const cropWidth = cropRect.width / scaleX;
-        const cropHeight = cropRect.height / scaleY;
+        const tempImg = new Image();
+        tempImg.onload = () => {
+            ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
+            selectedImage.src = canvas.toDataURL();
 
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = cropWidth;
-        tempCanvas.height = cropHeight;
-        const tempCtx = tempCanvas.getContext('2d');
-
-        const imageElement = activeImageBeforeCrop._element;
-
-        tempCtx.drawImage(
-            imageElement,
-            cropLeft,
-            cropTop,
-            cropWidth,
-            cropHeight,
-            0,
-            0,
-            cropWidth,
-            cropHeight
-        );
-
-        const croppedDataUrl = tempCanvas.toDataURL();
-        fabric.Image.fromURL(croppedDataUrl, function (img) {
-            img.set({
-                left: activeImageBeforeCrop.left,
-                top: activeImageBeforeCrop.top,
-                scaleX: 1,
-                scaleY: 1
-            });
-            canvas.remove(activeImageBeforeCrop);
-            canvas.add(img);
-            canvas.setActiveObject(img);
-            canvas.remove(cropRect);
-            cropRect = null;
-            cropMode = false;
-            activeImageBeforeCrop = null;
-            canvas.renderAll();
-        });
+            // Clean up
+            cropBox.remove();
+            cropBox = null;
+            cropping = false;
+        };
+        tempImg.src = selectedImage.src;
     }
-});
+}
+function makeResizable(el) {
+    el.style.resize = 'both';
+    el.style.overflow = 'auto';
+}
 
 
 

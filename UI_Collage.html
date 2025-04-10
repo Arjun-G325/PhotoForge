@@ -164,9 +164,6 @@
       .toolbar input[type="range"] {
     width: 80px; /* Reduced width */
 }
-      
-
-
     </style>
 </head>
 
@@ -185,23 +182,11 @@
         <div class="partition"></div>
 
         <div class="icon-grid">
-            
+            <button onclick="cropSelectedImage()"><i class="fa-solid fa-crop-simple"></i><span class="tooltip">Crop</span></button>
             <button onclick="rotateSelected(-90)"><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
             <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
             <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
             <button onclick="flipSelected('Y')"><i class="fa-solid fa-arrows-up-down"></i><span class="tooltip">Flip Vertically</span></button>
-           <button onclick="cropSelectedImage()">
-    <i class="fa-solid fa-crop-simple"></i>
-    <span class="tooltip">Crop</span>
-</button>
-
-
-
-          
-  <i class="fa-solid fa-crop"></i>
-  <span class="tooltip">Crop</span>
-</button>
-
         </div>
 
         <div class="partition"></div>
@@ -278,10 +263,10 @@
 let contrastValue = 100;
 let saturationValue = 100;
     
-     function goHome() {
-    window.location.href = "UI.html"; // Redirect to the main PhotoForge page
+    function goHome() {
+    window.close(); // Redirect to the main PhotoForge page
 }
-
+    
     function openImages() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -316,6 +301,20 @@ let saturationValue = 100;
         };
         input.click();
     }
+    
+  function updateAdvancedFilters() {
+    if (!selectedImage) return;
+
+    // Apply combined filters
+    const filterString = `
+        brightness(${brightnessValue}%)
+        contrast(${contrastValue}%)
+        saturate(${saturationValue}%)
+       
+    `.trim();
+
+    selectedImage.style.filter = filterString;
+}
 
 let cropBox = null;
 let isCropping = false;
@@ -497,7 +496,29 @@ function addResizeHandles() {
     });
 }
 
+     function makeDraggable(element) {
+        let isDragging = false, startX, startY, startLeft, startTop;
 
+        element.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = parseInt(element.style.left || 0);
+            startTop = parseInt(element.style.top || 0);
+
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                document.removeEventListener('mousemove', dragMove);
+            });
+        });
+
+        function dragMove(e) {
+            if (!isDragging) return;
+            element.style.left = startLeft + (e.clientX - startX) + "px";
+            element.style.top = startTop + (e.clientY - startY) + "px";
+        }
+    }
 
    function applyFilter(filterType) {
     if (!selectedImage) return;
@@ -535,30 +556,6 @@ function addResizeHandles() {
     // Update the image source with the new filtered image
     selectedImage.src = canvas.toDataURL();
 }
- function makeDraggable(element) {
-        let isDragging = false, startX, startY, startLeft, startTop;
-
-        element.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            startLeft = parseInt(element.style.left || 0);
-            startTop = parseInt(element.style.top || 0);
-
-            document.addEventListener('mousemove', dragMove);
-            document.addEventListener('mouseup', () => {
-                isDragging = false;
-                document.removeEventListener('mousemove', dragMove);
-            });
-        });
-
-        function dragMove(e) {
-            if (!isDragging) return;
-            element.style.left = startLeft + (e.clientX - startX) + "px";
-            element.style.top = startTop + (e.clientY - startY) + "px";
-        }
-    }
-
 
     function selectImage(img) {
         if (selectedImage) {
@@ -567,6 +564,7 @@ function addResizeHandles() {
         selectedImage = img;
         img.parentElement.classList.add('selected');
     }
+
 
     function rotateSelected(angle) {
         

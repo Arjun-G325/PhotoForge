@@ -174,6 +174,13 @@
     background: rgba(255, 255, 0, 0.1); /* optional transparent yellow tint */
     box-sizing: border-box;
 }
+        .crop-box::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
 
     </style>
 </head>
@@ -321,37 +328,33 @@ let saturationValue = 100;
         input.click();
     }
 
-  let cropping = false;
+ let cropping = false;
 let cropBox = null;
 
 function cropSelectedImage() {
     if (!selectedImage) return;
 
     if (!cropping) {
-        // Begin crop mode
-        const imgRect = selectedImage.getBoundingClientRect();
-        const containerRect = collageContainer.getBoundingClientRect();
+        // Start cropping
+        const crop = document.createElement('div');
+        crop.className = 'crop-box';
+        crop.style.left = (selectedImage.offsetLeft + 20) + 'px';
+        crop.style.top = (selectedImage.offsetTop + 20) + 'px';
+        crop.style.width = '100px';
+        crop.style.height = '100px';
+        crop.innerHTML = '<div style="width:100%; height:100%"></div>'; // allow resizing
 
-        cropBox = document.createElement('div');
-        cropBox.classList.add('crop-box');
-        cropBox.style.left = (imgRect.left - containerRect.left + 20) + 'px';
-        cropBox.style.top = (imgRect.top - containerRect.top + 20) + 'px';
-        cropBox.style.width = '100px';
-        cropBox.style.height = '100px';
-
-        collageContainer.appendChild(cropBox);
-        makeDraggable(cropBox);
-        makeResizable(cropBox);
+        collageContainer.appendChild(crop);
+        cropBox = crop;
+        makeDraggable(crop);
+        makeResizable(crop);
         cropping = true;
     } else {
-        // Finalize crop
-        const cropRect = cropBox.getBoundingClientRect();
-        const imgRect = selectedImage.getBoundingClientRect();
-
-        const sx = cropRect.left - imgRect.left;
-        const sy = cropRect.top - imgRect.top;
-        const sw = cropRect.width;
-        const sh = cropRect.height;
+        // Crop image
+        const sx = cropBox.offsetLeft - selectedImage.offsetLeft;
+        const sy = cropBox.offsetTop - selectedImage.offsetTop;
+        const sw = cropBox.offsetWidth;
+        const sh = cropBox.offsetHeight;
 
         const canvas = document.createElement('canvas');
         canvas.width = sw;
@@ -362,15 +365,15 @@ function cropSelectedImage() {
         tempImg.onload = () => {
             ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
             selectedImage.src = canvas.toDataURL();
-
-            // Clean up
-            cropBox.remove();
-            cropBox = null;
-            cropping = false;
         };
         tempImg.src = selectedImage.src;
+
+        cropBox.remove();
+        cropBox = null;
+        cropping = false;
     }
 }
+
 function makeResizable(el) {
     el.style.resize = 'both';
     el.style.overflow = 'auto';

@@ -325,7 +325,10 @@ let resizeDirection = null;
 
 function cropSelectedImage() {
     if (!selectedImage) {
-        alert("No image selected");
+        ipcRenderer.send("show-error-dialog", {
+            title: "Crop Error",
+            message: "Please load an image before cropping."
+        });
         return;
     }
 
@@ -492,7 +495,7 @@ function addResizeHandles() {
         Object.assign(handle.style, {
             width: "10px",
             height: "10px",
-            background: "white",
+            background: "black",
             position: "absolute",
             cursor: `${dir}-resize`,
             zIndex: "1000"

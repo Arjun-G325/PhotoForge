@@ -109,6 +109,15 @@ ipcMain.on('save-as-tiff', async (event, { filePath, buffer }) => {
   }
 });
 
+ipcMain.on("show-error-dialog", (event, { title, message }) => {
+  const window = BrowserWindow.getFocusedWindow();
+  dialog.showMessageBox(window, {
+    type: "error",
+    title: title || "Error",
+    message: message || "An error occurred.",
+    buttons: ["OK"]
+  });
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

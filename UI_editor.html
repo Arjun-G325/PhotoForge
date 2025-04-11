@@ -191,10 +191,15 @@ const { ipcRenderer } = require('electron');
 
     function saveImage() {
         const image = document.getElementById("image-area");
-        if (!image?.src) {
-            alert("No image loaded");
-            return;
-        }
+        const isImageLoaded = image && image.complete && image.naturalWidth > 0;
+
+    if (!isImageLoaded) {
+        ipcRenderer.send("show-error-dialog", {
+            title: "Save Error",
+            message: "Please load an image before saving."
+        });
+        return;
+    }
         ipcRenderer.send("request-save-dialog");
     }
 

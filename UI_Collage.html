@@ -660,6 +660,18 @@ const fs = require('fs');
 function downloadCollage() {
     const images = collageContainer.querySelectorAll('img');
 
+    // Check if there's at least one loaded image
+    const hasLoadedImage = Array.from(images).some(img => img.complete && img.naturalWidth > 0);
+
+    if (!hasLoadedImage) {
+        ipcRenderer.send("show-error-dialog", {
+            title: "Save Error",
+            message: "Please add at least one image to the collage before saving."
+        });
+        return;
+    }
+
+    // Apply baked filters if needed
     images.forEach(img => {
         if (img.style.filter && img.style.filter !== 'none') {
             bakeAllSliderFilters(img);
@@ -671,48 +683,46 @@ function downloadCollage() {
             ipcRenderer.send("request-save-dialog");
 
             ipcRenderer.once("save-file-path", (event, { filePath, extension }) => {
-    const mimeMap = {
-        png: 'image/png',
-        jpg: 'image/jpeg',
-        jpeg: 'image/jpeg',
-        webp: 'image/webp',
-        bmp: 'image/bmp',
-        tif: 'image/tiff',
-        tiff: 'image/tiff'
-    };
-
-    const mime = mimeMap[extension] || 'image/png';
-
-    html2canvas(collageContainer).then(canvas => {
-        if (extension === 'tif' || extension === 'tiff') {
-            // Send PNG buffer for TIFF conversion
-            canvas.toBlob(blob => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const buffer = Buffer.from(reader.result);
-                    ipcRenderer.send('save-as-tiff', { filePath, buffer });
+                const mimeMap = {
+                    png: 'image/png',
+                    jpg: 'image/jpeg',
+                    jpeg: 'image/jpeg',
+                    webp: 'image/webp',
+                    bmp: 'image/bmp',
+                    tif: 'image/tiff',
+                    tiff: 'image/tiff'
                 };
-                reader.readAsArrayBuffer(blob);
-            }, 'image/png'); // intermediate
-        } else {
-            canvas.toBlob(blob => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const buffer = Buffer.from(reader.result);
-                    fs.writeFile(filePath, buffer, err => {
-                        if (err) {
-                            console.error("Failed to save image:", err);
-                        } else {
-                            console.log("Saved:", filePath);
-                        }
-                    });
-                };
-                reader.readAsArrayBuffer(blob);
-            }, mime);
-        }
-    });
-});
 
+                const mime = mimeMap[extension] || 'image/png';
+
+                if (extension === 'tif' || extension === 'tiff') {
+                    // Send PNG buffer for TIFF conversion
+                    canvas.toBlob(blob => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const buffer = Buffer.from(reader.result);
+                            ipcRenderer.send('save-as-tiff', { filePath, buffer });
+                        };
+                        reader.readAsArrayBuffer(blob);
+                    }, 'image/png');
+                } else {
+                    canvas.toBlob(blob => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const buffer = Buffer.from(reader.result);
+                            const fs = require('fs');
+                            fs.writeFile(filePath, buffer, err => {
+                                if (err) {
+                                    console.error("Failed to save image:", err);
+                                } else {
+                                    console.log("Saved:", filePath);
+                                }
+                            });
+                        };
+                        reader.readAsArrayBuffer(blob);
+                    }, mime);
+                }
+            });
         });
     }, 200);
 }

@@ -283,9 +283,13 @@ let resizeDirection = null;
 function cropImage() {
     let container = document.getElementById("image-container");
     let image = document.getElementById("image-area");
+    const isImageLoaded = image && image.complete && image.naturalWidth > 0;
 
-    if (!image.src) {
-        alert("No image to crop");
+    if (!isImageLoaded) {
+        ipcRenderer.send("show-error-dialog", {
+            title: "Crop Error",
+            message: "Please load an image before cropping."
+        });
         return;
     }
 

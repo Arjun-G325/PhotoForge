@@ -10,7 +10,7 @@
    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
-        html, body {
+ html, body {
             margin: 0;
             padding: 0;
             background-color: #222;
@@ -20,7 +20,8 @@
             justify-content: space-between;
             align-items: center;
         }
-.toolbar {
+        
+        .toolbar {
             background-color: #333;
             display: flex;
             align-items: center;
@@ -28,18 +29,21 @@
             width: 100%;
             padding: 5px;
             height: 60px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-  .icon-grid, .icon-grid-right {
+        .icon-grid, .icon-grid-right {
             display: flex;
             gap: 10px;
             margin-left: 10px;
         }
+
         .icon-grid label {
-        color: #ffffff; /* White color */
-        font-weight: bold; /* Makes text bold */
-        font-size: 14px; /* Adjust font size */
-    }
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 14px;
+        }
 
         .toolbar button {
             background: none;
@@ -50,10 +54,11 @@
             color: white;
         }
 
-.toolbar button:hover {
-    background: #45a049;
-}
-         .tooltip {
+        .toolbar button:hover {
+            background: #45a049;
+        }
+
+        .tooltip {
             visibility: hidden;
             background-color: #1e90ff;
             color: white;
@@ -105,7 +110,6 @@
             appearance: textfield;
         }
 
-
         .content {
             flex-grow: 1;
             display: flex;
@@ -121,6 +125,21 @@
             background: #444;
             border: 2px solid #555;
             overflow: hidden;
+        }
+
+        #collageContainer img {
+            width: 100%;
+            height: auto;
+        }
+
+        .template-box {
+            border: 1px dashed #aaa;
+            min-height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #777;
+            font-style: italic;
         }
 
         .image-box {
@@ -142,28 +161,33 @@
             object-fit: contain;
            transition: filter 0.3s ease;
         }
-      #sliders {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 10px;
-}
 
-#sliders label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 1.2em;
-    color: white;
-}
+       
+   
+
+
+        #sliders {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 10px;
+        }
+
+        #sliders label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2em;
+            color: white;
+        }
+
+        .toolbar input[type="range"] {
+            width: 80px;
+        }
 
         .selected {
             border: 3px solid yellow !important;
         }
-
-      .toolbar input[type="range"] {
-    width: 80px; /* Reduced width */
-}
     </style>
 </head>
 
@@ -175,6 +199,8 @@
             <button onclick="openImages()"><i class="fa-regular fa-folder-open"></i><span class="tooltip">Open</span></button>
             <button onclick="downloadCollage()"><i class="fa-regular fa-floppy-disk"></i><span class="tooltip">Save</span></button>
             <button onclick="deleteSelectedImage()"><i class="fa-regular fa-trash-can"></i><span class="tooltip">Delete</span></button>
+           
+
    
 
         </div>
@@ -195,14 +221,15 @@
             <button onclick="applyFilter('grayscale')"><i class="fa-solid fa-adjust"></i><span class="tooltip">Black & White</span></button>
             <button onclick="applyFilter('sepia')"><i class="fa-solid fa-tint"></i><span class="tooltip">Sepia</span></button>
             <button onclick="applyFilter('blur')"><i class="fa-solid fa-smog"></i><span class="tooltip">Blur</span></button>
+
         </div>
 
         <div class="partition"></div>
 
         <div class="icon-grid">
+
           </div>  
-         
-    <label style="color: #1E90FF;" title="Resize Image">📏</label>
+          <label style="color: #1E90FF;" title="Resize Image">📏</label>
 <input id="resize-image-slider" type="range" min="50" max="200" value="100" onchange="resizeSelected(this.value)" title="Resize the selected image">
 
 <label style="color: #FFA500;" title="Resize Box">⬛</label>
@@ -210,6 +237,17 @@
 
         
     </div>
+    
+   
+
+<label for="templateSelect">Choose a template:</label>
+    <select id="templateSelect">
+        <option value="">-- Select a template --</option>
+        <option value="template1">Template 1 (Side by Side)</option>
+        <option value="template2">Template 2 (2x2 Grid)</option>
+    </select>
+    <div id="collageContainer" style="margin-top: 20px;"></div>
+    
    
 <!-- Controls Container -->
 <div style="display: flex; flex-direction: row; gap: 16px; align-items: center; flex-wrap: wrap; margin-top: 16px;">
@@ -253,7 +291,36 @@
   let brightnessValue = 100;
 let contrastValue = 100;
 let saturationValue = 100;
-    
+
+document.addEventListener("DOMContentLoaded", function () {
+            const templateSelect = document.getElementById("templateSelect");
+            const collageContainer = document.getElementById("collage-container");
+
+            function createTemplate(templateName) {
+                collageContainer.innerHTML = "";
+
+                if (templateName === "template1") {
+                    collageContainer.innerHTML = `
+                        <div style="display: flex; gap: 10px; width: 100%; height: 100%; padding: 10px; box-sizing: border-box;">
+                            <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                            <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                        </div>`;
+                } else if (templateName === "template2") {
+                    collageContainer.innerHTML = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; height: 100%; padding: 10px; box-sizing: border-box;">
+                            <div class="template-box">Drop Image Here</div>
+                            <div class="template-box">Drop Image Here</div>
+                            <div class="template-box">Drop Image Here</div>
+                            <div class="template-box">Drop Image Here</div>
+                        </div>`;
+                }
+            }
+
+            templateSelect.addEventListener("change", function () {
+                const selectedTemplate = templateSelect.value;
+                createTemplate(selectedTemplate);
+            });
+        });
     function goHome() {
     window.close(); // Redirect to the main PhotoForge page
 }
@@ -292,6 +359,8 @@ let saturationValue = 100;
         };
         input.click();
     }
+    
+
     
   function updateAdvancedFilters() {
     if (!selectedImage) return;
@@ -654,7 +723,6 @@ const fs = require('fs');
 function downloadCollage() {
     const images = collageContainer.querySelectorAll('img');
 
-    // Check if there's at least one loaded image
     const hasLoadedImage = Array.from(images).some(img => img.complete && img.naturalWidth > 0);
 
     if (!hasLoadedImage) {
@@ -673,7 +741,37 @@ function downloadCollage() {
     });
 
     setTimeout(() => {
-        html2canvas(collageContainer).then(canvas => {
+        const originalBackground = collageContainer.style.backgroundColor;
+        collageContainer.style.backgroundColor = "transparent";
+
+        const selectedElements = collageContainer.querySelectorAll('.selected');
+        const templateBoxes = collageContainer.querySelectorAll('.template-box');
+
+        // Save and remove styles/text temporarily
+        selectedElements.forEach(el => el.classList.remove('selected'));
+
+        templateBoxes.forEach(el => {
+            el.dataset.originalBorder = el.style.border;
+            el.dataset.originalText = el.innerText;
+            el.style.border = "none";
+            el.innerText = ""; // remove "Drop Image Here"
+        });
+
+        html2canvas(collageContainer, {
+            backgroundColor: null
+        }).then(canvas => {
+            // Restore everything after capture
+            collageContainer.style.backgroundColor = originalBackground;
+
+            templateBoxes.forEach(el => {
+                el.style.border = el.dataset.originalBorder || "1px dashed #aaa";
+                el.innerText = el.dataset.originalText || "Drop Image Here";
+                delete el.dataset.originalBorder;
+                delete el.dataset.originalText;
+            });
+
+            selectedElements.forEach(el => el.classList.add('selected'));
+
             ipcRenderer.send("request-save-dialog");
 
             ipcRenderer.once("save-file-path", (event, { filePath, extension }) => {
@@ -690,7 +788,6 @@ function downloadCollage() {
                 const mime = mimeMap[extension] || 'image/png';
 
                 if (extension === 'tif' || extension === 'tiff') {
-                    // Send PNG buffer for TIFF conversion
                     canvas.toBlob(blob => {
                         const reader = new FileReader();
                         reader.onloadend = () => {

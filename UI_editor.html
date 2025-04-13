@@ -1000,43 +1000,111 @@ function addResizeHandles() {
 }
 
 function flipImage() {
-    const image = document.getElementById("image-area");
-    if (!image.src || image.style.display === "none") return;
+    if (!imageList.length) return;
 
+    if (isBatchProcessing) {
+        const originalIndex = currentImageIndex;
+        
+        for (let i = 0; i < imageList.length; i++) {
+            currentImageIndex = i;
+            const state = getCurrentState();
+            if (!state) continue;
+
+            let angle = (state.rotationAngle || 0) % 360;
+    if (angle < 0) angle += 360;
+
+    // Determine visual axis to flip based on rotation
+    if (angle === 90 || angle === 270) {
+        // 90 or 270 degrees: horizontal visually becomes vertical
+        state.flipY *= -1;
+    } else {
+        // 0 or 180 degrees: flip horizontally
+        state.flipX *= -1;
+    }
+            state.transform = `rotate(${state.rotationAngle || 0}deg) scale(${state.flipX}, ${state.flipY || 1})`;
+            
+            imageStates[i] = state;
+            pushToHistory();
+        }
+        
+        currentImageIndex = originalIndex;
+        displayImage(originalIndex);
+    } else {
+        const isHorizontalFlip = true; // always horizontal flip from user's perspective
     const state = getCurrentState();
     if (!state) return;
 
-    state.flipX *= -1;
+    let angle = (state.rotationAngle || 0) % 360;
+    if (angle < 0) angle += 360;
 
-    // Reapply transform
-    image.style.transform = `rotate(${state.rotationAngle || 0}deg) scale(${state.flipX}, ${state.flipY || 1})`;
-    state.transform = image.style.transform;
+    // Determine visual axis to flip based on rotation
+    if (angle === 90 || angle === 270) {
+        // 90 or 270 degrees: horizontal visually becomes vertical
+        state.flipY *= -1;
+    } else {
+        // 0 or 180 degrees: flip horizontally
+        state.flipX *= -1;
+    }
 
-    updateCurrentState();  // ✅ Capture new state
-    pushToHistory();       // ✅ Save after update
+    // Apply transform
+    state.transform = `rotate(${state.rotationAngle || 0}deg) scale(${state.flipX}, ${state.flipY})`;
+
+        updateCurrentState();
+        pushToHistory();
+    }
 }
-
 function rotateImage(angle) {
-    const image = document.getElementById("image-area");
-    if (!image.src || image.style.display === "none") return;
+    if (!imageList.length) return;
 
-    const state = getCurrentState();
-    if (!state) return;
+    if (isBatchProcessing) {
+        // Save current index
+        const originalIndex = currentImageIndex;
+        
+        // Process all images
+        for (let i = 0; i < imageList.length; i++) {
+            currentImageIndex = i;
+            
+            // Get a fresh copy of the image's current state
+            const currentState = JSON.parse(JSON.stringify(imageStates[i]));
+            
+            // Apply rotation to this image's state
+            currentState.rotationAngle = (currentState.rotationAngle || 0) + angle;
+            currentState.transform = `rotate(${currentState.rotationAngle}deg) scale(${currentState.flipX || 1}, ${currentState.flipY || 1})`;
+            
+            // Update the image's state without affecting others
+            imageStates[i] = currentState;
+            
+            // Apply size adjustment for this image
+            const image = document.getElementById("image-area");
+            if (image) {
+                adjustImageSize(image);
+            }
+            
+            // Update history
+            pushToHistory();
+        }
+        
+        // Restore original view
+        currentImageIndex = originalIndex;
+        displayImage(originalIndex);
+    } else {
+        const state = getCurrentState();
+        if (!state) return;
 
-    // Update rotation in state
-    state.rotationAngle = (state.rotationAngle || 0) + angle;
-    rotationAngle = state.rotationAngle;
-
-    // Reapply transform
-    image.style.transform = `rotate(${state.rotationAngle}deg) scale(${state.flipX}, ${state.flipY})`;
-    state.transform = image.style.transform;
-
-    adjustImageSize(image);
-
-    updateCurrentState();  // ✅ Capture new state
-    pushToHistory();       // ✅ Save after update
+        state.rotationAngle = (state.rotationAngle || 0) + angle;
+        state.transform = `rotate(${state.rotationAngle}deg) scale(${state.flipX || 1}, ${state.flipY || 1})`;
+        
+        const image = document.getElementById("image-area");
+        if (image) {
+            adjustImageSize(image);
+        }
+        
+        updateCurrentState();
+        pushToHistory();
+    }
 }
 
+// Keep your existing adjustImageSize function exactly as is
 function adjustImageSize(image) {
     const state = getCurrentState();
     if (!state) return;

@@ -159,31 +159,13 @@
         }
     </style>
     <script>
-        let currentSavePath = null;
 
-let historyStack = [];
-let redoStack = [];
-let currentState = null;
-
-// Modified pushToHistory function
-function pushToHistory() {
-        const image = document.getElementById("image-area");
-        if (!image.src && historyStack.length > 0) return;
-
-        const newState = getCurrentState();
-        
-        // Only push if different from last state
-        if (historyStack.length === 0 || 
-            JSON.stringify(newState) !== JSON.stringify(historyStack[historyStack.length - 1])) {
-            historyStack.push(newState);
-            redoStack = [];
-            
-            // Also update the imageStates array
-            if (currentImageIndex >= 0) {
-                imageStates[currentImageIndex] = newState;
-            }
-        }
-    }
+    let imageHistories = [];     // Array of { undoStack, redoStack } for each image
+    
+let imageList = [];
+let imageStates = []; // Will store edit state per image
+let currentImageIndex = -1;
+let imageSavePaths = [];  // New array to track save path per image
 
 function applyStateProperties(state) {
     const image = document.getElementById("image-area");
@@ -220,106 +202,107 @@ function applyStateProperties(state) {
         parseFloat(state.height.replace('px', '')) / 37.795 : "";
 }
 
-
-// Function to get current state with added validation
-function getCurrentState() {
-        const image = document.getElementById("image-area");
-        
-        if (!image.src || image.style.display === "none") {
-            return {
-                src: null,
-                width: "",
-                height: "",
-                filter: "",
-                transform: "",
-                display: "none",
-                rotationAngle: 0,
-                flipX: 1,
-                flipY: 1,
-                brightnessValue: 100,
-                contrastValue: 100,
-                saturationValue: 100,
-                sepiaValue: 0,
-                bwValue: 0,
-                blurValue: 0,
-                aspectRatio: 1,
-                isDeleted: true
-            };
-        }
-
-        // Parse current filter values
-        const currentFilter = image.style.filter || "";
-        let brightness = 100, contrast = 100, saturation = 100, sepia = 0, bw = 0, blur = 0;
-
-        currentFilter.split(' ').forEach(part => {
-            if (part.includes('brightness')) brightness = parseFloat(part.match(/\((.*?)%/)[1]);
-            if (part.includes('contrast')) contrast = parseFloat(part.match(/\((.*?)%/)[1]);
-            if (part.includes('saturate')) saturation = parseFloat(part.match(/\((.*?)%/)[1]);
-            if (part.includes('sepia')) sepia = parseFloat(part.match(/\((.*?)%/)[1]);
-            if (part.includes('grayscale')) bw = parseFloat(part.match(/\((.*?)%/)[1]);
-            if (part.includes('blur')) blur = parseFloat(part.match(/\((.*?)px\)/)[1]);
-        });
-
-        return {
-            src: image.src,
-            width: image.style.width,
-            height: image.style.height,
-            filter: currentFilter,
-            transform: image.style.transform,
-            display: image.style.display,
-            rotationAngle: rotationAngle || 0,
-            flipX: flipX !== undefined ? flipX : 1,
-            flipY: flipY !== undefined ? flipY : 1,
-            aspectRatio: aspectRatio || 1,
-            brightnessValue: brightness,
-            contrastValue: contrast,
-            saturationValue: saturation,
-            sepiaValue: sepia,
-            bwValue: bw,
-            blurValue: blur,
-            aspectRatio: aspectRatio,
-            isDeleted: false
+function initImageEntry() {
+        const defaultState = {
+            src: "",
+            width: "",
+            height: "",
+            filter: "",
+            transform: "",
+            display: "none",
+            rotationAngle: 0,
+            flipX: 1,
+            flipY: 1,
+            brightnessValue: 100,
+            contrastValue: 100,
+            saturationValue: 100,
+            sepiaValue: 0,
+            bwValue: 0,
+            blurValue: 0,
+            aspectRatio: 1
         };
+
+        imageHistories.push({
+            undoStack: [],
+            redoStack: []
+        });
+        
+        imageStates.push(JSON.parse(JSON.stringify(defaultState)));
+        return imageHistories.length - 1;
+    }
+
+    // Get current image's history
+    function getCurrentHistory() {
+        if (currentImageIndex === -1) return null;
+        return imageHistories[currentImageIndex];
+    }
+
+    // Get current image's state
+    function getCurrentState() {
+        if (currentImageIndex === -1) return null;
+        return imageStates[currentImageIndex];
+    }
+
+    // Update current state from DOM
+    function updateCurrentState() {
+        const image = document.getElementById("image-area");
+        const state = getCurrentState();
+        if (!state || !image) return;
+        
+        state.src = image.src;
+        state.width = image.style.width;
+        state.height = image.style.height;
+        state.filter = image.style.filter;
+        state.transform = image.style.transform;
+        state.display = image.style.display;
+    }
+
+    // Push current state to history
+    function pushToHistory() {
+        const history = getCurrentHistory();
+        const state = getCurrentState();
+        if (!history || !state) return;
+        
+        // Only push if different from last state
+        if (history.undoStack.length === 0 || 
+            JSON.stringify(state) !== JSON.stringify(history.undoStack[history.undoStack.length - 1])) {
+            history.undoStack.push(JSON.parse(JSON.stringify(state)));
+            history.redoStack = [];
+        }
     }
 
 // Undo operation
 function undo() {
-    if (historyStack.length <= 1) return;
+        const history = getCurrentHistory();
+        if (!history || history.undoStack.length <= 1) return;
 
-    // Capture current state for redo
-    const currentImageState = getCurrentState();
-    redoStack.push(currentImageState);
+        // Current state goes to redo stack
+        const currentState = getCurrentState();
+        history.redoStack.push(JSON.parse(JSON.stringify(currentState)));
 
-    // Remove the current state from history
-    historyStack.pop();
+        // Remove current state from undo stack
+        history.undoStack.pop();
 
-    // Restore the previous state from the history stack
-    const prevState = historyStack[historyStack.length - 1];
-    restoreState(prevState);
-}
+        // Restore previous state
+        const prevState = history.undoStack[history.undoStack.length - 1];
+        Object.assign(imageStates[currentImageIndex], prevState);
+        restoreState(prevState);
+    }
 
 // Redo operation
 function redo() {
-    if (redoStack.length === 0) {
-        // If there's no valid redo, reset the editor to an empty state
-        resetEditor();
-        return;
-    }
+        const history = getCurrentHistory();
+        if (!history || history.redoStack.length === 0) return;
 
-    // Capture current state for potential undo
-    const currentImageState = getCurrentState();
-    historyStack.push(currentImageState);
+        // Current state goes back to undo stack
+        const currentState = getCurrentState();
+        history.undoStack.push(JSON.parse(JSON.stringify(currentState)));
 
-    // Get the next state from the redo stack
-    const nextState = redoStack.pop();
-
-    // If the next state indicates the image was deleted, reset to an empty state
-    if (nextState.isDeleted) {
-        resetEditor();
-    } else {
+        // Get next state from redo stack
+        const nextState = history.redoStack.pop();
+        Object.assign(imageStates[currentImageIndex], nextState);
         restoreState(nextState);
     }
-}
 
 // Reset the editor state when image is deleted
 function resetEditor() {
@@ -345,66 +328,63 @@ function resetEditor() {
     aspectRatio = 1;
 }
 
-let imageList = [];
-let imageStates = []; // Will store edit state per image
-let currentImageIndex = -1;
-let imageSavePaths = [];  // New array to track save path per image
-
 function openImage() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
 
-    input.onchange = (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
+        input.onchange = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
 
-        const imagePath = file.path; // ✅ Native path from Electron
-        const fileExtension = imagePath.split('.').pop().toLowerCase();
-
-        const base64Reader = new FileReader();
-        base64Reader.onload = function(e) {
-            const base64DataUrl = e.target.result;
-
-            imageList.push(base64DataUrl);
-            imageStates.push(null);
-            imageSavePaths.push({ filePath: imagePath, extension: fileExtension }); // Store path immediately
-            currentImageIndex = imageList.length - 1;
-
-            console.log("Opened image:", imagePath);
-            displayImage(currentImageIndex);
-        };
-
-        base64Reader.readAsDataURL(file);
-    };
-
-    input.click();
-}
-
-function displayImage(index) {
-        const imageArea = document.getElementById("image-area");
-        currentImageIndex = index;
-        const imageSrc = imageList[index];
-        
-        document.getElementById("image-count").innerText = `Image ${index + 1} of ${imageList.length}`;
-        imageArea.style.display = "none";
-        imageArea.src = "";
-
-        setTimeout(() => {
-            imageArea.src = imageSrc;
-            imageArea.onload = () => {
-                imageArea.style.display = "block";
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const index = initImageEntry();
+                currentImageIndex = index;
+                imageList[index] = e.target.result;
                 
-                // Restore the saved state if it exists
-                if (imageStates[index]) {
-                    restoreState(imageStates[index]);
-                } else {
-                    // Initialize new state
-                    resetImageSettings();
-                    aspectRatio = imageArea.naturalWidth / imageArea.naturalHeight;
+                // Initialize save path
+                imageSavePaths[index] = { 
+                    filePath: file.path, 
+                    extension: file.path.split('.').pop().toLowerCase() 
+                };
+
+                displayImage(index);
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
+    }
+
+    // Display image with proper state management
+    function displayImage(index) {
+        const image = document.getElementById("image-area");
+        if (!image || index < 0 || index >= imageList.length) return;
+        
+        currentImageIndex = index;
+        document.getElementById("image-count").innerText = `Image ${index + 1} of ${imageList.length}`;
+        
+        // Hide current image while loading new one
+        image.style.display = "none";
+        image.src = "";
+        
+        setTimeout(() => {
+            image.src = imageList[index];
+            image.onload = () => {
+                const state = getCurrentState();
+                if (!state) return;
+                
+                // Initialize new image
+                if (imageHistories[index].undoStack.length === 0) {
+                    state.src = imageList[index];
+                    state.display = "block";
+                    state.aspectRatio = image.naturalWidth / image.naturalHeight;
                     pushToHistory();
-                    imageStates[index] = getCurrentState();
                 }
+                
+                // Restore state
+                restoreState(state);
+                image.style.display = "block";
             };
         }, 10);
     }
@@ -639,36 +619,33 @@ function cropImage() {
             tempImg.src = image.src;
 
             tempImg.onload = () => {
-                ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
-                
-                // Create new image URL
-                const croppedUrl = canvas.toDataURL();
-                
-                // Update the image list with the cropped version
-                imageList[currentImageIndex] = croppedUrl;
-                
-                // Update the image display
-                image.src = croppedUrl;
-                
-                // Reset transformations after crop
-                rotationAngle = 0;
-                flipX = 1;
-                flipY = 1;
-                aspectRatio = sw / sh;
-                
-                // Update the state
-                pushToHistory();
-                imageStates[currentImageIndex] = getCurrentState();
-                
-                // Clean up
-                container.removeChild(cropBox);
-                cropBox = null;
-                isCropping = false;
-            };
-
-            message.remove();
-        }
+            ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
+            
+            // Update the image list with cropped version
+            imageList[currentImageIndex] = canvas.toDataURL();
+            
+            // Update the state
+            const state = getCurrentState();
+            state.src = imageList[currentImageIndex];
+            state.width = "";
+            state.height = "";
+            state.rotationAngle = 0;
+            state.flipX = 1;
+            state.flipY = 1;
+            state.aspectRatio = sw / sh;
+            state.transform = "";
+            
+            // Update display and history
+            restoreState(state);
+            pushToHistory();
+            
+            // Clean up
+            container.removeChild(cropBox);
+            cropBox = null;
+            isCropping = false;
+        };
     }
+}
 
 function dragCropBox(e) {
     if (isDragging && cropBox) {
@@ -790,18 +767,12 @@ function flipImage() {
         const image = document.getElementById("image-area");
         if (!image.src || image.style.display === "none") return;
 
-        // Get current state
-        const currentState = imageStates[currentImageIndex] || getCurrentState();
+        const state = getCurrentState();
+        state.flipX *= -1;
         
-        // Update flip values
-        currentState.flipX *= -1;
-        flipX = currentState.flipX; // Update global for immediate UI response
+        image.style.transform = `scale(${state.flipX}, ${state.flipY}) rotate(${state.rotationAngle}deg)`;
+        state.transform = image.style.transform;
         
-        // Apply transformation
-        image.style.transform = `scale(${currentState.flipX}, ${currentState.flipY}) rotate(${currentState.rotationAngle}deg)`;
-        
-        // Update state
-        imageStates[currentImageIndex] = currentState;
         pushToHistory();
     }
 
@@ -809,19 +780,13 @@ function flipImage() {
         const image = document.getElementById("image-area");
         if (!image.src || image.style.display === "none") return;
 
-        // Get current state
-        const currentState = imageStates[currentImageIndex] || getCurrentState();
+        const state = getCurrentState();
+        state.rotationAngle += angle;
         
-        // Update rotation
-        currentState.rotationAngle += angle;
-        rotationAngle = currentState.rotationAngle; // Update global
-        
-        // Apply transformation
-        image.style.transform = `rotate(${currentState.rotationAngle}deg) scale(${currentState.flipX}, ${currentState.flipY})`;
+        image.style.transform = `rotate(${state.rotationAngle}deg) scale(${state.flipX}, ${state.flipY})`;
+        state.transform = image.style.transform;
         adjustImageSize(image);
         
-        // Update state
-        imageStates[currentImageIndex] = currentState;
         pushToHistory();
     }
 
@@ -837,34 +802,68 @@ function flipImage() {
         
         function resizeImage() {
         const image = document.getElementById("image-area");
-        if (!image.src) return;
+        const state = getCurrentState();
+        if (!image || !state || !image.src) return;
 
-        const currentState = imageStates[currentImageIndex] || getCurrentState();
         const widthInput = document.getElementById("widthInput");
         const heightInput = document.getElementById("heightInput");
-
-        // ... (existing resize logic)
         
-        // Update aspect ratio in state
-        currentState.aspectRatio = aspectRatio;
-        imageStates[currentImageIndex] = currentState;
+        // Save current state before changes
+        pushToHistory();
+
+        // Convert cm to pixels (1cm ≈ 37.795px)
+        const cmToPx = 37.795;
+        let newWidth, newHeight;
+
+        // Handle width change
+        if (widthInput.value && !heightInput.value) {
+            newWidth = parseFloat(widthInput.value) * cmToPx;
+            newHeight = newWidth / state.aspectRatio;
+            heightInput.value = "";
+        } 
+        // Handle height change
+        else if (heightInput.value && !widthInput.value) {
+            newHeight = parseFloat(heightInput.value) * cmToPx;
+            newWidth = newHeight * state.aspectRatio;
+            widthInput.value = "";
+        }
+        // Handle explicit resize
+        else if (widthInput.value && heightInput.value) {
+            newWidth = parseFloat(widthInput.value) * cmToPx;
+            newHeight = parseFloat(heightInput.value) * cmToPx;
+            state.aspectRatio = newWidth / newHeight;
+        } else {
+            return;
+        }
+
+        // Apply new dimensions
+        image.style.width = `${newWidth}px`;
+        image.style.height = `${newHeight}px`;
+        state.width = `${newWidth}px`;
+        state.height = `${newHeight}px`;
+
+        // Save new state
         pushToHistory();
     }
 
-// Add listeners to inputs to clear the other field when one is updated
-window.onload = function () {
- document.getElementById("widthInput").addEventListener("input", function() {
-     // When width changes, clear height
-     document.getElementById("heightInput").value = "";
-     resizeImage();
- });
+    // Initialize event listeners
+    window.onload = function() {
+        // Size inputs
+        document.getElementById("widthInput").addEventListener("input", function() {
+            if (this.value) document.getElementById("heightInput").value = "";
+            resizeImage();
+        });
+        document.getElementById("heightInput").addEventListener("input", function() {
+            if (this.value) document.getElementById("widthInput").value = "";
+            resizeImage();
+        });
 
- document.getElementById("heightInput").addEventListener("input", function() {
-     // When height changes, clear width
-     document.getElementById("widthInput").value = "";
-     resizeImage();
- });
-};
+        // Filter sliders
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+            slider.addEventListener("input", updateAdvancedFilters);
+            slider.addEventListener("change", pushToHistory);
+        });
+    };
 function applyFilters() {
     const image = document.getElementById("image-area");
     if (!image.src) return;
@@ -884,33 +883,31 @@ function goHome() {
 
 function updateAdvancedFilters() {
         const image = document.getElementById("image-area");
-        if (!image || !image.src) return;
+        const state = getCurrentState();
+        if (!image || !state || !image.src) return;
 
-        // Get current state values from sliders
-        const brightness = document.getElementById("brightnessSlider").value;
-        const contrast = document.getElementById("contrastSlider").value;
-        const saturation = document.getElementById("saturationSlider").value;
-        const sepia = document.getElementById("sepiaSlider").value;
-        const bw = document.getElementById("bwSlider").value;
-        const blur = document.getElementById("blurSlider").value;
+        // Get values from sliders
+        state.brightnessValue = document.getElementById("brightnessSlider").value;
+        state.contrastValue = document.getElementById("contrastSlider").value;
+        state.saturationValue = document.getElementById("saturationSlider").value;
+        state.sepiaValue = document.getElementById("sepiaSlider").value;
+        state.bwValue = document.getElementById("bwSlider").value;
+        state.blurValue = document.getElementById("blurSlider").value;
 
         // Apply filters
         const filterString = `
-            brightness(${brightness}%)
-            contrast(${contrast}%)
-            saturate(${saturation}%)
-            sepia(${sepia}%)
-            grayscale(${bw}%)
-            blur(${blur}px)
+            brightness(${state.brightnessValue}%)
+            contrast(${state.contrastValue}%)
+            saturate(${state.saturationValue}%)
+            sepia(${state.sepiaValue}%)
+            grayscale(${state.bwValue}%)
+            blur(${state.blurValue}px)
         `.trim();
 
         image.style.filter = filterString;
-
-        // Update the current image's state immediately
-        if (currentImageIndex >= 0) {
-            const currentState = getCurrentState();
-            imageStates[currentImageIndex] = currentState;
-        }
+        state.filter = filterString;
+        
+        pushToHistory();
     }
 
 function RemoveImage() {
@@ -945,33 +942,17 @@ function RemoveImage() {
 
 function restoreState(state) {
         const image = document.getElementById("image-area");
+        if (!image || !state) return;
         
-        if (state.isDeleted) {
-            resetEditor();
-            return;
-        }
-
-        image.src = "";
-        setTimeout(() => {
-            image.src = state.src;
-            image.onload = () => {
-                // Restore basic properties
-                image.style.width = state.width || "";
-                image.style.height = state.height || "";
-                image.style.transform = state.transform || "none";
-                image.style.display = state.display || "block";
-                image.style.filter = state.filter || "";
-
-                // Restore transformation variables
-                rotationAngle = state.rotationAngle || 0;
-                flipX = state.flipX || 1;
-                flipY = state.flipY || 1;
-                aspectRatio = state.aspectRatio || 1;
-
-                // Update UI controls
-                updateUIControls(state);
-            };
-        }, 10);
+        image.src = state.src || "";
+        image.style.width = state.width || "";
+        image.style.height = state.height || "";
+        image.style.filter = state.filter || "";
+        image.style.transform = state.transform || "";
+        image.style.display = state.display || "block";
+        
+        // Update UI controls
+        updateUIControls(state);
     }
 
 // Helper function to reset all image settings
@@ -994,15 +975,22 @@ function resetImageSettings() {
 
 // Helper function to update UI controls
 function updateUIControls(state) {
-        if (!state) {
-            state = getCurrentState();
-        }
+        if (!state) state = getCurrentState();
+        if (!state) return;
+        
         document.getElementById("brightnessSlider").value = state.brightnessValue;
         document.getElementById("contrastSlider").value = state.contrastValue;
         document.getElementById("saturationSlider").value = state.saturationValue;
         document.getElementById("sepiaSlider").value = state.sepiaValue;
         document.getElementById("bwSlider").value = state.bwValue;
         document.getElementById("blurSlider").value = state.blurValue;
+        
+        // Update size inputs (convert px to cm)
+        const pxToCm = 1/37.795;
+        document.getElementById("widthInput").value = state.width ? 
+            (parseFloat(state.width) * pxToCm).toFixed(2) : "";
+        document.getElementById("heightInput").value = state.height ? 
+            (parseFloat(state.height) * pxToCm).toFixed(2) : "";
     }
 
     </script>

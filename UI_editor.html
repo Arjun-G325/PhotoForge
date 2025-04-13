@@ -871,28 +871,30 @@ function resizeImage() {
     pushToHistory();
 }
 
+function debounce(fn, delay) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
 
 // Update the window.onload event listeners to handle input events better
 window.onload = function () {
     const widthInput = document.getElementById("widthInput");
     const heightInput = document.getElementById("heightInput");
 
-    widthInput.addEventListener("input", function () {
+    widthInput.addEventListener("input", debounce(function () {
     if (suppressInputEvents) return;
-    if (this.value.trim() !== "") {
-        heightInput.value = "";
-    }
+    heightInput.value = "";
     resizeImage();
-});
+}, 300));
 
-heightInput.addEventListener("input", function () {
+heightInput.addEventListener("input", debounce(function () {
     if (suppressInputEvents) return;
-    if (this.value.trim() !== "") {
-        widthInput.value = "";
-    }
+    widthInput.value = "";
     resizeImage();
-});
-
+}, 300));
 
     // Sliders still work
     document.querySelectorAll('input[type="range"]').forEach(slider => {
@@ -1045,26 +1047,16 @@ function updateUIControls(state) {
     document.getElementById("blurSlider").value = state.blurValue;
     
     // Update size inputs (convert px to cm)
-    const pxToCm = 1/37.795;
-    const widthInput = document.getElementById("widthInput");
-    const heightInput = document.getElementById("heightInput");
-    
-    // Only update if the inputs are not currently focused
-    suppressInputEvents = true;
+    const pxToCm = 1 / 37.795;
+
+const widthValue = parseFloat(state.width);
+const heightValue = parseFloat(state.height);
 
 if (document.activeElement !== widthInput) {
-    if (state.width) {
-        widthInput.value = (parseFloat(state.width) * pxToCm).toFixed(2);
-    } else {
-        widthInput.value = "";
-    }
+    widthInput.value = isNaN(widthValue) ? "" : (widthValue * pxToCm).toFixed(2);
 }
 if (document.activeElement !== heightInput) {
-    if (state.height) {
-        heightInput.value = (parseFloat(state.height) * pxToCm).toFixed(2);
-    } else {
-        heightInput.value = "";
-    }
+    heightInput.value = isNaN(heightValue) ? "" : (heightValue * pxToCm).toFixed(2);
 }
 
 suppressInputEvents = false;

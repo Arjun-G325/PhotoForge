@@ -206,49 +206,34 @@ function undo() {
     if (historyStack.length <= 1) return;
 
     const image = document.getElementById("image-area");
-
-    // Save current to redo stack
-    redoStack.push(historyStack.pop());
-
     const lastState = historyStack[historyStack.length - 1];
+    const prevState = historyStack[historyStack.length - 2];
 
-    // Restore src (force reload if necessary)
-    if (image.src !== lastState.src) {
-        image.src = "";
-        setTimeout(() => image.src = lastState.src, 10);
+    // Save current to redo stack only if it's different from last history state
+    if (JSON.stringify(lastState) !== JSON.stringify({
+        src: image.src,
+        width: image.style.width,
+        height: image.style.height,
+        filter: image.style.filter,
+        transform: image.style.transform,
+        display: image.style.display,
+        rotationAngle,
+        flipX,
+        flipY,
+        brightnessValue,
+        contrastValue,
+        saturationValue,
+        sepiaValue,
+        bwValue,
+        blurValue
+    })) {
+        redoStack.push(historyStack.pop());
     } else {
-        image.src = lastState.src;
+        historyStack.pop();
     }
 
-    // Restore dimensions (no conversion applied here)
-    image.style.width = lastState.width || "";
-    image.style.height = lastState.height || "";
-
-    // Restore visual styles
-    image.style.filter = lastState.filter || "none";
-    image.style.transform = lastState.transform || "none";
-    image.style.display = lastState.display || "block";
-
-    // Restore logical state
-    rotationAngle = lastState.rotationAngle || 0;
-    flipX = lastState.flipX || 1;
-    flipY = lastState.flipY || 1;
-    brightnessValue = lastState.brightnessValue || 100;
-    contrastValue = lastState.contrastValue || 100;
-    saturationValue = lastState.saturationValue || 100;
-    sepiaValue = lastState.sepiaValue || 0;
-    bwValue = lastState.bwValue || 0;
-    blurValue = lastState.blurValue || 0;
-
-    // Apply transform again using logic
-    image.style.transform = `rotate(${rotationAngle}deg) scale(${flipX}, ${flipY})`;
-
-    // Apply filter using logic
-    updateAdvancedFilters();
-
-    // Clear size inputs
-    document.getElementById("widthInput").value = "";
-    document.getElementById("heightInput").value = "";
+    // Restore previous state
+    restoreState(prevState);
 }
 
 function redo() {
@@ -815,44 +800,126 @@ function updateAdvancedFilters() {
 
 function RemoveImage() {
     const imageArea = document.getElementById("image-area");
-    const widthInput = document.getElementById("widthInput");
-    const heightInput = document.getElementById("heightInput");
-
     if (!imageArea.src || imageArea.style.display === "none") {
         alert("No image to remove");
         return;
     }
 
-    // ✅ Push current state before clearing
-    pushToHistory();
+    // Create a canvas copy of the current image state
+    const canvas = document.createElement('canvas');
+    canvas.width = imageArea.naturalWidth;
+    canvas.height = imageArea.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(imageArea, 0, 0);
+    const currentImageData = canvas.toDataURL();
 
-    // ✅ Clear the image visually
+    // Push current modified state to history
+    const currentState = {
+        src: currentImageData, // Store as data URL instead of original source
+        width: imageArea.style.width,
+        height: imageArea.style.height,
+        filter: imageArea.style.filter,
+        transform: imageArea.style.transform,
+        display: imageArea.style.display,
+        rotationAngle,
+        flipX,
+        flipY,
+        brightnessValue,
+        contrastValue,
+        saturationValue,
+        sepiaValue,
+        bwValue,
+        blurValue
+    };
+    historyStack.push(currentState);
+    
+    // Push empty state
+    const emptyState = {
+        src: "",
+        width: "",
+        height: "",
+        filter: "none",
+        transform: "none",
+        display: "none",
+        rotationAngle: 0,
+        flipX: 1,
+        flipY: 1,
+        brightnessValue: 100,
+        contrastValue: 100,
+        saturationValue: 100,
+        sepiaValue: 0,
+        bwValue: 0,
+        blurValue: 0
+    };
+    historyStack.push(emptyState);
+    redoStack = [];
+
+    // Clear the image
     imageArea.src = "";
     imageArea.style.display = "none";
-    imageArea.style.width = "";
-    imageArea.style.height = "";
-    imageArea.style.transform = "none";
-    imageArea.style.filter = "none";
+    resetImageSettings();
+}
 
-    // Reset state
+function restoreState(state) {
+    const image = document.getElementById("image-area");
+    
+    // Always set the source (bypass any caching issues)
+    image.src = "";
+    setTimeout(() => {
+        image.src = state.src;
+        image.onload = () => {
+            image.style.width = state.width || "";
+            image.style.height = state.height || "";
+            image.style.filter = state.filter || "none";
+            image.style.transform = state.transform || "none";
+            image.style.display = state.display || "block";
+            
+            // Restore all other properties
+            rotationAngle = state.rotationAngle || 0;
+            flipX = state.flipX || 1;
+            flipY = state.flipY || 1;
+            brightnessValue = state.brightnessValue || 100;
+            contrastValue = state.contrastValue || 100;
+            saturationValue = state.saturationValue || 100;
+            sepiaValue = state.sepiaValue || 0;
+            bwValue = state.bwValue || 0;
+            blurValue = state.blurValue || 0;
+            
+            // Update UI controls
+            updateUIControls();
+            
+            // Calculate new aspect ratio
+            if (image.complete && image.naturalWidth > 0) {
+                aspectRatio = image.naturalWidth / image.naturalHeight;
+            }
+        };
+    }, 10);
+}
+
+// Helper function to reset all image settings
+function resetImageSettings() {
     rotationAngle = 0;
     flipX = 1;
     flipY = 1;
     aspectRatio = 1;
-
-    widthInput.value = "";
-    heightInput.value = "";
-
+    document.getElementById("widthInput").value = "";
+    document.getElementById("heightInput").value = "";
     document.getElementById("brightnessSlider").value = 100;
     document.getElementById("contrastSlider").value = 100;
     document.getElementById("saturationSlider").value = 100;
-
     brightnessValue = 100;
     contrastValue = 100;
     saturationValue = 100;
     sepiaValue = 0;
     bwValue = 0;
     blurValue = 0;
+}
+
+// Helper function to update UI controls
+function updateUIControls() {
+    document.getElementById("brightnessSlider").value = brightnessValue;
+    document.getElementById("contrastSlider").value = contrastValue;
+    document.getElementById("saturationSlider").value = saturationValue;
 }
 
     </script>

@@ -18,7 +18,40 @@
             justify-content: space-between;
             align-items: center;
         }
+        .batch-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 10px;
+}
 
+.batch-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.batch-checkbox input {
+    cursor: pointer;
+}
+
+.batch-apply-btn {
+    background-color: #1e90ff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: none;
+}
+
+.batch-apply-btn:hover {
+    background-color: #0077cc;
+}
         .toolbar {
             background-color: #333;
             display: flex;
@@ -157,11 +190,53 @@
         input[type="number"] {
             appearance: textfield;
         }
+         /* Add this to your existing styles */
+         .batch-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 10px;
+        }
+        
+        .batch-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .batch-checkbox input {
+            cursor: pointer;
+        }
+        
+        .batch-apply-btn {
+            background-color: #1e90ff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: none;
+        }
+        
+        .batch-apply-btn:hover {
+            background-color: #0077cc;
+        }
     </style>
     <script>
-
-    let imageHistories = [];     // Array of { undoStack, redoStack } for each image
-    
+let isBatchProcessing = false;
+let batchFilters = {
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+    sepia: 0,
+    bw: 0,
+    blur: 0
+};
+let imageHistories = [];     // Array of { undoStack, redoStack } for each image
 let imageList = [];
 let imageStates = []; // Will store edit state per image
 let currentImageIndex = -1;
@@ -169,7 +244,90 @@ let imageSavePaths = [];  // New array to track save path per image
 let suppressResize = false;
 let suppressInputEvents = false;
 
+function toggleBatchProcessing() {
+    const checkbox = document.getElementById("batchCheckbox");
+    const applyBtn = document.getElementById("batchApplyBtn");
+    
+    isBatchProcessing = checkbox.checked;
+    applyBtn.style.display = isBatchProcessing ? "none" : "block"; // Hide apply button when in auto mode
+    
+    if (isBatchProcessing) {
+        // Store current filter values
+        batchFilters = {
+            brightness: parseInt(document.getElementById("brightnessSlider").value),
+            contrast: parseInt(document.getElementById("contrastSlider").value),
+            saturation: parseInt(document.getElementById("saturationSlider").value),
+            sepia: parseInt(document.getElementById("sepiaSlider").value),
+            bw: parseInt(document.getElementById("bwSlider").value),
+            blur: parseInt(document.getElementById("blurSlider").value)
+        };
+        
+        // Apply current filters to all images immediately
+        applyFiltersToAll(false);
+    }
+}
+function applyFiltersToAll(askForConfirmation = true) {
+    if (imageList.length === 0) {
+        alert("No images to process");
+        return;
+    }
 
+    if (askForConfirmation && !confirm("Apply current filters to all images?")) {
+        return;
+    }
+
+    // Get current filter values
+    const currentFilters = {
+        brightness: parseInt(document.getElementById("brightnessSlider").value),
+        contrast: parseInt(document.getElementById("contrastSlider").value),
+        saturation: parseInt(document.getElementById("saturationSlider").value),
+        sepia: parseInt(document.getElementById("sepiaSlider").value),
+        bw: parseInt(document.getElementById("bwSlider").value),
+        blur: parseInt(document.getElementById("blurSlider").value)
+    };
+
+    // Save current image index
+    const originalIndex = currentImageIndex;
+
+    // Apply to all images
+    for (let i = 0; i < imageList.length; i++) {
+        currentImageIndex = i;
+        const state = getCurrentState();
+        
+        if (state) {
+            // Update state with current filters
+            state.brightnessValue = currentFilters.brightness;
+            state.contrastValue = currentFilters.contrast;
+            state.saturationValue = currentFilters.saturation;
+            state.sepiaValue = currentFilters.sepia;
+            state.bwValue = currentFilters.bw;
+            state.blurValue = currentFilters.blur;
+            
+            // Apply filters
+            const filterString = `
+                brightness(${state.brightnessValue}%)
+                contrast(${state.contrastValue}%)
+                saturate(${state.saturationValue}%)
+                sepia(${state.sepiaValue}%)
+                grayscale(${state.bwValue}%)
+                blur(${state.blurValue}px)
+            `.trim();
+            
+            state.filter = filterString;
+            
+            // Update UI and history
+            restoreState(state);
+            pushToHistory();
+        }
+    }
+
+    // Restore original image
+    currentImageIndex = originalIndex;
+    displayImage(currentImageIndex);
+    
+    if (!askForConfirmation) return; // Skip alert if automatic
+    alert("Filters applied to all images!");
+}
 function applyStateProperties(state) {
     const image = document.getElementById("image-area");
 
@@ -274,38 +432,82 @@ function initImageEntry() {
         }
     }
 
-// Undo operation
 function undo() {
-        const history = getCurrentHistory();
-        if (!history || history.undoStack.length <= 1) return;
-
-        // Current state goes to redo stack
-        const currentState = getCurrentState();
-        history.redoStack.push(JSON.parse(JSON.stringify(currentState)));
-
-        // Remove current state from undo stack
-        history.undoStack.pop();
-
-        // Restore previous state
-        const prevState = history.undoStack[history.undoStack.length - 1];
-        Object.assign(imageStates[currentImageIndex], prevState);
-        restoreState(prevState);
+    if (isBatchProcessing) {
+        undoAllImages();
+    } else {
+        undoCurrentImage();
     }
+}
 
-// Redo operation
 function redo() {
-        const history = getCurrentHistory();
-        if (!history || history.redoStack.length === 0) return;
-
-        // Current state goes back to undo stack
-        const currentState = getCurrentState();
-        history.undoStack.push(JSON.parse(JSON.stringify(currentState)));
-
-        // Get next state from redo stack
-        const nextState = history.redoStack.pop();
-        Object.assign(imageStates[currentImageIndex], nextState);
-        restoreState(nextState);
+    if (isBatchProcessing) {
+        redoAllImages();
+    } else {
+        redoCurrentImage();
     }
+}
+
+function undoCurrentImage() {
+    const history = getCurrentHistory();
+    if (!history || history.undoStack.length <= 1) return;
+
+    // Current state goes to redo stack
+    const currentState = getCurrentState();
+    history.redoStack.push(JSON.parse(JSON.stringify(currentState)));
+
+    // Remove current state from undo stack
+    history.undoStack.pop();
+
+    // Restore previous state
+    const prevState = history.undoStack[history.undoStack.length - 1];
+    Object.assign(imageStates[currentImageIndex], prevState);
+    restoreState(prevState);
+}
+
+function redoCurrentImage() {
+    const history = getCurrentHistory();
+    if (!history || history.redoStack.length === 0) return;
+
+    // Current state goes back to undo stack
+    const currentState = getCurrentState();
+    history.undoStack.push(JSON.parse(JSON.stringify(currentState)));
+
+    // Get next state from redo stack
+    const nextState = history.redoStack.pop();
+    Object.assign(imageStates[currentImageIndex], nextState);
+    restoreState(nextState);
+}
+
+function undoAllImages() {
+    // Save current index
+    const originalIndex = currentImageIndex;
+    
+    // Undo all images
+    for (let i = 0; i < imageList.length; i++) {
+        currentImageIndex = i;
+        undoCurrentImage();
+    }
+    
+    // Restore original index
+    currentImageIndex = originalIndex;
+    displayImage(currentImageIndex);
+}
+
+function redoAllImages() {
+    // Save current index
+    const originalIndex = currentImageIndex;
+    
+    // Redo all images
+    for (let i = 0; i < imageList.length; i++) {
+        currentImageIndex = i;
+        redoCurrentImage();
+    }
+    
+    // Restore original index
+    currentImageIndex = originalIndex;
+    displayImage(currentImageIndex);
+}
 
 // Reset the editor state when image is deleted
 function resetEditor() {
@@ -949,34 +1151,38 @@ function goHome() {
 }
 
 function updateAdvancedFilters() {
-        const image = document.getElementById("image-area");
-        const state = getCurrentState();
-        if (!image || !state || !image.src) return;
+    const image = document.getElementById("image-area");
+    const state = getCurrentState();
+    if (!image || !state || !image.src) return;
 
-        // Get values from sliders
-        state.brightnessValue = document.getElementById("brightnessSlider").value;
-        state.contrastValue = document.getElementById("contrastSlider").value;
-        state.saturationValue = document.getElementById("saturationSlider").value;
-        state.sepiaValue = document.getElementById("sepiaSlider").value;
-        state.bwValue = document.getElementById("bwSlider").value;
-        state.blurValue = document.getElementById("blurSlider").value;
+    // Get values from sliders
+    state.brightnessValue = document.getElementById("brightnessSlider").value;
+    state.contrastValue = document.getElementById("contrastSlider").value;
+    state.saturationValue = document.getElementById("saturationSlider").value;
+    state.sepiaValue = document.getElementById("sepiaSlider").value;
+    state.bwValue = document.getElementById("bwSlider").value;
+    state.blurValue = document.getElementById("blurSlider").value;
 
-        // Apply filters
-        const filterString = `
-            brightness(${state.brightnessValue}%)
-            contrast(${state.contrastValue}%)
-            saturate(${state.saturationValue}%)
-            sepia(${state.sepiaValue}%)
-            grayscale(${state.bwValue}%)
-            blur(${state.blurValue}px)
-        `.trim();
+    // Apply filters
+    const filterString = `
+        brightness(${state.brightnessValue}%)
+        contrast(${state.contrastValue}%)
+        saturate(${state.saturationValue}%)
+        sepia(${state.sepiaValue}%)
+        grayscale(${state.bwValue}%)
+        blur(${state.blurValue}px)
+    `.trim();
 
-        image.style.filter = filterString;
-        state.filter = filterString;
-        
-        pushToHistory();
+    image.style.filter = filterString;
+    state.filter = filterString;
+    
+    // If batch processing is enabled, apply to all images immediately
+    if (isBatchProcessing) {
+        applyFiltersToAll(false); // Pass false to skip confirmation
     }
-
+    
+    pushToHistory();
+}
 function RemoveImage() {
     const imageArea = document.getElementById("image-area");
     if (!imageArea.src || imageArea.style.display === "none") {
@@ -1196,7 +1402,16 @@ suppressInputEvents = false;
     <button onclick="undo()"><i class="fa-solid fa-arrow-left"></i><span class="tooltip">Undo</span></button>
     <button onclick="redo()"><i class="fa-solid fa-arrow-right"></i><span class="tooltip">Redo</span></button>
 </div>
+<div class="partition"></div>
+<div class="batch-controls">
+    <div class="batch-checkbox" onclick="toggleBatchProcessing()">
+        <input type="checkbox" id="batchCheckbox">
+        <label for="batchCheckbox">Process Batch</label>
     </div>
+    
+</div>
+    </div>
+    
     <div class="content">
         <div id="image-container">
             <img id="image-area" src="">

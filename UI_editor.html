@@ -161,52 +161,30 @@
     <script>
         let currentSavePath = null;
 
-        let rotationAngle = 0;
-let flipX = 1, flipY = 1;
-let aspectRatio=1;
-let brightnessValue = 100;
-let contrastValue = 100;
-let saturationValue = 100;
-let sepiaValue = 0;
-let bwValue = 0;
-let blurValue = 0;
-
 let historyStack = [];
 let redoStack = [];
 let currentState = null;
 
 // Modified pushToHistory function
 function pushToHistory() {
-    const image = document.getElementById("image-area");
-    if (!image.src && historyStack.length > 0) return;
+        const image = document.getElementById("image-area");
+        if (!image.src && historyStack.length > 0) return;
 
-    // Create new state object
-    const newState = {
-        src: image.src,
-        width: image.style.width,
-        height: image.style.height,
-        filter: image.style.filter,
-        transform: image.style.transform,
-        display: image.style.display,
-        rotationAngle: rotationAngle,
-        flipX: flipX,
-        flipY: flipY,
-        brightnessValue: brightnessValue,
-        contrastValue: contrastValue,
-        saturationValue: saturationValue,
-        sepiaValue: sepiaValue,
-        bwValue: bwValue,
-        blurValue: blurValue,
-        aspectRatio: aspectRatio
-    };
-
-    // Only push if different from last state
-    if (historyStack.length === 0 || 
-        JSON.stringify(newState) !== JSON.stringify(historyStack[historyStack.length - 1])) {
-        historyStack.push(newState);
-        redoStack = []; // Clear redo stack whenever we make new changes
+        const newState = getCurrentState();
+        
+        // Only push if different from last state
+        if (historyStack.length === 0 || 
+            JSON.stringify(newState) !== JSON.stringify(historyStack[historyStack.length - 1])) {
+            historyStack.push(newState);
+            redoStack = [];
+            
+            // Also update the imageStates array
+            if (currentImageIndex >= 0) {
+                imageStates[currentImageIndex] = newState;
+            }
+        }
     }
-}
+
 function applyStateProperties(state) {
     const image = document.getElementById("image-area");
 
@@ -245,52 +223,65 @@ function applyStateProperties(state) {
 
 // Function to get current state with added validation
 function getCurrentState() {
-    const image = document.getElementById("image-area");
+        const image = document.getElementById("image-area");
+        
+        if (!image.src || image.style.display === "none") {
+            return {
+                src: null,
+                width: "",
+                height: "",
+                filter: "",
+                transform: "",
+                display: "none",
+                rotationAngle: 0,
+                flipX: 1,
+                flipY: 1,
+                brightnessValue: 100,
+                contrastValue: 100,
+                saturationValue: 100,
+                sepiaValue: 0,
+                bwValue: 0,
+                blurValue: 0,
+                aspectRatio: 1,
+                isDeleted: true
+            };
+        }
 
-    // If no image is loaded, return a state with no source
-    if (!image.src || image.src === "") {
+        // Parse current filter values
+        const currentFilter = image.style.filter || "";
+        let brightness = 100, contrast = 100, saturation = 100, sepia = 0, bw = 0, blur = 0;
+
+        currentFilter.split(' ').forEach(part => {
+            if (part.includes('brightness')) brightness = parseFloat(part.match(/\((.*?)%/)[1]);
+            if (part.includes('contrast')) contrast = parseFloat(part.match(/\((.*?)%/)[1]);
+            if (part.includes('saturate')) saturation = parseFloat(part.match(/\((.*?)%/)[1]);
+            if (part.includes('sepia')) sepia = parseFloat(part.match(/\((.*?)%/)[1]);
+            if (part.includes('grayscale')) bw = parseFloat(part.match(/\((.*?)%/)[1]);
+            if (part.includes('blur')) blur = parseFloat(part.match(/\((.*?)px\)/)[1]);
+        });
+
         return {
-            src: null,  // No image
-            width: "",
-            height: "",
-            filter: "",
-            transform: "",
-            display: "none",  // Hide the image if deleted
-            rotationAngle: 0,
-            flipX: false,
-            flipY: false,
-            brightnessValue: 0,
-            contrastValue: 0,
-            saturationValue: 0,
-            sepiaValue: 0,
-            bwValue: 0,
-            blurValue: 0,
-            aspectRatio: 1,
-            isDeleted: true
+            src: image.src,
+            width: image.style.width,
+            height: image.style.height,
+            filter: currentFilter,
+            transform: image.style.transform,
+            display: image.style.display,
+            rotationAngle: rotationAngle || 0,
+            flipX: flipX !== undefined ? flipX : 1,
+            flipY: flipY !== undefined ? flipY : 1,
+            aspectRatio: aspectRatio || 1,
+            brightnessValue: brightness,
+            contrastValue: contrast,
+            saturationValue: saturation,
+            sepiaValue: sepia,
+            bwValue: bw,
+            blurValue: blur,
+            aspectRatio: aspectRatio,
+            isDeleted: false
         };
     }
 
-    // Otherwise, return the normal image state
-    return {
-        src: image.src,
-        width: image.style.width,
-        height: image.style.height,
-        filter: image.style.filter,
-        transform: image.style.transform,
-        display: image.style.display,
-        rotationAngle: rotationAngle,
-        flipX: flipX,
-        flipY: flipY,
-        brightnessValue: brightnessValue,
-        contrastValue: contrastValue,
-        saturationValue: saturationValue,
-        sepiaValue: sepiaValue,
-        bwValue: bwValue,
-        blurValue: blurValue,
-        aspectRatio: aspectRatio,
-        isDeleted: false
-    };
-}
 // Undo operation
 function undo() {
     if (historyStack.length <= 1) return;
@@ -330,37 +321,6 @@ function redo() {
     }
 }
 
-// Restore image state from a given state
-function restoreState(state) {
-    const image = document.getElementById("image-area");
-
-    // If the state indicates the image was deleted, reset to empty
-    if (state.isDeleted) {
-        resetEditor();
-        return;
-    }
-
-    // Restore image source
-    image.src = state.src;
-    image.style.width = state.width;
-    image.style.height = state.height;
-    image.style.filter = state.filter;
-    image.style.transform = state.transform;
-    image.style.display = state.display;
-
-    // Restore transformations and other settings
-    rotationAngle = state.rotationAngle;
-    flipX = state.flipX;
-    flipY = state.flipY;
-    brightnessValue = state.brightnessValue;
-    contrastValue = state.contrastValue;
-    saturationValue = state.saturationValue;
-    sepiaValue = state.sepiaValue;
-    bwValue = state.bwValue;
-    blurValue = state.blurValue;
-    aspectRatio = state.aspectRatio;
-}
-
 // Reset the editor state when image is deleted
 function resetEditor() {
     const image = document.getElementById("image-area");
@@ -385,8 +345,10 @@ function resetEditor() {
     aspectRatio = 1;
 }
 
-
-
+let imageList = [];
+let imageStates = []; // Will store edit state per image
+let currentImageIndex = -1;
+let imageSavePaths = [];  // New array to track save path per image
 
 function openImage() {
     const input = document.createElement("input");
@@ -397,49 +359,69 @@ function openImage() {
         const file = event.target.files[0];
         if (!file) return;
 
-        const imageArea = document.getElementById("image-area");
-        imageArea.src = URL.createObjectURL(file);
-        imageArea.style.display = "block";
+        const imagePath = file.path; // ✅ Native path from Electron
+        const fileExtension = imagePath.split('.').pop().toLowerCase();
 
-        imageArea.onload = () => {
-            // Reset transform
-            rotationAngle = 0;
-            flipX = 1;
-            flipY = 1;
-            imageArea.style.transform = "none";
+        const base64Reader = new FileReader();
+        base64Reader.onload = function(e) {
+            const base64DataUrl = e.target.result;
 
-            // Reset filters
-            brightnessValue = 100;
-            contrastValue = 100;
-            saturationValue = 100;
-            sepiaValue = 0;
-            bwValue = 0;
-            blurValue = 0;
+            imageList.push(base64DataUrl);
+            imageStates.push(null);
+            imageSavePaths.push({ filePath: imagePath, extension: fileExtension }); // Store path immediately
+            currentImageIndex = imageList.length - 1;
 
-            // Reset sliders
-            document.getElementById("brightnessSlider").value = 100;
-            document.getElementById("contrastSlider").value = 100;
-            document.getElementById("saturationSlider").value = 100;
-            document.getElementById("sepiaSlider").value = 0;
-            document.getElementById("bwSlider").value = 0;
-            document.getElementById("blurSlider").value = 0;
-            updateAdvancedFilters();
-
-            // Reset size inputs
-            document.getElementById("widthInput").value = "";
-            document.getElementById("heightInput").value = "";
-
-            // Store aspect ratio
-            aspectRatio = imageArea.naturalWidth / imageArea.naturalHeight;
-
-            // Push the original image to the history stack
-            pushToHistory();
+            console.log("Opened image:", imagePath);
+            displayImage(currentImageIndex);
         };
+
+        base64Reader.readAsDataURL(file);
     };
 
     input.click();
 }
 
+function displayImage(index) {
+        const imageArea = document.getElementById("image-area");
+        currentImageIndex = index;
+        const imageSrc = imageList[index];
+        
+        document.getElementById("image-count").innerText = `Image ${index + 1} of ${imageList.length}`;
+        imageArea.style.display = "none";
+        imageArea.src = "";
+
+        setTimeout(() => {
+            imageArea.src = imageSrc;
+            imageArea.onload = () => {
+                imageArea.style.display = "block";
+                
+                // Restore the saved state if it exists
+                if (imageStates[index]) {
+                    restoreState(imageStates[index]);
+                } else {
+                    // Initialize new state
+                    resetImageSettings();
+                    aspectRatio = imageArea.naturalWidth / imageArea.naturalHeight;
+                    pushToHistory();
+                    imageStates[index] = getCurrentState();
+                }
+            };
+        }, 10);
+    }
+
+function prevImage() {
+    if (currentImageIndex > 0) {
+        currentImageIndex--;
+        displayImage(currentImageIndex);
+    }
+}
+
+function nextImage() {
+    if (currentImageIndex < imageList.length - 1) {
+        currentImageIndex++;
+        displayImage(currentImageIndex);
+    }
+}
 
 const { ipcRenderer } = require('electron');
 
@@ -458,12 +440,18 @@ function saveImageAs() {
     ipcRenderer.send("request-save-dialog");
 }
 function saveImage() {
-    if (!currentSavePath) {
-        saveImageAs(); // If no path exists, fall back to Save As
+    if (currentImageIndex === -1 || !imageList[currentImageIndex]) return;
+
+    const saveInfo = imageSavePaths[currentImageIndex];
+
+    if (!saveInfo || !saveInfo.filePath || !saveInfo.extension) {
+        saveImageAs(); // Prompt Save As only if not set
         return;
     }
-    saveImageToFile(currentSavePath.filePath, currentSavePath.extension);
+
+    saveImageToFile(saveInfo.filePath, saveInfo.extension);
 }
+
 function saveImageToFile(filePath, extension) {
     const image = document.getElementById("image-area");
 
@@ -518,13 +506,15 @@ function saveImageToFile(filePath, extension) {
     }, mimeType);
 }
 
-
 ipcRenderer.on("save-file-path", async (event, { filePath, extension }) => {
-    if (!filePath) return;
-    currentSavePath = { filePath, extension };
+    if (!filePath || currentImageIndex === -1) return;
+
+    const saveInfo = { filePath, extension };
+    imageSavePaths[currentImageIndex] = saveInfo; // Per-image path
+    currentSavePath = saveInfo; // Optional fallback
+
     saveImageToFile(filePath, extension);
 });
-
 
 let startX, startY;
 let cropBox = null;
@@ -623,43 +613,62 @@ function cropImage() {
 
         addResizeHandles();
     } else {
-        // Perform cropping
-        let rect = cropBox.getBoundingClientRect();
-        let imgRect = image.getBoundingClientRect();
+            // Perform cropping
+            let rect = cropBox.getBoundingClientRect();
+            let imgRect = image.getBoundingClientRect();
 
-        let scaleX = image.naturalWidth / imgRect.width;
-        let scaleY = image.naturalHeight / imgRect.height;
+            let scaleX = image.naturalWidth / imgRect.width;
+            let scaleY = image.naturalHeight / imgRect.height;
 
-        let sx = Math.round((rect.left - imgRect.left) * scaleX);
-        let sy = Math.round((rect.top - imgRect.top) * scaleY);
-        let sw = Math.round(rect.width * scaleX);
-        let sh = Math.round(rect.height * scaleY);
+            let sx = Math.round((rect.left - imgRect.left) * scaleX);
+            let sy = Math.round((rect.top - imgRect.top) * scaleY);
+            let sw = Math.round(rect.width * scaleX);
+            let sh = Math.round(rect.height * scaleY);
 
-        sx = Math.max(0, sx);
-        sy = Math.max(0, sy);
-        sw = Math.min(image.naturalWidth - sx, sw);
-        sh = Math.min(image.naturalHeight - sy, sh);
+            sx = Math.max(0, sx);
+            sy = Math.max(0, sy);
+            sw = Math.min(image.naturalWidth - sx, sw);
+            sh = Math.min(image.naturalHeight - sy, sh);
 
-        let canvas = document.createElement("canvas");
-        canvas.width = sw;
-        canvas.height = sh;
-        let ctx = canvas.getContext("2d");
+            let canvas = document.createElement("canvas");
+            canvas.width = sw;
+            canvas.height = sh;
+            let ctx = canvas.getContext("2d");
 
-        let tempImg = new Image();
-        tempImg.src = image.src;
+            let tempImg = new Image();
+            tempImg.src = image.src;
 
-        tempImg.onload = () => {
-            ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
-            image.src = canvas.toDataURL();
-            pushToHistory();
-            container.removeChild(cropBox);
-            cropBox = null;
-            isCropping = false;
-        };
+            tempImg.onload = () => {
+                ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
+                
+                // Create new image URL
+                const croppedUrl = canvas.toDataURL();
+                
+                // Update the image list with the cropped version
+                imageList[currentImageIndex] = croppedUrl;
+                
+                // Update the image display
+                image.src = croppedUrl;
+                
+                // Reset transformations after crop
+                rotationAngle = 0;
+                flipX = 1;
+                flipY = 1;
+                aspectRatio = sw / sh;
+                
+                // Update the state
+                pushToHistory();
+                imageStates[currentImageIndex] = getCurrentState();
+                
+                // Clean up
+                container.removeChild(cropBox);
+                cropBox = null;
+                isCropping = false;
+            };
 
-        message.remove();
+            message.remove();
+        }
     }
-}
 
 function dragCropBox(e) {
     if (isDragging && cropBox) {
@@ -777,24 +786,44 @@ function addResizeHandles() {
     });
 }
 
-    function flipImage() {
-    let imageArea = document.getElementById("image-area");
-    if (!imageArea.src || imageArea.style.display === "none") {
-        alert("No image to flip");
-        return;
-    }
-    flipX *= -1; // Flip horizontally
-    imageArea.style.transform = `scale(${flipX}, ${flipY}) rotate(${rotationAngle}deg)`;
-    pushToHistory();
-}
+function flipImage() {
+        const image = document.getElementById("image-area");
+        if (!image.src || image.style.display === "none") return;
 
-function rotateImage(angle) {
-    let imageArea = document.getElementById("image-area");
-    rotationAngle += angle;
-    imageArea.style.transform = `rotate(${rotationAngle}deg) scale(${flipX}, ${flipY})`;
-    adjustImageSize(imageArea);
-    pushToHistory();
-}
+        // Get current state
+        const currentState = imageStates[currentImageIndex] || getCurrentState();
+        
+        // Update flip values
+        currentState.flipX *= -1;
+        flipX = currentState.flipX; // Update global for immediate UI response
+        
+        // Apply transformation
+        image.style.transform = `scale(${currentState.flipX}, ${currentState.flipY}) rotate(${currentState.rotationAngle}deg)`;
+        
+        // Update state
+        imageStates[currentImageIndex] = currentState;
+        pushToHistory();
+    }
+
+    function rotateImage(angle) {
+        const image = document.getElementById("image-area");
+        if (!image.src || image.style.display === "none") return;
+
+        // Get current state
+        const currentState = imageStates[currentImageIndex] || getCurrentState();
+        
+        // Update rotation
+        currentState.rotationAngle += angle;
+        rotationAngle = currentState.rotationAngle; // Update global
+        
+        // Apply transformation
+        image.style.transform = `rotate(${currentState.rotationAngle}deg) scale(${currentState.flipX}, ${currentState.flipY})`;
+        adjustImageSize(image);
+        
+        // Update state
+        imageStates[currentImageIndex] = currentState;
+        pushToHistory();
+    }
 
         function adjustImageSize(image) {
             if (rotationAngle % 180 !== 0) {
@@ -806,40 +835,21 @@ function rotateImage(angle) {
             }
         }
         
-function resizeImage() {
- let imageArea = document.getElementById("image-area");
- let widthInput = document.getElementById("widthInput");
- let heightInput = document.getElementById("heightInput");
- if (!imageArea.src) return;
+        function resizeImage() {
+        const image = document.getElementById("image-area");
+        if (!image.src) return;
 
- // Get new values from the input fields
- let newWidth = widthInput.value.trim() === "" ? null : parseFloat(widthInput.value);  // If empty, set to null
- let newHeight = heightInput.value.trim() === "" ? null : parseFloat(heightInput.value);  // If empty, set to null
+        const currentState = imageStates[currentImageIndex] || getCurrentState();
+        const widthInput = document.getElementById("widthInput");
+        const heightInput = document.getElementById("heightInput");
 
- // If width is updated, calculate height based on the aspect ratio
- if (newWidth !== null && newHeight === null) {
-     heightInput.value = "";  // Clear the height field
-     imageArea.style.width = `${newWidth * 37.795}px`;  // Resize image based on width
-     imageArea.style.height = "";  // Reset height
-     
-     // Calculate height based on width and aspect ratio
-     let calculatedHeight = newWidth / aspectRatio;
-     imageArea.style.height = `${calculatedHeight * 37.795}px`; // Set calculated height
-     setTimeout(pushToHistory, 50);
- }
-
- // If height is updated, calculate width based on the aspect ratio
- else if (newHeight !== null && newWidth === null) {
-     widthInput.value = "";  // Clear the width field
-     imageArea.style.height = `${newHeight * 37.795}px`;  // Resize image based on height
-     imageArea.style.width = "";  // Reset width
-
-     // Calculate width based on height and aspect ratio
-     let calculatedWidth = newHeight * aspectRatio;
-     imageArea.style.width = `${calculatedWidth * 37.795}px`; // Set calculated width
-     setTimeout(pushToHistory, 50);
- }
-}
+        // ... (existing resize logic)
+        
+        // Update aspect ratio in state
+        currentState.aspectRatio = aspectRatio;
+        imageStates[currentImageIndex] = currentState;
+        pushToHistory();
+    }
 
 // Add listeners to inputs to clear the other field when one is updated
 window.onload = function () {
@@ -865,6 +875,7 @@ function applyFilters() {
         blur(${blurValue}px)
     `;
     pushToHistory();
+    imageStates[currentImageIndex] = getCurrentState();
 }
 
 function goHome() {
@@ -872,23 +883,35 @@ function goHome() {
 }
 
 function updateAdvancedFilters() {
-    const image = document.getElementById("image-area");
-    if (!image) return;
+        const image = document.getElementById("image-area");
+        if (!image || !image.src) return;
 
-    // Apply combined filters
-    const filterString = `
-        brightness(${brightnessValue}%)
-        contrast(${contrastValue}%)
-        saturate(${saturationValue}%)
-        sepia(${sepiaValue}%)
-        grayscale(${bwValue}%)
-        blur(${blurValue}px)
-    `.trim();
+        // Get current state values from sliders
+        const brightness = document.getElementById("brightnessSlider").value;
+        const contrast = document.getElementById("contrastSlider").value;
+        const saturation = document.getElementById("saturationSlider").value;
+        const sepia = document.getElementById("sepiaSlider").value;
+        const bw = document.getElementById("bwSlider").value;
+        const blur = document.getElementById("blurSlider").value;
 
-    image.style.filter = filterString;
-}
+        // Apply filters
+        const filterString = `
+            brightness(${brightness}%)
+            contrast(${contrast}%)
+            saturate(${saturation}%)
+            sepia(${sepia}%)
+            grayscale(${bw}%)
+            blur(${blur}px)
+        `.trim();
 
+        image.style.filter = filterString;
 
+        // Update the current image's state immediately
+        if (currentImageIndex >= 0) {
+            const currentState = getCurrentState();
+            imageStates[currentImageIndex] = currentState;
+        }
+    }
 
 function RemoveImage() {
     const imageArea = document.getElementById("image-area");
@@ -897,106 +920,90 @@ function RemoveImage() {
         return;
     }
 
-    // Push current state to history
+    // Save the current state before deletion
     pushToHistory();
+    imageStates[currentImageIndex] = getCurrentState();
 
-    // Create empty state
-    const emptyState = {
-        src: "",
-        width: "",
-        height: "",
-        filter: "none",
-        transform: "none",
-        display: "none",
-        rotationAngle: 0,
-        flipX: 1,
-        flipY: 1,
-        brightnessValue: 100,
-        contrastValue: 100,
-        saturationValue: 100,
-        sepiaValue: 0,
-        bwValue: 0,
-        blurValue: 0,
-        aspectRatio: 1
-    };
+    // Remove current image from both arrays
+    imageList.splice(currentImageIndex, 1);
+    imageStates.splice(currentImageIndex, 1);
 
-    // Push empty state
-    historyStack.push(emptyState);
-    redoStack = [];
+    // Decide new index to show
+    if (imageList.length === 0) {
+        // No images left
+        currentImageIndex = -1;
+        resetEditor();
+        document.getElementById("image-count").innerText = "";
+        return;
+    } else if (currentImageIndex >= imageList.length) {
+        currentImageIndex = imageList.length - 1;
+    }
 
-    // Visually clear the image
-    imageArea.src = "";
-    imageArea.style.display = "none";
-    resetImageSettings();
+    // Show next valid image
+    displayImage(currentImageIndex);
 }
 
 function restoreState(state) {
-    const image = document.getElementById("image-area");
-    
-    // Always set the source (bypass any caching issues)
-    image.src = "";
-    setTimeout(() => {
-        image.src = state.src;
-        image.onload = () => {
-            image.style.width = state.width || "";
-            image.style.height = state.height || "";
-            image.style.filter = state.filter || "none";
-            image.style.transform = state.transform || "none";
-            image.style.display = state.display || "block";
-            
-            // Restore all other properties
-            rotationAngle = state.rotationAngle || 0;
-            flipX = state.flipX || 1;
-            flipY = state.flipY || 1;
-            brightnessValue = state.brightnessValue || 100;
-            contrastValue = state.contrastValue || 100;
-            saturationValue = state.saturationValue || 100;
-            sepiaValue = state.sepiaValue || 0;
-            bwValue = state.bwValue || 0;
-            blurValue = state.blurValue || 0;
-            
-            // Update UI controls
-            updateUIControls();
-            
-            // Calculate new aspect ratio
-            if (image.complete && image.naturalWidth > 0) {
-                aspectRatio = image.naturalWidth / image.naturalHeight;
-            }
-        };
-    }, 10);
-}
+        const image = document.getElementById("image-area");
+        
+        if (state.isDeleted) {
+            resetEditor();
+            return;
+        }
+
+        image.src = "";
+        setTimeout(() => {
+            image.src = state.src;
+            image.onload = () => {
+                // Restore basic properties
+                image.style.width = state.width || "";
+                image.style.height = state.height || "";
+                image.style.transform = state.transform || "none";
+                image.style.display = state.display || "block";
+                image.style.filter = state.filter || "";
+
+                // Restore transformation variables
+                rotationAngle = state.rotationAngle || 0;
+                flipX = state.flipX || 1;
+                flipY = state.flipY || 1;
+                aspectRatio = state.aspectRatio || 1;
+
+                // Update UI controls
+                updateUIControls(state);
+            };
+        }, 10);
+    }
 
 // Helper function to reset all image settings
 function resetImageSettings() {
-    rotationAngle = 0;
-    flipX = 1;
-    flipY = 1;
-    aspectRatio = 1;
-    document.getElementById("widthInput").value = "";
-    document.getElementById("heightInput").value = "";
-    document.getElementById("brightnessSlider").value = 100;
-    document.getElementById("contrastSlider").value = 100;
-    document.getElementById("saturationSlider").value = 100;
-    document.getElementById("sepiaSlider").value = 0;
-    document.getElementById("bwSlider").value = 0;
-    document.getElementById("blurSlider").value = 0;
-    brightnessValue = 100;
-    contrastValue = 100;
-    saturationValue = 100;
-    sepiaValue = 0;
-    bwValue = 0;
-    blurValue = 0;
-}
+        rotationAngle = 0;
+        flipX = 1;
+        flipY = 1;
+        aspectRatio = 1;
+        document.getElementById("widthInput").value = "";
+        document.getElementById("heightInput").value = "";
+        
+        // Reset sliders to default values
+        document.getElementById("brightnessSlider").value = 100;
+        document.getElementById("contrastSlider").value = 100;
+        document.getElementById("saturationSlider").value = 100;
+        document.getElementById("sepiaSlider").value = 0;
+        document.getElementById("bwSlider").value = 0;
+        document.getElementById("blurSlider").value = 0;
+    }
 
 // Helper function to update UI controls
-function updateUIControls() {
-    document.getElementById("brightnessSlider").value = brightnessValue;
-    document.getElementById("contrastSlider").value = contrastValue;
-    document.getElementById("saturationSlider").value = saturationValue;
-    document.getElementById("sepiaSlider").value = sepiaValue;
-    document.getElementById("bwSlider").value = bwValue;
-    document.getElementById("blurSlider").value = blurValue;
-}
+function updateUIControls(state) {
+        if (!state) {
+            state = getCurrentState();
+        }
+        document.getElementById("brightnessSlider").value = state.brightnessValue;
+        document.getElementById("contrastSlider").value = state.contrastValue;
+        document.getElementById("saturationSlider").value = state.saturationValue;
+        document.getElementById("sepiaSlider").value = state.sepiaValue;
+        document.getElementById("bwSlider").value = state.bwValue;
+        document.getElementById("blurSlider").value = state.blurValue;
+    }
 
     </script>
 </head>
@@ -1109,5 +1116,11 @@ function updateUIControls() {
             <img id="image-area" src="">
         </div>
     </div>
+    <div class="icon-grid">
+        <button onclick="prevImage()"><i class="fa-solid fa-chevron-left"></i><span class="tooltip">Previous</span></button>
+        <button onclick="nextImage()"><i class="fa-solid fa-chevron-right"></i><span class="tooltip">Next</span></button>
+    </div>
+    <div id="image-count" style="color: white; margin-top: 5px;"></div>
+    
 </body>
 </html>

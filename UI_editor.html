@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+v<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -180,9 +180,35 @@ function openImage() {
      imageArea.src = URL.createObjectURL(file);
      imageArea.style.display = "block";
      imageArea.onload = () => {
-         // Store the aspect ratio of the image
-         aspectRatio = imageArea.naturalWidth / imageArea.naturalHeight;
-     };
+    // Reset transformations
+    rotationAngle = 0;
+    flipX = 1;
+    flipY = 1;
+    imageArea.style.transform = "none";
+
+    // Reset filter values
+    brightnessValue = 100;
+    contrastValue = 100;
+    saturationValue = 100;
+    sepiaValue = 0;
+    bwValue = 0;
+    blurValue = 0;
+
+    // Reset filter sliders visually
+    document.getElementById("brightnessSlider").value = 100;
+    document.getElementById("contrastSlider").value = 100;
+    document.getElementById("saturationSlider").value = 100;
+
+    // Apply reset filters
+    updateAdvancedFilters();
+
+    // Store aspect ratio
+    aspectRatio = imageArea.naturalWidth / imageArea.naturalHeight;
+
+    // Optionally reset size inputs too
+    document.getElementById("widthInput").value = "";
+    document.getElementById("heightInput").value = "";
+};
  };
  input.click();
 }
@@ -726,7 +752,6 @@ function RemoveImage() {
             style="width: 80px; height: 4px;"
             oninput="saturationValue = this.value; updateAdvancedFilters();">
     </div>
-
 </div>
         
     </div>

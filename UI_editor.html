@@ -440,56 +440,79 @@ function saveImage() {
 
 function saveImageToFile(filePath, extension) {
     const image = document.getElementById("image-area");
+    if (!image || !image.src) {
+        alert("No image loaded.");
+        return;
+    }
 
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
+    const state = getCurrentState();
+    if (!state) {
+        alert("No image state found.");
+        return;
+    }
 
-    const imgWidth = image.width;
-    const imgHeight = image.height;
-    const angle = rotationAngle || 0;
-    const radians = angle * Math.PI / 180;
-    const rotate90or270 = Math.abs(angle) % 180 === 90;
+    const tempImg = new Image();
+    tempImg.onload = () => {
+            const imgWidth = tempImg.width;
+            const imgHeight = tempImg.height;
 
-    canvas.width = rotate90or270 ? imgHeight : imgWidth;
-    canvas.height = rotate90or270 ? imgWidth : imgHeight;
-
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate(radians);
-    ctx.scale(flipX, flipY);
-
-    const brightness = brightnessValue || 100;
-    const contrast = contrastValue || 100;
-    const saturation = saturationValue || 100;
-
-    ctx.filter = `
-        brightness(${brightness}%)
-        contrast(${contrast}%)
-        saturate(${saturation}%)
-        sepia(${sepiaValue}%)
-        grayscale(${bwValue}%)
-        blur(${blurValue}px)
-    `.trim();
-
-    ctx.drawImage(image, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
-    ctx.restore();
-
-    const mimeType = extension === 'jpg' ? 'image/jpeg' :
-                     extension === 'jpeg' ? 'image/jpeg' :
-                     extension === 'webp' ? 'image/webp' :
-                     extension === 'bmp' ? 'image/bmp' :
-                     'image/png';
-
-    canvas.toBlob(async (blob) => {
-        const arrayBuffer = await blob.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const fs = require('fs');
-        fs.writeFile(filePath, buffer, (err) => {
-            if (err) {
-                alert("Failed to save file: " + err.message);
+            if (!imgWidth || !imgHeight) {
+                alert("Image dimensions are invalid.");
+                return;
             }
-        });
-    }, mimeType);
+
+            const angle = state.rotationAngle || 0;
+            const radians = angle * Math.PI / 180;
+            const rotate90or270 = Math.abs(angle) % 180 === 90;
+
+            const canvas = document.createElement("canvas");
+            canvas.width = rotate90or270 ? imgHeight : imgWidth;
+            canvas.height = rotate90or270 ? imgWidth : imgHeight;
+
+            const ctx = canvas.getContext("2d");
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(radians);
+            ctx.scale(state.flipX ?? 1, state.flipY ?? 1);
+
+            ctx.filter = `
+                brightness(${state.brightnessValue ?? 100}%)
+                contrast(${state.contrastValue ?? 100}%)
+                saturate(${state.saturationValue ?? 100}%)
+                sepia(${state.sepiaValue ?? 0}%)
+                grayscale(${state.bwValue ?? 0}%)
+                blur(${state.blurValue ?? 0}px)
+            `.trim();
+
+            ctx.drawImage(tempImg, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
+            ctx.restore();
+
+            const mimeType = extension === 'jpg' ? 'image/jpeg' :
+                             extension === 'jpeg' ? 'image/jpeg' :
+                             extension === 'webp' ? 'image/webp' :
+                             extension === 'bmp' ? 'image/bmp' :
+                             'image/png';
+
+            canvas.toBlob(async (outBlob) => {
+                if (!outBlob) {
+                    alert("Failed to create blob from canvas.");
+                    return;
+                }
+                    const arrayBuffer = await outBlob.arrayBuffer();
+                    const buffer = Buffer.from(arrayBuffer);
+                    const fs = require('fs');
+                    fs.writeFile(filePath, buffer, (err) => {
+                        if (err) {
+                            alert("Write failed: " + err.message);
+                        } else {
+                            alert("Image saved successfully!");
+                        }
+                    });
+            }, mimeType);
+    };
+
+    // This MUST be last to ensure event handlers are in place
+    tempImg.src = image.src;
 }
 
 ipcRenderer.on("save-file-path", async (event, { filePath, extension }) => {
@@ -599,58 +622,63 @@ function cropImage() {
 
         addResizeHandles();
     } else {
-            // Perform cropping
-            let rect = cropBox.getBoundingClientRect();
-            let imgRect = image.getBoundingClientRect();
+    // Perform cropping
+    let rect = cropBox.getBoundingClientRect();
+    let imgRect = image.getBoundingClientRect();
 
-            let scaleX = image.naturalWidth / imgRect.width;
-            let scaleY = image.naturalHeight / imgRect.height;
+    let scaleX = image.naturalWidth / imgRect.width;
+    let scaleY = image.naturalHeight / imgRect.height;
 
-            let sx = Math.round((rect.left - imgRect.left) * scaleX);
-            let sy = Math.round((rect.top - imgRect.top) * scaleY);
-            let sw = Math.round(rect.width * scaleX);
-            let sh = Math.round(rect.height * scaleY);
+    let sx = Math.round((rect.left - imgRect.left) * scaleX);
+    let sy = Math.round((rect.top - imgRect.top) * scaleY);
+    let sw = Math.round(rect.width * scaleX);
+    let sh = Math.round(rect.height * scaleY);
 
-            sx = Math.max(0, sx);
-            sy = Math.max(0, sy);
-            sw = Math.min(image.naturalWidth - sx, sw);
-            sh = Math.min(image.naturalHeight - sy, sh);
+    sx = Math.max(0, sx);
+    sy = Math.max(0, sy);
+    sw = Math.min(image.naturalWidth - sx, sw);
+    sh = Math.min(image.naturalHeight - sy, sh);
 
-            let canvas = document.createElement("canvas");
-            canvas.width = sw;
-            canvas.height = sh;
-            let ctx = canvas.getContext("2d");
+    let canvas = document.createElement("canvas");
+    canvas.width = sw;
+    canvas.height = sh;
+    let ctx = canvas.getContext("2d");
 
-            let tempImg = new Image();
-            tempImg.src = image.src;
+    let tempImg = new Image();
+    tempImg.src = image.src;
 
-            tempImg.onload = () => {
-            ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
-            
-            // Update the image list with cropped version
-            imageList[currentImageIndex] = canvas.toDataURL();
-            
-            // Update the state
-            const state = getCurrentState();
-            state.src = imageList[currentImageIndex];
-            state.width = "";
-            state.height = "";
-            state.rotationAngle = 0;
-            state.flipX = 1;
-            state.flipY = 1;
-            state.aspectRatio = sw / sh;
-            state.transform = "";
-            
-            // Update display and history
-            restoreState(state);
-            pushToHistory();
-            
-            // Clean up
-            container.removeChild(cropBox);
-            cropBox = null;
-            isCropping = false;
-        };
-    }
+    tempImg.onload = () => {
+        ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
+
+        // Update the image list with cropped version
+        imageList[currentImageIndex] = canvas.toDataURL();
+
+        // Update the state
+        const state = getCurrentState();
+        state.src = imageList[currentImageIndex];
+        state.width = "";
+        state.height = "";
+        state.rotationAngle = 0;
+        state.flipX = 1;
+        state.flipY = 1;
+        state.aspectRatio = sw / sh;
+        state.transform = "";
+
+        // Update display and history
+        restoreState(state);
+        pushToHistory();
+
+        // Clean up
+        container.removeChild(cropBox);
+        cropBox = null;
+        isCropping = false;
+
+        // ✅ Remove crop message
+        const msg = document.getElementById("crop-message");
+        if (msg) container.removeChild(msg);
+    };
+}
+
 }
 
 function dragCropBox(e) {

@@ -6,11 +6,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
     <script src="https://docs.opencv.org/4.11.0/opencv.js"></script>
-     <!-- Font Awesome CDN -->
-   
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
- html, body {
+        html, body {
             margin: 0;
             padding: 0;
             background-color: #222;
@@ -117,6 +115,13 @@
             justify-content: center;
             width: 100%;
         }
+        .crop-rectangle {
+    position: absolute;
+    border: 2px dashed yellow;
+    background-color: rgba(255, 255, 0, 0.2);
+    pointer-events: none;
+    z-index: 40;
+}
 
         #collage-container {
             width: 90vw;
@@ -131,6 +136,70 @@
             width: 100%;
             height: auto;
         }
+        
+        .collage-image {
+            position: absolute;
+            border: 2px solid #ccc;
+            cursor: grab;
+            max-width: none;
+            transition: filter 0.3s ease;
+            transform-origin: center center;
+            contain: layout style paint;
+        }
+
+        .resize-handles-container {
+    pointer-events: none;
+    z-index: 20;
+}
+
+.resize-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #4285f4;
+    border: 2px solid white;
+    border-radius: 50%;
+    z-index: 30;
+    pointer-events: auto;
+    transform: translate(-50%, -50%);
+    transition: all 0.1s ease;
+}
+
+.resize-handle.nw {
+    top: 0;
+    left: 0;
+    cursor: nw-resize;
+}
+
+.resize-handle.ne {
+    top: 0;
+    right: 0;
+    cursor: ne-resize;
+    transform: translate(50%, -50%);
+}
+
+.resize-handle.sw {
+    bottom: 0;
+    left: 0;
+    cursor: sw-resize;
+    transform: translate(-50%, 50%);
+}
+
+.resize-handle.se {
+    bottom: 0;
+    right: 0;
+    cursor: se-resize;
+    transform: translate(50%, 50%);
+}
+
+.resize-handle:active {
+    transform: scale(1.3);
+    background: #1a73e8;
+}
+        .selected {
+            border: 3px solid yellow !important;
+            z-index: 5;
+        }
 
         .template-box {
             border: 1px dashed #aaa;
@@ -141,108 +210,48 @@
             color: #777;
             font-style: italic;
         }
-
-        .image-box {
-            position: absolute;
-            width: 200px;
-            height: 200px;
-            border: 2px solid #ccc;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            background: #fff;
-            cursor: grab;
-        }
-
-        .image-box img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-           transition: filter 0.3s ease;
-        }
-
-        #sliders {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            padding: 10px;
-        }
-
-        #sliders label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 1.2em;
-            color: white;
-        }
-
-        .toolbar input[type="range"] {
-            width: 80px;
-        }
-
-        .selected {
-            border: 3px solid yellow !important;
-        }
     </style>
 </head>
 
 <body>
 
 <div class="toolbar">
- <div class="icon-grid">
-            <button onclick="goHome()"><i class="fa-solid fa-house"></i><span class="tooltip">Home</span></button>
-            <button onclick="openImages()"><i class="fa-regular fa-folder-open"></i><span class="tooltip">Open</span></button>
-            <button onclick="downloadCollage()"><i class="fa-regular fa-floppy-disk"></i><span class="tooltip">Save</span></button>
-            <button onclick="deleteSelectedImage()"><i class="fa-regular fa-trash-can"></i><span class="tooltip">Delete</span></button>
-           
-
-   
-
-        </div>
-        
-        <div class="partition"></div>
-
-        <div class="icon-grid">
-            <button onclick="cropSelectedImage()"><i class="fa-solid fa-crop-simple"></i><span class="tooltip">Crop</span></button>
-            <button onclick="rotateSelected(-90)"><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
-            <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
-            <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
-            <button onclick="flipSelected('Y')"><i class="fa-solid fa-arrows-up-down"></i><span class="tooltip">Flip Vertically</span></button>
-        </div>
-
-        <div class="partition"></div>
-
-        <div class="icon-grid">
-            <button onclick="applyFilter('grayscale')"><i class="fa-solid fa-adjust"></i><span class="tooltip">Black & White</span></button>
-            <button onclick="applyFilter('sepia')"><i class="fa-solid fa-tint"></i><span class="tooltip">Sepia</span></button>
-            <button onclick="applyFilter('blur')"><i class="fa-solid fa-smog"></i><span class="tooltip">Blur</span></button>
-
-        </div>
-
-        <div class="partition"></div>
-
-        <div class="icon-grid">
-
-          </div>  
-          <label style="color: #1E90FF;" title="Resize Image">📏</label>
-<input id="resize-image-slider" type="range" min="50" max="200" value="100" onchange="resizeSelected(this.value)" title="Resize the selected image">
-
-<label style="color: #FFA500;" title="Resize Box">⬛</label>
-<input id="resize-box-slider" type="range" min="100" max="400" value="200" onchange="resizeImageBox(this.value)" title="Resize the image container">
-        
+    <div class="icon-grid">
+        <button onclick="goHome()"><i class="fa-solid fa-house"></i><span class="tooltip">Home</span></button>
+        <button onclick="openImages()"><i class="fa-regular fa-folder-open"></i><span class="tooltip">Open</span></button>
+        <button onclick="downloadCollage()"><i class="fa-regular fa-floppy-disk"></i><span class="tooltip">Save</span></button>
+        <button onclick="deleteSelectedImage()"><i class="fa-regular fa-trash-can"></i><span class="tooltip">Delete</span></button>
+        <button onclick="enableResize()"><i class="fa-solid fa-expand"></i><span class="tooltip">Resize</span></button>
+        <button onclick="disableResize()"><i class="fa-solid fa-compress"></i><span class="tooltip">Disable Resize</span></button>
     </div>
     
+    <div class="partition"></div>
+
+    <div class="icon-grid">
+        <button onclick="cropSelectedImage()"><i class="fa-solid fa-crop-simple"></i><span class="tooltip">Crop</span></button>
+        <button onclick="rotateSelected(-90)"><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
+        <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
+        <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
+        <button onclick="flipSelected('Y')"><i class="fa-solid fa-arrows-up-down"></i><span class="tooltip">Flip Vertically</span></button>
+    </div>
+
+    <div class="partition"></div>
+
+    <div class="icon-grid">
+        <button onclick="applyFilter('grayscale')"><i class="fa-solid fa-adjust"></i><span class="tooltip">Black & White</span></button>
+        <button onclick="applyFilter('sepia')"><i class="fa-solid fa-tint"></i><span class="tooltip">Sepia</span></button>
+        <button onclick="applyFilter('blur')"><i class="fa-solid fa-smog"></i><span class="tooltip">Blur</span></button>
+    </div>
+</div>
 
 <label for="templateSelect">Choose a template:</label>
-    <select id="templateSelect">
-        <option value="">-- Select a template --</option>
-        <option value="template1">Template 1 (Side by Side)</option>
-        <option value="template2">Template 2 (2x2 Grid)</option>
-    </select>
-    <div id="collageContainer" style="margin-top: 20px;"></div>
-    
-   
+<select id="templateSelect">
+    <option value="">-- Select a template --</option>
+    <option value="template1">Template 1 (Side by Side)</option>
+    <option value="template2">Template 2 (2x2 Grid)</option>
+</select>
+<div id="collageContainer" style="margin-top: 20px;"></div>
+
 <!-- Controls Container -->
 <div style="display: flex; flex-direction: row; gap: 16px; align-items: center; flex-wrap: wrap; margin-top: 16px;">
 
@@ -272,7 +281,6 @@
             style="width: 80px; height: 4px;"
             oninput="saturationValue = this.value; updateAdvancedFilters();">
     </div>
-
 </div>
 
 <div class="content">
@@ -282,42 +290,48 @@
 <script>
     const collageContainer = document.getElementById('collage-container');
     let selectedImage = null;
-  let brightnessValue = 100;
-let contrastValue = 100;
-let saturationValue = 100;
+    let brightnessValue = 100;
+    let contrastValue = 100;
+    let saturationValue = 100;
+    let isResizingEnabled = false;
+    let resizeHandles = [];
+    let isResizing = false;
+    let resizeDirection = null;
+    let startX, startY, startWidth, startHeight, startLeft, startTop;
 
-document.addEventListener("DOMContentLoaded", function () {
-            const templateSelect = document.getElementById("templateSelect");
-            const collageContainer = document.getElementById("collage-container");
+    document.addEventListener("DOMContentLoaded", function () {
+        const templateSelect = document.getElementById("templateSelect");
+        const collageContainer = document.getElementById("collage-container");
 
-            function createTemplate(templateName) {
-                collageContainer.innerHTML = "";
+        function createTemplate(templateName) {
+            collageContainer.innerHTML = "";
 
-                if (templateName === "template1") {
-                    collageContainer.innerHTML = `
-                        <div style="display: flex; gap: 10px; width: 100%; height: 100%; padding: 10px; box-sizing: border-box;">
-                            <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                            <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                        </div>`;
-                } else if (templateName === "template2") {
-                    collageContainer.innerHTML = `
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; height: 100%; padding: 10px; box-sizing: border-box;">
-                            <div class="template-box">Drop Image Here</div>
-                            <div class="template-box">Drop Image Here</div>
-                            <div class="template-box">Drop Image Here</div>
-                            <div class="template-box">Drop Image Here</div>
-                        </div>`;
-                }
+            if (templateName === "template1") {
+                collageContainer.innerHTML = `
+                    <div style="display: flex; gap: 10px; width: 100%; height: 100%; padding: 10px; box-sizing: border-box;">
+                        <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                        <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                    </div>`;
+            } else if (templateName === "template2") {
+                collageContainer.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; height: 100%; padding: 10px; box-sizing: border-box;">
+                        <div class="template-box">Drop Image Here</div>
+                        <div class="template-box">Drop Image Here</div>
+                        <div class="template-box">Drop Image Here</div>
+                        <div class="template-box">Drop Image Here</div>
+                    </div>`;
             }
+        }
 
-            templateSelect.addEventListener("change", function () {
-                const selectedTemplate = templateSelect.value;
-                createTemplate(selectedTemplate);
-            });
+        templateSelect.addEventListener("change", function () {
+            const selectedTemplate = templateSelect.value;
+            createTemplate(selectedTemplate);
         });
+    });
+
     function goHome() {
-    window.close(); // Redirect to the main PhotoForge page
-}
+        window.close();
+    }
     
     function openImages() {
         const input = document.createElement('input');
@@ -330,257 +344,252 @@ document.addEventListener("DOMContentLoaded", function () {
             for (const file of files) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const imageBox = document.createElement('div');
-                    imageBox.classList.add('image-box');
-                    imageBox.style.left = Math.random() * 500 + "px";
-                    imageBox.style.top = Math.random() * 300 + "px";
-
                     const img = document.createElement('img');
                     img.src = e.target.result;
+                    img.classList.add('collage-image');
                     img.dataset.rotation = '0';
                     img.dataset.flipX = '1';
                     img.dataset.flipY = '1';
+                    img.style.left = Math.random() * 500 + "px";
+                    img.style.top = Math.random() * 300 + "px";
+                    img.style.width = "200px";
+                    img.style.height = "auto";
 
-                    imageBox.appendChild(img);
-                    collageContainer.appendChild(imageBox);
+                    collageContainer.appendChild(img);
 
-                    makeDraggable(imageBox);
-                    imageBox.onclick = () => selectImage(img);
-                    saveState();
+                    makeDraggable(img);
+                    img.onclick = (e) => {
+                        e.stopPropagation();
+                        selectImage(img);
+                    };
                 };
                 reader.readAsDataURL(file);
             }
         };
         input.click();
     }
-    
 
-    
-  function updateAdvancedFilters() {
-    if (!selectedImage) return;
+    function updateAdvancedFilters() {
+        if (!selectedImage) return;
 
-    // Apply combined filters
-    const filterString = `
-        brightness(${brightnessValue}%)
-        contrast(${contrastValue}%)
-        saturate(${saturationValue}%)
-       
-    `.trim();
+        const filterString = `
+            brightness(${brightnessValue}%)
+            contrast(${contrastValue}%)
+            saturate(${saturationValue}%)
+        `.trim();
 
-    selectedImage.style.filter = filterString;
-}
-
-let cropBox = null;
-let isCropping = false;
-let isDragging = false;
-let isResizing = false;
-let offsetX, offsetY;
-let resizeDirection = null;
+        selectedImage.style.filter = filterString;
+    }
+    let isCropping = false;
+let cropStartX, cropStartY;
+let cropRect = null;
+let wasDraggable = false; // To store original draggable state
 
 function cropSelectedImage() {
     if (!selectedImage) {
-        ipcRenderer.send("show-error-dialog", {
-            title: "Crop Error",
-            message: "Please load an image before cropping."
-        });
+        alert("Please select an image first");
         return;
     }
 
-    const imgBox = selectedImage.parentElement;
-    const collage = document.getElementById("collage-container");
-
-    if (!isCropping) {
-        // Add crop box
-        cropBox = document.createElement("div");
-        cropBox.className = "crop-box";
-        cropBox.style.position = "absolute";
-        cropBox.style.border = "2px dashed yellow";
-        cropBox.style.width = "100px";
-        cropBox.style.height = "100px";
-        cropBox.style.left = imgBox.offsetLeft + 20 + "px";
-        cropBox.style.top = imgBox.offsetTop + 20 + "px";
-        cropBox.style.zIndex = "999";
-        cropBox.style.cursor = "move";
-
-        collage.appendChild(cropBox);
-        addResizeHandles();
-
-        cropBox.addEventListener("mousedown", (e) => {
-            if (e.target.classList.contains("resize-handle")) {
-                isResizing = true;
-                resizeDirection = e.target.dataset.resize;
-                startX = e.clientX;
-                startY = e.clientY;
-                document.addEventListener("mousemove", resizeCropBox);
-                document.addEventListener("mouseup", stopResize);
-            } else {
-                isDragging = true;
-                offsetX = e.clientX - cropBox.offsetLeft;
-                offsetY = e.clientY - cropBox.offsetTop;
-                document.addEventListener("mousemove", dragCropBox);
-                document.addEventListener("mouseup", stopDrag);
-            }
-        });
-
-        isCropping = true;
-    } else {
-        // Perform cropping
-        const imageRect = selectedImage.getBoundingClientRect();
-        const cropRect = cropBox.getBoundingClientRect();
-
-        const scaleX = selectedImage.naturalWidth / selectedImage.clientWidth;
-        const scaleY = selectedImage.naturalHeight / selectedImage.clientHeight;
-
-        // Calculate crop position relative to image
-        const cropLeft = Math.max(0, cropRect.left - imageRect.left);
-        const cropTop = Math.max(0, cropRect.top - imageRect.top);
-        const cropWidth = Math.min(cropRect.width, imageRect.right - cropRect.left);
-        const cropHeight = Math.min(cropRect.height, imageRect.bottom - cropRect.top);
-
-        const sx = Math.round(cropLeft * scaleX);
-        const sy = Math.round(cropTop * scaleY);
-        const sw = Math.round(cropWidth * scaleX);
-        const sh = Math.round(cropHeight * scaleY);
-
-        // Safety check
-        if (sw <= 0 || sh <= 0) {
-            alert("Invalid crop area. Please try again.");
-            cropBox.remove();
-            cropBox = null;
-            isCropping = false;
-            return;
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = sw;
-        canvas.height = sh;
-        const ctx = canvas.getContext("2d");
-
-        const tempImg = new Image();
-        tempImg.onload = () => {
-            ctx.drawImage(tempImg, sx, sy, sw, sh, 0, 0, sw, sh);
-            selectedImage.src = canvas.toDataURL();
-            cropBox.remove();
-            cropBox = null;
-            isCropping = false;
-        };
-        tempImg.src = selectedImage.src;
-    }
-}
-
-function dragCropBox(e) {
-    if (!isDragging || !cropBox) return;
-    cropBox.style.left = `${e.clientX - offsetX}px`;
-    cropBox.style.top = `${e.clientY - offsetY}px`;
-}
-
-function stopDrag() {
-    isDragging = false;
-    document.body.style.userSelect = "auto";
-    document.removeEventListener("mousemove", dragCropBox);
-    document.removeEventListener("mouseup", stopDrag);
-}
-
-function resizeCropBox(e) {
-    const minSize = 40;
-    let dx = e.clientX - startX;
-    let dy = e.clientY - startY;
-
-    const boxStyle = window.getComputedStyle(cropBox);
-    let width = parseFloat(boxStyle.width);
-    let height = parseFloat(boxStyle.height);
-    let left = parseFloat(boxStyle.left);
-    let top = parseFloat(boxStyle.top);
-
-    switch (resizeDirection) {
-        case "nw":
-            if (width - dx >= minSize) {
-                cropBox.style.left = `${left + dx}px`;
-                cropBox.style.width = `${width - dx}px`;
-            }
-            if (height - dy >= minSize) {
-                cropBox.style.top = `${top + dy}px`;
-                cropBox.style.height = `${height - dy}px`;
-            }
-            break;
-        case "ne":
-            if (width + dx >= minSize) {
-                cropBox.style.width = `${width + dx}px`;
-            }
-            if (height - dy >= minSize) {
-                cropBox.style.top = `${top + dy}px`;
-                cropBox.style.height = `${height - dy}px`;
-            }
-            break;
-        case "sw":
-            if (width - dx >= minSize) {
-                cropBox.style.left = `${left + dx}px`;
-                cropBox.style.width = `${width - dx}px`;
-            }
-            if (height + dy >= minSize) {
-                cropBox.style.height = `${height + dy}px`;
-            }
-            break;
-        case "se":
-            if (width + dx >= minSize) {
-                cropBox.style.width = `${width + dx}px`;
-            }
-            if (height + dy >= minSize) {
-                cropBox.style.height = `${height + dy}px`;
-            }
-            break;
+    // Disable resizing if active
+    if (isResizingEnabled) {
+        disableResize();
     }
 
-    // Update start positions for continuous drag
-    startX = e.clientX;
-    startY = e.clientY;
+    // Clear any existing crop rectangle
+    if (cropRect) {
+        resetCrop();
+        return;
+    }
+
+    // Store original draggable state and disable dragging
+    wasDraggable = selectedImage.hasAttribute('draggable');
+    selectedImage.removeAttribute('draggable');
+    selectedImage.style.pointerEvents = 'none'; // Disable mouse events on image
+
+    // Set cropping mode
+    isCropping = true;
+
+    // Change cursor to indicate cropping mode
+    collageContainer.style.cursor = 'crosshair';
+
+    // Add event listeners for cropping (on container, not image)
+    collageContainer.addEventListener('mousedown', startCrop);
+    document.addEventListener('mouseup', endCrop);
 }
 
+function startCrop(e) {
+    if (!isCropping || e.target !== collageContainer) return;
 
-function stopResize() {
-    isResizing = false;
-    document.removeEventListener("mousemove", resizeCropBox);
-    document.removeEventListener("mouseup", stopResize);
-}
-function addResizeHandles() {
-    const directions = ["nw", "ne", "sw", "se"];
-    directions.forEach((dir) => {
-        const handle = document.createElement("div");
-        Object.assign(handle.style, {
-            width: "10px",
-            height: "10px",
-            background: "black",
-            position: "absolute",
-            cursor: `${dir}-resize`,
-            zIndex: "1000"
-        });
+    e.stopPropagation();
+    e.preventDefault();
 
-        if (dir.includes("n")) handle.style.top = "-5px";
-        if (dir.includes("s")) handle.style.bottom = "-5px";
-        if (dir.includes("w")) handle.style.left = "-5px";
-        if (dir.includes("e")) handle.style.right = "-5px";
+    // Get container position
+    const containerRect = collageContainer.getBoundingClientRect();
 
-        handle.classList.add("resize-handle");
-        handle.dataset.resize = dir;
-        cropBox.appendChild(handle);
-    });
+    // Calculate coordinates relative to container
+    cropStartX = e.clientX - containerRect.left;
+    cropStartY = e.clientY - containerRect.top;
+
+    // Create crop rectangle element
+    cropRect = document.createElement('div');
+    cropRect.className = 'crop-rectangle';
+    cropRect.style.position = 'absolute';
+    cropRect.style.left = cropStartX + 'px';
+    cropRect.style.top = cropStartY + 'px';
+    
+    collageContainer.appendChild(cropRect);
+
+    // Add mousemove listener for drawing the crop area
+    document.addEventListener('mousemove', drawCropArea);
 }
 
-     function makeDraggable(element) {
+function drawCropArea(e) {
+    if (!isCropping || !cropRect) return;
+
+    e.stopPropagation();
+    e.preventDefault();
+
+    const containerRect = collageContainer.getBoundingClientRect();
+    const currentX = e.clientX - containerRect.left;
+    const currentY = e.clientY - containerRect.top;
+
+    // Calculate dimensions and position
+    const width = Math.abs(currentX - cropStartX);
+    const height = Math.abs(currentY - cropStartY);
+    const left = Math.min(currentX, cropStartX);
+    const top = Math.min(currentY, cropStartY);
+
+    // Update crop rectangle
+    cropRect.style.width = width + 'px';
+    cropRect.style.height = height + 'px';
+    cropRect.style.left = left + 'px';
+    cropRect.style.top = top + 'px';
+}
+
+function endCrop(e) {
+    if (!isCropping) return;
+
+    e.stopPropagation();
+    e.preventDefault();
+
+    // Remove event listeners
+    collageContainer.removeEventListener('mousedown', startCrop);
+    document.removeEventListener('mousemove', drawCropArea);
+    document.removeEventListener('mouseup', endCrop);
+
+    // Reset cursor
+    collageContainer.style.cursor = '';
+
+    if (!cropRect) {
+        resetCrop();
+        return;
+    }
+
+    // Get crop coordinates
+    const cropRectStyle = window.getComputedStyle(cropRect);
+    const left = parseInt(cropRectStyle.left);
+    const top = parseInt(cropRectStyle.top);
+    const width = parseInt(cropRectStyle.width);
+    const height = parseInt(cropRectStyle.height);
+
+    // Remove the visual crop rectangle
+    collageContainer.removeChild(cropRect);
+    cropRect = null;
+
+    // Apply the actual crop if area is valid
+    if (width > 10 && height > 10) {
+        applyCropToImage(left, top, width, height);
+    }
+
+    resetCrop();
+}
+
+function applyCropToImage(cropLeft, cropTop, cropWidth, cropHeight) {
+    // Create canvas for cropping
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas dimensions to crop size
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+    
+    // Calculate image position relative to container
+    const imgRect = selectedImage.getBoundingClientRect();
+    const containerRect = collageContainer.getBoundingClientRect();
+    
+    // Calculate source coordinates (relative to image)
+    const srcX = cropLeft - (parseInt(selectedImage.style.left) || 0);
+    const srcY = cropTop - (parseInt(selectedImage.style.top) || 0);
+    
+    // Ensure coordinates are within image bounds
+    const boundedSrcX = Math.max(0, srcX);
+    const boundedSrcY = Math.max(0, srcY);
+    const boundedWidth = Math.min(cropWidth, selectedImage.width - boundedSrcX);
+    const boundedHeight = Math.min(cropHeight, selectedImage.height - boundedSrcY);
+    
+    // Draw the cropped portion
+    ctx.drawImage(
+        selectedImage,
+        boundedSrcX, boundedSrcY,       // source x, y
+        boundedWidth, boundedHeight,    // source width, height
+        0, 0,                          // destination x, y
+        cropWidth, cropHeight          // destination width, height
+    );
+    
+    // Replace image with cropped version
+    selectedImage.src = canvas.toDataURL();
+    
+    // Update image dimensions and position
+    selectedImage.style.width = cropWidth + 'px';
+    selectedImage.style.height = 'auto';
+    selectedImage.style.left = cropLeft + 'px';
+    selectedImage.style.top = cropTop + 'px';
+}
+
+function resetCrop() {
+    // Restore original draggable state
+    if (wasDraggable) {
+        selectedImage.setAttribute('draggable', 'true');
+    }
+    selectedImage.style.pointerEvents = 'auto';
+    
+    // Clean up any remaining crop rectangle
+    if (cropRect && cropRect.parentNode) {
+        collageContainer.removeChild(cropRect);
+    }
+    
+    // Reset variables
+    isCropping = false;
+    cropRect = null;
+    wasDraggable = false;
+    
+    // Remove all event listeners
+    collageContainer.removeEventListener('mousedown', startCrop);
+    document.removeEventListener('mousemove', drawCropArea);
+    document.removeEventListener('mouseup', endCrop);
+    
+    // Reset cursor
+    collageContainer.style.cursor = '';
+}
+
+    function makeDraggable(element) {
         let isDragging = false, startX, startY, startLeft, startTop;
 
         element.addEventListener('mousedown', (e) => {
+            // Skip if clicking on a resize handle
+            if (e.target.classList.contains('resize-handle')) {
+                return;
+            }
+            
             isDragging = true;
             startX = e.clientX;
             startY = e.clientY;
-            startLeft = parseInt(element.style.left || 0);
-            startTop = parseInt(element.style.top || 0);
+            startLeft = parseInt(element.style.left) || 0;
+            startTop = parseInt(element.style.top) || 0;
 
             document.addEventListener('mousemove', dragMove);
-            document.addEventListener('mouseup', () => {
-                isDragging = false;
-                document.removeEventListener('mousemove', dragMove);
-            });
+            document.addEventListener('mouseup', stopDrag);
         });
 
         function dragMove(e) {
@@ -588,56 +597,54 @@ function addResizeHandles() {
             element.style.left = startLeft + (e.clientX - startX) + "px";
             element.style.top = startTop + (e.clientY - startY) + "px";
         }
+
+        function stopDrag() {
+            isDragging = false;
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', stopDrag);
+        }
     }
 
-   function applyFilter(filterType) {
-    if (!selectedImage) return;
+    function applyFilter(filterType) {
+        if (!selectedImage) return;
 
-    // Create a temporary canvas
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
 
-    // Set canvas size to match image
-    canvas.width = selectedImage.naturalWidth;
-    canvas.height = selectedImage.naturalHeight;
+        canvas.width = selectedImage.naturalWidth;
+        canvas.height = selectedImage.naturalHeight;
 
-    // Draw the image onto the canvas
-    ctx.drawImage(selectedImage, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(selectedImage, 0, 0, canvas.width, canvas.height);
 
-    // Apply filter
-    switch (filterType) {
-        case 'grayscale':
-            ctx.filter = "grayscale(100%)";
-            break;
-        case 'sepia':
-            ctx.filter = "sepia(100%)";
-            break;
-        case 'blur':
-            ctx.filter = "blur(5px)";
-            break;
-        default:
-            console.error("Invalid filter type");
-            return;
+        switch (filterType) {
+            case 'grayscale':
+                ctx.filter = "grayscale(100%)";
+                break;
+            case 'sepia':
+                ctx.filter = "sepia(100%)";
+                break;
+            case 'blur':
+                ctx.filter = "blur(5px)";
+                break;
+            default:
+                console.error("Invalid filter type");
+                return;
+        }
+
+        ctx.drawImage(canvas, 0, 0, canvas.width, canvas.height);
+        selectedImage.src = canvas.toDataURL();
     }
-
-    // Redraw the image with the applied filter
-    ctx.drawImage(canvas, 0, 0, canvas.width, canvas.height);
-
-    // Update the image source with the new filtered image
-    selectedImage.src = canvas.toDataURL();
-}
 
     function selectImage(img) {
         if (selectedImage) {
-            selectedImage.parentElement.classList.remove('selected');
+            selectedImage.classList.remove('selected');
+            disableResize();
         }
         selectedImage = img;
-        img.parentElement.classList.add('selected');
+        img.classList.add('selected');
     }
 
-
     function rotateSelected(angle) {
-        
         if (!selectedImage) return;
         let rotation = parseInt(selectedImage.dataset.rotation) || 0;
         rotation = (rotation + angle) % 360;
@@ -646,7 +653,6 @@ function addResizeHandles() {
     }
 
     function flipSelected(axis) {
-       
         if (!selectedImage) return;
         if (axis === 'X') {
             selectedImage.dataset.flipX *= -1;
@@ -656,23 +662,202 @@ function addResizeHandles() {
         applyTransformations(selectedImage);
     }
 
-    function resizeSelected(size) {
-        
-        if (!selectedImage) return;
-        selectedImage.style.width = size + '%';
-        selectedImage.style.height = size + '%';
-    }
+  
 
-    function resizeImageBox(size) {
-   
-        if (!selectedImage) return;
-        let box = selectedImage.parentElement;
-        box.style.width = size + 'px';
-        box.style.height = size + 'px';
+
+function enableResize() {
+    if (!selectedImage) {
+        alert("Please select an image first");
+        return;
     }
+    
+    if (isResizingEnabled) return;
+    
+    // Clear any existing handles
+    disableResize();
+    
+    // Create four resize handles
+    const handlePositions = [
+        { class: 'nw', cursor: 'nw-resize' },
+        { class: 'ne', cursor: 'ne-resize' },
+        { class: 'sw', cursor: 'sw-resize' },
+        { class: 'se', cursor: 'se-resize' }
+    ];
+    
+    // Create a container for the handles
+    const handlesContainer = document.createElement('div');
+    handlesContainer.className = 'resize-handles-container';
+    handlesContainer.style.position = 'absolute';
+    handlesContainer.style.left = selectedImage.style.left;
+    handlesContainer.style.top = selectedImage.style.top;
+    handlesContainer.style.width = selectedImage.offsetWidth + 'px';
+    handlesContainer.style.height = selectedImage.offsetHeight + 'px';
+    handlesContainer.style.pointerEvents = 'none';
+    
+    collageContainer.appendChild(handlesContainer);
+    
+    handlePositions.forEach(pos => {
+        const handle = document.createElement('div');
+        handle.className = `resize-handle ${pos.class}`;
+        handle.style.cursor = pos.cursor;
+        handle.dataset.direction = pos.class;
+        handle.style.pointerEvents = 'auto';
+        
+        // Position the handle
+        if (pos.class.includes('n')) handle.style.top = '0px';
+        if (pos.class.includes('s')) handle.style.bottom = '0px';
+        if (pos.class.includes('w')) handle.style.left = '0px';
+        if (pos.class.includes('e')) handle.style.right = '0px';
+        
+        handlesContainer.appendChild(handle);
+        resizeHandles.push(handle);
+        
+        // Handle mouse events
+        handle.addEventListener('mousedown', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            startResize(e, pos.class);
+        });
+    });
+    
+    // Update container position when image moves
+    const observer = new MutationObserver(() => {
+        handlesContainer.style.left = selectedImage.style.left;
+        handlesContainer.style.top = selectedImage.style.top;
+    });
+    
+    observer.observe(selectedImage, { 
+        attributes: true,
+        attributeFilter: ['style']
+    });
+    
+    resizeHandles.observer = observer;
+    isResizingEnabled = true;
+}
+
+function startResize(e, direction) {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    isResizing = true;
+    resizeDirection = direction;
+    
+    const img = selectedImage;
+    startX = e.clientX;
+    startY = e.clientY;
+    startWidth = img.offsetWidth;
+    startHeight = img.offsetHeight;
+    startLeft = parseInt(img.style.left) || 0;
+    startTop = parseInt(img.style.top) || 0;
+    
+    // Store aspect ratio
+    const aspectRatio = startWidth / startHeight;
+    resizeHandles.aspectRatio = aspectRatio;
+    
+    // Add event listeners
+    document.addEventListener('mousemove', doResize);
+    document.addEventListener('mouseup', stopResize);
+    
+    // Prevent text selection during resize
+    document.body.style.userSelect = 'none';
+}
+
+function doResize(e) {
+    if (!isResizing) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    
+    let newWidth = startWidth;
+    let newHeight = startHeight;
+    let newLeft = startLeft;
+    let newTop = startTop;
+    
+    const maintainAspect = e.shiftKey;
+    const aspectRatio = resizeHandles.aspectRatio;
+    
+    switch(resizeDirection) {
+        case 'nw':
+            newWidth = Math.max(50, startWidth - dx);
+            if (maintainAspect) newHeight = newWidth / aspectRatio;
+            else newHeight = Math.max(50, startHeight - dy);
+            newLeft = startLeft + (startWidth - newWidth);
+            newTop = startTop + (startHeight - newHeight);
+            break;
+        case 'ne':
+            newWidth = Math.max(50, startWidth + dx);
+            if (maintainAspect) newHeight = newWidth / aspectRatio;
+            else newHeight = Math.max(50, startHeight - dy);
+            newTop = startTop + (startHeight - newHeight);
+            break;
+        case 'sw':
+            newWidth = Math.max(50, startWidth - dx);
+            if (maintainAspect) newHeight = newWidth / aspectRatio;
+            else newHeight = Math.max(50, startHeight + dy);
+            newLeft = startLeft + (startWidth - newWidth);
+            break;
+        case 'se':
+            newWidth = Math.max(50, startWidth + dx);
+            if (maintainAspect) newHeight = newWidth / aspectRatio;
+            else newHeight = Math.max(50, startHeight + dy);
+            break;
+    }
+    
+    selectedImage.style.width = newWidth + 'px';
+    selectedImage.style.height = newHeight + 'px';
+    selectedImage.style.left = newLeft + 'px';
+    selectedImage.style.top = newTop + 'px';
+    
+    // Update handles container
+    const container = document.querySelector('.resize-handles-container');
+    if (container) {
+        container.style.left = newLeft + 'px';
+        container.style.top = newTop + 'px';
+        container.style.width = newWidth + 'px';
+        container.style.height = newHeight + 'px';
+    }
+}
+
+function stopResize() {
+    if (!isResizing) return;
+    
+    isResizing = false;
+    resizeDirection = null;
+    
+    // Remove event listeners
+    document.removeEventListener('mousemove', doResize);
+    document.removeEventListener('mouseup', stopResize);
+    
+    // Restore text selection
+    document.body.style.userSelect = '';
+}
+
+function disableResize() {
+    // Remove all resize handles
+    const containers = document.querySelectorAll('.resize-handles-container');
+    containers.forEach(container => {
+        if (container.parentNode) {
+            container.parentNode.removeChild(container);
+        }
+    });
+    
+    // Disconnect observer if it exists
+    if (resizeHandles.observer) {
+        resizeHandles.observer.disconnect();
+    }
+    
+    // Clear resize handles array
+    resizeHandles = [];
+    isResizingEnabled = false;
+    
+    // Ensure any active resize is stopped
+    stopResize();
+}
 
     function applyTransformations(img) {
-      
         const rotation = img.dataset.rotation;
         const flipX = img.dataset.flipX;
         const flipY = img.dataset.flipY;
@@ -681,140 +866,130 @@ function addResizeHandles() {
 
     function deleteSelectedImage() {
         if (!selectedImage) return;
-       
-        const imageBox = selectedImage.parentElement;
-        collageContainer.removeChild(imageBox);
+        collageContainer.removeChild(selectedImage);
         selectedImage = null;
+        disableResize();
     }
    
     function bakeAllSliderFilters(image) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
 
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
 
-    const brightness = document.getElementById('brightnessSlider').value || 100;
-    const contrast = document.getElementById('contrastSlider').value || 100;
-    const saturation = document.getElementById('saturationSlider').value || 100;
+        const brightness = document.getElementById('brightnessSlider').value || 100;
+        const contrast = document.getElementById('contrastSlider').value || 100;
+        const saturation = document.getElementById('saturationSlider').value || 100;
 
-    ctx.filter = `
-        brightness(${brightness}%)
-        contrast(${contrast}%)
-        saturate(${saturation}%)
-    `;
+        ctx.filter = `
+            brightness(${brightness}%)
+            contrast(${contrast}%)
+            saturate(${saturation}%)
+        `;
 
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-    // Replace the image source with the processed one
-    image.src = canvas.toDataURL();
-    image.style.filter = ''; // clear CSS filter so it's not applied again
-}
-
-const { ipcRenderer } = require('electron');
-const fs = require('fs');
-
-function downloadCollage() {
-    const images = collageContainer.querySelectorAll('img');
-
-    const hasLoadedImage = Array.from(images).some(img => img.complete && img.naturalWidth > 0);
-
-    if (!hasLoadedImage) {
-        ipcRenderer.send("show-error-dialog", {
-            title: "Save Error",
-            message: "Please add at least one image to the collage before saving."
-        });
-        return;
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        image.src = canvas.toDataURL();
+        image.style.filter = '';
     }
 
-    // Apply baked filters if needed
-    images.forEach(img => {
-        if (img.style.filter && img.style.filter !== 'none') {
-            bakeAllSliderFilters(img);
+    const { ipcRenderer } = require('electron');
+    const fs = require('fs');
+
+    function downloadCollage() {
+        const images = collageContainer.querySelectorAll('img');
+
+        const hasLoadedImage = Array.from(images).some(img => img.complete && img.naturalWidth > 0);
+
+        if (!hasLoadedImage) {
+            ipcRenderer.send("show-error-dialog", {
+                title: "Save Error",
+                message: "Please add at least one image to the collage before saving."
+            });
+            return;
         }
-    });
 
-    setTimeout(() => {
-        const originalBackground = collageContainer.style.backgroundColor;
-        collageContainer.style.backgroundColor = "transparent";
-
-        const selectedElements = collageContainer.querySelectorAll('.selected');
-        const templateBoxes = collageContainer.querySelectorAll('.template-box');
-
-        // Save and remove styles/text temporarily
-        selectedElements.forEach(el => el.classList.remove('selected'));
-
-        templateBoxes.forEach(el => {
-            el.dataset.originalBorder = el.style.border;
-            el.dataset.originalText = el.innerText;
-            el.style.border = "none";
-            el.innerText = ""; // remove "Drop Image Here"
+        images.forEach(img => {
+            if (img.style.filter && img.style.filter !== 'none') {
+                bakeAllSliderFilters(img);
+            }
         });
 
-        html2canvas(collageContainer, {
-            backgroundColor: null
-        }).then(canvas => {
-            // Restore everything after capture
-            collageContainer.style.backgroundColor = originalBackground;
+        setTimeout(() => {
+            const originalBackground = collageContainer.style.backgroundColor;
+            collageContainer.style.backgroundColor = "transparent";
+
+            const selectedElements = collageContainer.querySelectorAll('.selected');
+            const templateBoxes = collageContainer.querySelectorAll('.template-box');
+
+            selectedElements.forEach(el => el.classList.remove('selected'));
 
             templateBoxes.forEach(el => {
-                el.style.border = el.dataset.originalBorder || "1px dashed #aaa";
-                el.innerText = el.dataset.originalText || "Drop Image Here";
-                delete el.dataset.originalBorder;
-                delete el.dataset.originalText;
+                el.dataset.originalBorder = el.style.border;
+                el.dataset.originalText = el.innerText;
+                el.style.border = "none";
+                el.innerText = "";
             });
 
-            selectedElements.forEach(el => el.classList.add('selected'));
+            html2canvas(collageContainer, {
+                backgroundColor: null
+            }).then(canvas => {
+                collageContainer.style.backgroundColor = originalBackground;
 
-            ipcRenderer.send("request-save-dialog");
+                templateBoxes.forEach(el => {
+                    el.style.border = el.dataset.originalBorder || "1px dashed #aaa";
+                    el.innerText = el.dataset.originalText || "Drop Image Here";
+                    delete el.dataset.originalBorder;
+                    delete el.dataset.originalText;
+                });
 
-            ipcRenderer.once("save-file-path", (event, { filePath, extension }) => {
-                const mimeMap = {
-                    png: 'image/png',
-                    jpg: 'image/jpeg',
-                    jpeg: 'image/jpeg',
-                    webp: 'image/webp',
-                    bmp: 'image/bmp',
-                    tif: 'image/tiff',
-                    tiff: 'image/tiff'
-                };
+                selectedElements.forEach(el => el.classList.add('selected'));
 
-                const mime = mimeMap[extension] || 'image/png';
+                ipcRenderer.send("request-save-dialog");
 
-                if (extension === 'tif' || extension === 'tiff') {
-                    canvas.toBlob(blob => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                            const buffer = Buffer.from(reader.result);
-                            ipcRenderer.send('save-as-tiff', { filePath, buffer });
-                        };
-                        reader.readAsArrayBuffer(blob);
-                    }, 'image/png');
-                } else {
-                    canvas.toBlob(blob => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                            const buffer = Buffer.from(reader.result);
-                            const fs = require('fs');
-                            fs.writeFile(filePath, buffer, err => {
-                                if (err) {
-                                    console.error("Failed to save image:", err);
-                                } else {
-                                    console.log("Saved:", filePath);
-                                }
-                            });
-                        };
-                        reader.readAsArrayBuffer(blob);
-                    }, mime);
-                }
+                ipcRenderer.once("save-file-path", (event, { filePath, extension }) => {
+                    const mimeMap = {
+                        png: 'image/png',
+                        jpg: 'image/jpeg',
+                        jpeg: 'image/jpeg',
+                        webp: 'image/webp',
+                        bmp: 'image/bmp',
+                        tif: 'image/tiff',
+                        tiff: 'image/tiff'
+                    };
+
+                    const mime = mimeMap[extension] || 'image/png';
+
+                    if (extension === 'tif' || extension === 'tiff') {
+                        canvas.toBlob(blob => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                const buffer = Buffer.from(reader.result);
+                                ipcRenderer.send('save-as-tiff', { filePath, buffer });
+                            };
+                            reader.readAsArrayBuffer(blob);
+                        }, 'image/png');
+                    } else {
+                        canvas.toBlob(blob => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                const buffer = Buffer.from(reader.result);
+                                const fs = require('fs');
+                                fs.writeFile(filePath, buffer, err => {
+                                    if (err) {
+                                        console.error("Failed to save image:", err);
+                                    } else {
+                                        console.log("Saved:", filePath);
+                                    }
+                                });
+                            };
+                            reader.readAsArrayBuffer(blob);
+                        }, mime);
+                    }
+                });
             });
-        });
-    }, 200);
-}
-
+        }, 200);
+    }
 </script>
-
-</script>
-
 </body>
 </html>

@@ -166,6 +166,9 @@ let imageList = [];
 let imageStates = []; // Will store edit state per image
 let currentImageIndex = -1;
 let imageSavePaths = [];  // New array to track save path per image
+let suppressResize = false;
+let suppressInputEvents = false;
+
 
 function applyStateProperties(state) {
     const image = document.getElementById("image-area");
@@ -203,33 +206,33 @@ function applyStateProperties(state) {
 }
 
 function initImageEntry() {
-        const defaultState = {
-            src: "",
-            width: "",
-            height: "",
-            filter: "",
-            transform: "",
-            display: "none",
-            rotationAngle: 0,
-            flipX: 1,
-            flipY: 1,
-            brightnessValue: 100,
-            contrastValue: 100,
-            saturationValue: 100,
-            sepiaValue: 0,
-            bwValue: 0,
-            blurValue: 0,
-            aspectRatio: 1
-        };
+    const defaultState = {
+        src: "",
+        width: "",
+        height: "",
+        filter: "",
+        transform: "",
+        display: "none",
+        rotationAngle: 0,  // Ensure rotationAngle is initialized
+        flipX: 1,
+        flipY: 1,
+        brightnessValue: 100,
+        contrastValue: 100,
+        saturationValue: 100,
+        sepiaValue: 0,
+        bwValue: 0,
+        blurValue: 0,
+        aspectRatio: 1
+    };
 
-        imageHistories.push({
-            undoStack: [],
-            redoStack: []
-        });
-        
-        imageStates.push(JSON.parse(JSON.stringify(defaultState)));
-        return imageHistories.length - 1;
-    }
+    imageHistories.push({
+        undoStack: [],
+        redoStack: []
+    });
+    
+    imageStates.push(JSON.parse(JSON.stringify(defaultState)));
+    return imageHistories.length - 1;
+}
 
     // Get current image's history
     function getCurrentHistory() {
@@ -314,6 +317,9 @@ function resetEditor() {
     image.style.filter = "";
     image.style.transform = "";
     image.style.display = "none";  // Hide the image
+    document.getElementById("widthInput").value = "";
+document.getElementById("heightInput").value = "";
+
 
     // Reset transformation values
     rotationAngle = 0;
@@ -378,7 +384,7 @@ function openImage() {
                 if (imageHistories[index].undoStack.length === 0) {
                     state.src = imageList[index];
                     state.display = "block";
-                    state.aspectRatio = image.naturalWidth / image.naturalHeight;
+                    aspectRatio = state.aspectRatio = image.naturalWidth / image.naturalHeight;
                     pushToHistory();
                 }
                 
@@ -764,106 +770,137 @@ function addResizeHandles() {
 }
 
 function flipImage() {
-        const image = document.getElementById("image-area");
-        if (!image.src || image.style.display === "none") return;
+    const image = document.getElementById("image-area");
+    if (!image.src || image.style.display === "none") return;
 
-        const state = getCurrentState();
-        state.flipX *= -1;
-        
-        image.style.transform = `scale(${state.flipX}, ${state.flipY}) rotate(${state.rotationAngle}deg)`;
-        state.transform = image.style.transform;
-        
-        pushToHistory();
+    const state = getCurrentState();
+    if (!state) return;
+
+    state.flipX *= -1;
+
+    // Reapply transform
+    image.style.transform = `rotate(${state.rotationAngle || 0}deg) scale(${state.flipX}, ${state.flipY || 1})`;
+    state.transform = image.style.transform;
+
+    updateCurrentState();  // ✅ Capture new state
+    pushToHistory();       // ✅ Save after update
+}
+
+function rotateImage(angle) {
+    const image = document.getElementById("image-area");
+    if (!image.src || image.style.display === "none") return;
+
+    const state = getCurrentState();
+    if (!state) return;
+
+    // Update rotation in state
+    state.rotationAngle = (state.rotationAngle || 0) + angle;
+    rotationAngle = state.rotationAngle;
+
+    // Reapply transform
+    image.style.transform = `rotate(${state.rotationAngle}deg) scale(${state.flipX}, ${state.flipY})`;
+    state.transform = image.style.transform;
+
+    adjustImageSize(image);
+
+    updateCurrentState();  // ✅ Capture new state
+    pushToHistory();       // ✅ Save after update
+}
+
+function adjustImageSize(image) {
+    const state = getCurrentState();
+    if (!state) return;
+
+    const angle = state.rotationAngle || 0;
+
+    if (angle % 180 !== 0) {
+        image.style.maxWidth = "85vh";
+        image.style.maxHeight = "95vw";
+    } else {
+        image.style.maxWidth = "100%";
+        image.style.maxHeight = "100%";
     }
+}
 
-    function rotateImage(angle) {
-        const image = document.getElementById("image-area");
-        if (!image.src || image.style.display === "none") return;
+function resizeImage() {
+    if (suppressResize) return;  // ✅ Skip resizing during undo/restore
 
-        const state = getCurrentState();
-        state.rotationAngle += angle;
-        
-        image.style.transform = `rotate(${state.rotationAngle}deg) scale(${state.flipX}, ${state.flipY})`;
-        state.transform = image.style.transform;
-        adjustImageSize(image);
-        
-        pushToHistory();
-    }
+    const imageArea = document.getElementById("image-area");
+    const widthInput = document.getElementById("widthInput");
+    const heightInput = document.getElementById("heightInput");
 
-        function adjustImageSize(image) {
-            if (rotationAngle % 180 !== 0) {
-                image.style.maxWidth = "85vh";
-                image.style.maxHeight = "95vw";
-            } else {
-                image.style.maxWidth = "100%";
-                image.style.maxHeight = "100%";
-            }
-        }
-        
-        function resizeImage() {
-        const image = document.getElementById("image-area");
-        const state = getCurrentState();
-        if (!image || !state || !image.src) return;
+    if (!imageArea || !imageArea.src) return;
 
-        const widthInput = document.getElementById("widthInput");
-        const heightInput = document.getElementById("heightInput");
-        
-        // Save current state before changes
-        pushToHistory();
+    const state = getCurrentState();
+    let ar = aspectRatio || (state ? state.aspectRatio : null);
 
-        // Convert cm to pixels (1cm ≈ 37.795px)
-        const cmToPx = 37.795;
-        let newWidth, newHeight;
-
-        // Handle width change
-        if (widthInput.value && !heightInput.value) {
-            newWidth = parseFloat(widthInput.value) * cmToPx;
-            newHeight = newWidth / state.aspectRatio;
-            heightInput.value = "";
-        } 
-        // Handle height change
-        else if (heightInput.value && !widthInput.value) {
-            newHeight = parseFloat(heightInput.value) * cmToPx;
-            newWidth = newHeight * state.aspectRatio;
-            widthInput.value = "";
-        }
-        // Handle explicit resize
-        else if (widthInput.value && heightInput.value) {
-            newWidth = parseFloat(widthInput.value) * cmToPx;
-            newHeight = parseFloat(heightInput.value) * cmToPx;
-            state.aspectRatio = newWidth / newHeight;
+    if (!ar || ar === 0) {
+        const naturalWidth = imageArea.naturalWidth;
+        const naturalHeight = imageArea.naturalHeight;
+        if (naturalWidth && naturalHeight) {
+            ar = naturalWidth / naturalHeight;
+            aspectRatio = ar;
         } else {
             return;
         }
-
-        // Apply new dimensions
-        image.style.width = `${newWidth}px`;
-        image.style.height = `${newHeight}px`;
-        state.width = `${newWidth}px`;
-        state.height = `${newHeight}px`;
-
-        // Save new state
-        pushToHistory();
     }
 
-    // Initialize event listeners
-    window.onload = function() {
-        // Size inputs
-        document.getElementById("widthInput").addEventListener("input", function() {
-            if (this.value) document.getElementById("heightInput").value = "";
-            resizeImage();
-        });
-        document.getElementById("heightInput").addEventListener("input", function() {
-            if (this.value) document.getElementById("widthInput").value = "";
-            resizeImage();
-        });
+    const isWidthChange = document.activeElement === widthInput;
+    const isHeightChange = document.activeElement === heightInput;
 
-        // Filter sliders
-        document.querySelectorAll('input[type="range"]').forEach(slider => {
-            slider.addEventListener("input", updateAdvancedFilters);
-            slider.addEventListener("change", pushToHistory);
-        });
-    };
+    const newWidth = widthInput.value.trim() === "" ? null : parseFloat(widthInput.value);
+    const newHeight = heightInput.value.trim() === "" ? null : parseFloat(heightInput.value);
+
+    if (isWidthChange && newWidth !== null) {
+        heightInput.value = "";
+    } else if (isHeightChange && newHeight !== null) {
+        widthInput.value = "";
+    }
+
+    if (newWidth !== null && !isNaN(newWidth)) {
+        heightInput.value = "";
+        imageArea.style.width = `${newWidth * 37.795}px`;
+        imageArea.style.height = "";
+    } else if (newHeight !== null && !isNaN(newHeight)) {
+        widthInput.value = "";
+        imageArea.style.height = `${newHeight * 37.795}px`;
+        imageArea.style.width = "";
+    }
+
+    updateCurrentState();
+    pushToHistory();
+}
+
+
+// Update the window.onload event listeners to handle input events better
+window.onload = function () {
+    const widthInput = document.getElementById("widthInput");
+    const heightInput = document.getElementById("heightInput");
+
+    widthInput.addEventListener("input", function () {
+    if (suppressInputEvents) return;
+    if (this.value.trim() !== "") {
+        heightInput.value = "";
+    }
+    resizeImage();
+});
+
+heightInput.addEventListener("input", function () {
+    if (suppressInputEvents) return;
+    if (this.value.trim() !== "") {
+        widthInput.value = "";
+    }
+    resizeImage();
+});
+
+
+    // Sliders still work
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+        slider.addEventListener("input", updateAdvancedFilters);
+        slider.addEventListener("change", pushToHistory);
+    });
+};
+
 function applyFilters() {
     const image = document.getElementById("image-area");
     if (!image.src) return;
@@ -941,19 +978,41 @@ function RemoveImage() {
 }
 
 function restoreState(state) {
-        const image = document.getElementById("image-area");
-        if (!image || !state) return;
-        
-        image.src = state.src || "";
-        image.style.width = state.width || "";
-        image.style.height = state.height || "";
-        image.style.filter = state.filter || "";
-        image.style.transform = state.transform || "";
-        image.style.display = state.display || "block";
-        
-        // Update UI controls
-        updateUIControls(state);
+    const image = document.getElementById("image-area");
+    if (!image || !state) return;
+
+    suppressResize = true;  // ✅ Prevent resize events during restore
+
+    image.src = state.src || "";
+
+    if (state.width && state.height) {
+        image.style.width = state.width;
+        image.style.height = state.height;
+    } else if (state.width) {
+        image.style.width = state.width;
+        image.style.height = "auto";
+    } else if (state.height) {
+        image.style.height = state.height;
+        image.style.width = "auto";
+    } else {
+        image.style.width = "";
+        image.style.height = "";
     }
+
+    image.style.filter = state.filter || "";
+    image.style.display = state.display || "block";
+
+    if (state.rotationAngle !== undefined) rotationAngle = state.rotationAngle;
+    if (state.flipX !== undefined) flipX = state.flipX;
+    if (state.flipY !== undefined) flipY = state.flipY;
+
+    image.style.transform = `rotate(${state.rotationAngle || 0}deg) scale(${state.flipX || 1}, ${state.flipY || 1})`;
+
+    updateUIControls(state);
+
+    suppressResize = false;  // ✅ Re-enable normal behavior
+}
+
 
 // Helper function to reset all image settings
 function resetImageSettings() {
@@ -975,23 +1034,42 @@ function resetImageSettings() {
 
 // Helper function to update UI controls
 function updateUIControls(state) {
-        if (!state) state = getCurrentState();
-        if (!state) return;
-        
-        document.getElementById("brightnessSlider").value = state.brightnessValue;
-        document.getElementById("contrastSlider").value = state.contrastValue;
-        document.getElementById("saturationSlider").value = state.saturationValue;
-        document.getElementById("sepiaSlider").value = state.sepiaValue;
-        document.getElementById("bwSlider").value = state.bwValue;
-        document.getElementById("blurSlider").value = state.blurValue;
-        
-        // Update size inputs (convert px to cm)
-        const pxToCm = 1/37.795;
-        document.getElementById("widthInput").value = state.width ? 
-            (parseFloat(state.width) * pxToCm).toFixed(2) : "";
-        document.getElementById("heightInput").value = state.height ? 
-            (parseFloat(state.height) * pxToCm).toFixed(2) : "";
+    if (!state) state = getCurrentState();
+    if (!state) return;
+    
+    document.getElementById("brightnessSlider").value = state.brightnessValue;
+    document.getElementById("contrastSlider").value = state.contrastValue;
+    document.getElementById("saturationSlider").value = state.saturationValue;
+    document.getElementById("sepiaSlider").value = state.sepiaValue;
+    document.getElementById("bwSlider").value = state.bwValue;
+    document.getElementById("blurSlider").value = state.blurValue;
+    
+    // Update size inputs (convert px to cm)
+    const pxToCm = 1/37.795;
+    const widthInput = document.getElementById("widthInput");
+    const heightInput = document.getElementById("heightInput");
+    
+    // Only update if the inputs are not currently focused
+    suppressInputEvents = true;
+
+if (document.activeElement !== widthInput) {
+    if (state.width) {
+        widthInput.value = (parseFloat(state.width) * pxToCm).toFixed(2);
+    } else {
+        widthInput.value = "";
     }
+}
+if (document.activeElement !== heightInput) {
+    if (state.height) {
+        heightInput.value = (parseFloat(state.height) * pxToCm).toFixed(2);
+    } else {
+        heightInput.value = "";
+    }
+}
+
+suppressInputEvents = false;
+
+}
 
     </script>
 </head>
@@ -1010,13 +1088,13 @@ function updateUIControls(state) {
             <button onclick="flipImage()"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip</span></button>
             <div class="size-input-container">
                 <span class="size-label">Height (cm)</span>
-                <input type="number" class="size-input" id="heightInput" value="0">
+                <input type="number" class="size-input" id="heightInput" placeholder="cm">
             </div>
             <button onclick="rotateImage(-90)"><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
             <button onclick="rotateImage(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
             <div class="size-input-container">
                 <span class="size-label">Width (cm)</span>
-                <input type="number" class="size-input" id="widthInput" value="0">
+                <input type="number" class="size-input" id="widthInput" placeholder="cm">
             </div>
         </div>
         <div class="partition"></div>

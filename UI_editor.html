@@ -26,7 +26,7 @@
             border: 2px solid #444;
             width: 100%;
             padding: 5px;
-            height: 60px;
+            height: 80px;
         }
 
         .icon-grid {
@@ -159,7 +159,8 @@
         }
     </style>
     <script>
-        
+        let currentSavePath = null;
+
         let rotationAngle = 0;
 let flipX = 1, flipY = 1;
 let aspectRatio=1;
@@ -241,22 +242,56 @@ function applyStateProperties(state) {
         parseFloat(state.height.replace('px', '')) / 37.795 : "";
 }
 
-// Unified restore function
-function restoreState(state) {
+
+// Function to get current state with added validation
+function getCurrentState() {
     const image = document.getElementById("image-area");
 
-    // Force reload image to prevent caching issues
-    if (image.src !== state.src) {
-        image.src = "";
-        setTimeout(() => {
-            image.src = state.src;
-            image.onload = () => applyStateProperties(state);
-        }, 10);
-    } else {
-        applyStateProperties(state);
+    // If no image is loaded, return a state with no source
+    if (!image.src || image.src === "") {
+        return {
+            src: null,  // No image
+            width: "",
+            height: "",
+            filter: "",
+            transform: "",
+            display: "none",  // Hide the image if deleted
+            rotationAngle: 0,
+            flipX: false,
+            flipY: false,
+            brightnessValue: 0,
+            contrastValue: 0,
+            saturationValue: 0,
+            sepiaValue: 0,
+            bwValue: 0,
+            blurValue: 0,
+            aspectRatio: 1,
+            isDeleted: true
+        };
     }
-}
 
+    // Otherwise, return the normal image state
+    return {
+        src: image.src,
+        width: image.style.width,
+        height: image.style.height,
+        filter: image.style.filter,
+        transform: image.style.transform,
+        display: image.style.display,
+        rotationAngle: rotationAngle,
+        flipX: flipX,
+        flipY: flipY,
+        brightnessValue: brightnessValue,
+        contrastValue: contrastValue,
+        saturationValue: saturationValue,
+        sepiaValue: sepiaValue,
+        bwValue: bwValue,
+        blurValue: blurValue,
+        aspectRatio: aspectRatio,
+        isDeleted: false
+    };
+}
+// Undo operation
 function undo() {
     if (historyStack.length <= 1) return;
 
@@ -264,27 +299,94 @@ function undo() {
     const currentImageState = getCurrentState();
     redoStack.push(currentImageState);
 
-    // Remove current state from history
+    // Remove the current state from history
     historyStack.pop();
 
-    // Restore previous state
+    // Restore the previous state from the history stack
     const prevState = historyStack[historyStack.length - 1];
     restoreState(prevState);
 }
 
+// Redo operation
 function redo() {
-    if (redoStack.length === 0) return;
+    if (redoStack.length === 0) {
+        // If there's no valid redo, reset the editor to an empty state
+        resetEditor();
+        return;
+    }
 
     // Capture current state for potential undo
     const currentImageState = getCurrentState();
     historyStack.push(currentImageState);
 
-    // Get next state from redo stack
+    // Get the next state from the redo stack
     const nextState = redoStack.pop();
 
-    // Restore the redone state
-    restoreState(nextState);
+    // If the next state indicates the image was deleted, reset to an empty state
+    if (nextState.isDeleted) {
+        resetEditor();
+    } else {
+        restoreState(nextState);
+    }
 }
+
+// Restore image state from a given state
+function restoreState(state) {
+    const image = document.getElementById("image-area");
+
+    // If the state indicates the image was deleted, reset to empty
+    if (state.isDeleted) {
+        resetEditor();
+        return;
+    }
+
+    // Restore image source
+    image.src = state.src;
+    image.style.width = state.width;
+    image.style.height = state.height;
+    image.style.filter = state.filter;
+    image.style.transform = state.transform;
+    image.style.display = state.display;
+
+    // Restore transformations and other settings
+    rotationAngle = state.rotationAngle;
+    flipX = state.flipX;
+    flipY = state.flipY;
+    brightnessValue = state.brightnessValue;
+    contrastValue = state.contrastValue;
+    saturationValue = state.saturationValue;
+    sepiaValue = state.sepiaValue;
+    bwValue = state.bwValue;
+    blurValue = state.blurValue;
+    aspectRatio = state.aspectRatio;
+}
+
+// Reset the editor state when image is deleted
+function resetEditor() {
+    const image = document.getElementById("image-area");
+
+    image.src = "";
+    image.style.width = "";
+    image.style.height = "";
+    image.style.filter = "";
+    image.style.transform = "";
+    image.style.display = "none";  // Hide the image
+
+    // Reset transformation values
+    rotationAngle = 0;
+    flipX = false;
+    flipY = false;
+    brightnessValue = 0;
+    contrastValue = 0;
+    saturationValue = 0;
+    sepiaValue = 0;
+    bwValue = 0;
+    blurValue = 0;
+    aspectRatio = 1;
+}
+
+
+
 
 function openImage() {
     const input = document.createElement("input");
@@ -341,9 +443,9 @@ function openImage() {
 
 const { ipcRenderer } = require('electron');
 
-    function saveImage() {
-        const image = document.getElementById("image-area");
-        const isImageLoaded = image && image.complete && image.naturalWidth > 0;
+function saveImageAs() {
+    const image = document.getElementById("image-area");
+    const isImageLoaded = image && image.complete && image.naturalWidth > 0;
 
     if (!isImageLoaded) {
         ipcRenderer.send("show-error-dialog", {
@@ -352,59 +454,52 @@ const { ipcRenderer } = require('electron');
         });
         return;
     }
-        ipcRenderer.send("request-save-dialog");
+
+    ipcRenderer.send("request-save-dialog");
+}
+function saveImage() {
+    if (!currentSavePath) {
+        saveImageAs(); // If no path exists, fall back to Save As
+        return;
     }
+    saveImageToFile(currentSavePath.filePath, currentSavePath.extension);
+}
+function saveImageToFile(filePath, extension) {
+    const image = document.getElementById("image-area");
 
-    ipcRenderer.on("save-file-path", async (event, { filePath, extension }) => {
-        if (!filePath) return;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
 
-        const image = document.getElementById("image-area");
+    const imgWidth = image.width;
+    const imgHeight = image.height;
+    const angle = rotationAngle || 0;
+    const radians = angle * Math.PI / 180;
+    const rotate90or270 = Math.abs(angle) % 180 === 90;
 
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
+    canvas.width = rotate90or270 ? imgHeight : imgWidth;
+    canvas.height = rotate90or270 ? imgWidth : imgHeight;
 
-        const imgWidth = image.width;
-        const imgHeight = image.height;
-        const angle = rotationAngle || 0;
-        const radians = angle * Math.PI / 180;
-        const rotate90or270 = Math.abs(angle) % 180 === 90;
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(radians);
+    ctx.scale(flipX, flipY);
 
-        canvas.width = rotate90or270 ? imgHeight : imgWidth;
-        canvas.height = rotate90or270 ? imgWidth : imgHeight;
+    const brightness = brightnessValue || 100;
+    const contrast = contrastValue || 100;
+    const saturation = saturationValue || 100;
 
-        ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate(radians);
-        ctx.scale(flipX, flipY);
+    ctx.filter = `
+        brightness(${brightness}%)
+        contrast(${contrast}%)
+        saturate(${saturation}%)
+        sepia(${sepiaValue}%)
+        grayscale(${bwValue}%)
+        blur(${blurValue}px)
+    `.trim();
 
-        const brightness = document.getElementById("brightnessSlider")?.value || 100;
-        const contrast = document.getElementById("contrastSlider")?.value || 100;
-        const saturation = document.getElementById("saturationSlider")?.value || 100;
-        const sepia = typeof sepiaValue !== 'undefined' ? sepiaValue : 0;
-        const grayscale = typeof bwValue !== 'undefined' ? bwValue : 0;
-        const blur = typeof blurValue !== 'undefined' ? blurValue : 0;
+    ctx.drawImage(image, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
+    ctx.restore();
 
-        ctx.filter = `
-            brightness(${brightness}%)
-            contrast(${contrast}%)
-            saturate(${saturation}%)
-            sepia(${sepia}%)
-            grayscale(${grayscale}%)
-            blur(${blur}px)
-        `.trim();
-
-        ctx.drawImage(image, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
-        ctx.restore();
-
-        if (extension === 'tif' || extension === 'tiff') {
-    // Use sharp in the main process for TIFF encoding
-    canvas.toBlob(async (blob) => {
-        const arrayBuffer = await blob.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        ipcRenderer.send('save-as-tiff', { filePath, buffer });
-    }, 'image/png'); // use PNG as input for sharp
-} else {
-    // Use native canvas toBlob for other formats
     const mimeType = extension === 'jpg' ? 'image/jpeg' :
                      extension === 'jpeg' ? 'image/jpeg' :
                      extension === 'webp' ? 'image/webp' :
@@ -422,7 +517,14 @@ const { ipcRenderer } = require('electron');
         });
     }, mimeType);
 }
-    });
+
+
+ipcRenderer.on("save-file-path", async (event, { filePath, extension }) => {
+    if (!filePath) return;
+    currentSavePath = { filePath, extension };
+    saveImageToFile(filePath, extension);
+});
+
 
 let startX, startY;
 let cropBox = null;
@@ -786,28 +888,7 @@ function updateAdvancedFilters() {
     image.style.filter = filterString;
 }
 
-// Helper function to get current state
-function getCurrentState() {
-    const image = document.getElementById("image-area");
-    return {
-        src: image.src,
-        width: image.style.width,
-        height: image.style.height,
-        filter: image.style.filter,
-        transform: image.style.transform,
-        display: image.style.display,
-        rotationAngle: rotationAngle,
-        flipX: flipX,
-        flipY: flipY,
-        brightnessValue: brightnessValue,
-        contrastValue: contrastValue,
-        saturationValue: saturationValue,
-        sepiaValue: sepiaValue,
-        bwValue: bwValue,
-        blurValue: blurValue,
-        aspectRatio: aspectRatio
-    };
-}
+
 
 function RemoveImage() {
     const imageArea = document.getElementById("image-area");
@@ -925,6 +1006,7 @@ function updateUIControls() {
             <button onclick="goHome()"><i class="fa-solid fa-house"></i><span class="tooltip">Home</span></button>
             <button onclick="openImage()"><i class="fa-solid fa-folder-open"></i><span class="tooltip">Open</span></button>
             <button onclick="saveImage()"><i class="fa-solid fa-floppy-disk"></i><span class="tooltip">Save</span></button>
+            <button onclick="saveImageAs()"><i class="fa-solid fa-file-export"></i><span class="tooltip">Save As</span></button>
             <button onclick="RemoveImage()"><i class="fa-solid fa-trash"></i><span class="tooltip">Remove</span></button>
         </div>        
         <div class="partition"></div>

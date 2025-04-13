@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PhotoForge Collage Maker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <script src="https://docs.opencv.org/4.11.0/opencv.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+         html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .toolbar {
+            background-color: #333;
+            display: flex;
+            align-items: center;
+            border: 2px solid #444;
+            width: 100%;
+            padding: 5px;
+            height: 60px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .icon-grid, .icon-grid-right {
+            display: flex;
+            gap: 10px;
+            margin-left: 10px;
+        }
+
+        .icon-grid label {
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .toolbar button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            font-size: 20px;
+            color: white;
+        }
+
+        .toolbar button:hover {
+            background: #45a049;
+        }
+
+        .tooltip {
+            visibility: hidden;
+            background-color: #1e90ff;
+            color: white;
+            text-align: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: 10px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            box-shadow: 0px 0px 10px rgba(30, 144, 255, 0.8);
+            z-index: 1000;
+        }
+
+        .toolbar button:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .partition {
+            width: 2px;
+            height: 40px;
+            background-color: #555;
+            margin: 0 15px;
+        }
+
+        .size-input-container {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            color: white;
+            font-size: 12px;
+        }
+
+        .size-input {
+            width: 50px;
+            padding: 3px;
+            text-align: right;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            background-color: #555;
+            color: white;
+            appearance: textfield;
+        }
+
+        .content {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        #collage-container {
+            width: 90vw;
+            height: 80vh;
+            position: relative;
+            background: #444;
+            border: 2px solid #555;
+            overflow: hidden;
+        }
+
+        #collageContainer img {
+            width: 100%;
+            height: auto;
+        }
+        
+        .collage-image {
+            position: absolute;
+            border: 2px solid #ccc;
+            cursor: grab;
+            max-width: none;
+            transition: filter 0.3s ease;
+            transform-origin: center center;
+            contain: layout style paint;
+            z-index: 20; /* Images above frames */
+            pointer-events: auto;
+        }
+
+        .collage-image.selected {
+            z-index: 30; /* Selected images above regular images */
+            border: 3px solid yellow !important;
+        }
+
+        .resize-handles-container {
+            position: absolute;
+            pointer-events: none;
+            z-index: 40; /* Resize handles above everything */
+        }
+
+        .resize-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #4285f4;
+            border: 2px solid white;
+            border-radius: 50%;
+            pointer-events: auto;
+            z-index: 50; /* Individual handles above container */
+        }
+
+        .resize-handle.nw {
+            top: -6px;
+            left: -6px;
+            cursor: nw-resize;
+        }
+
+        .resize-handle.ne {
+            top: -6px;
+            right: -6px;
+            cursor: ne-resize;
+        }
+
+        .resize-handle.sw {
+            bottom: -6px;
+            left: -6px;
+            cursor: sw-resize;
+        }
+
+        .resize-handle.se {
+            bottom: -6px;
+            right: -6px;
+            cursor: se-resize;
+        }
+
+        .resize-handle:active {
+            transform: scale(1.3);
+            background: #1a73e8;
+        }
+
+        .crop-rectangle {
+            position: absolute;
+            border: 2px dashed yellow;
+            background-color: rgba(255, 255, 0, 0.2);
+            pointer-events: none;
+            z-index: 60; /* Above resize handles */
+        }
+
+        /* Template selection styles */
+        .template-options {
+            background: #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            z-index: 5;
+            position: relative;
+        }
+
+        .template-options h3 {
+            color: white;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .template-thumbnails {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .template {
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .template:hover {
+            transform: scale(1.05);
+        }
+
+        .template span {
+            display: block;
+            color: white;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+
+        .template-preview {
+            width: 80px;
+            height: 80px;
+            background: #444;
+            border: 2px solid #666;
+            border-radius: 4px;
+        }
+
+        /* Template frame container */
+        .collage-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10; /* Below images */
+            pointer-events: none;
+        }
+
+        /* Frame slots */
+        .frame-slot {
+            position: absolute;
+            z-index: 10; /* Below images */
+            border: 2px dashed rgba(255,255,255,0.7);
+            background-color: rgba(0,0,0,0.3);
+            pointer-events: auto;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Make shapes clearly visible */
+        .circle-frame .frame-slot {
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.7) !important;
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .polaroid-frame .frame-slot {
+            background: white;
+            padding: 10px 10px 30px 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border-radius: 2px;
+            border: none;
+        }
+
+        .heart-frame .frame-slot {
+            clip-path: path('M10,30 Q20,10 30,30 T50,30 T70,30 Q80,10 90,30 L50,90 Z');
+            background-color: rgba(255,0,0,0.2);
+            border: none;
+        }
+
+        .diagonal-frame .frame-slot {
+            transform: rotate(45deg);
+            border: 2px solid rgba(255,255,255,0.7) !important;
+            background-color: rgba(0,0,255,0.1);
+        }
+
+        /* Empty slot indicator */
+        .frame-slot:empty::after {
+            content: 'Drop Image Here';
+            color: rgba(255,255,255,0.9);
+            font-size: 12px;
+            font-style: italic;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        /* Highlight slot when dragging over */
+        .frame-slot.drag-over {
+            background-color: rgba(255,255,255,0.2) !important;
+            border-color: yellow !important;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="toolbar">
+    <div class="icon-grid">
+        <button onclick="goHome()"><i class="fa-solid fa-house"></i><span class="tooltip">Home</span></button>
+        <button onclick="openImages()"><i class="fa-regular fa-folder-open"></i><span class="tooltip">Open</span></button>
+        <button onclick="downloadCollage()"><i class="fa-regular fa-floppy-disk"></i><span class="tooltip">Save</span></button>
+        <button onclick="deleteSelectedImage()"><i class="fa-regular fa-trash-can"></i><span class="tooltip">Delete</span></button>
+        <button onclick="enableResize()"><i class="fa-solid fa-expand"></i><span class="tooltip">Resize</span></button>
+        <button onclick="disableResize()"><i class="fa-solid fa-compress"></i><span class="tooltip">Disable Resize</span></button>
+    </div>
+    
+    <div class="partition"></div>
+
+    <div class="icon-grid">
+        <button onclick="cropSelectedImage()"><i class="fa-solid fa-crop-simple"></i><span class="tooltip">Crop</span></button>
+        <button onclick="rotateSelected(-90)"><i class="fa-solid fa-rotate-left"></i><span class="tooltip">Rotate Left</span></button>
+        <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
+        <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
+        <button onclick="flipSelected('Y')"><i class="fa-solid fa-arrows-up-down"></i><span class="tooltip">Flip Vertically</span></button>
+    </div>
+
+    <div class="partition"></div>
+
+    <div class="icon-grid">
+        <button onclick="applyFilter('grayscale')"><i class="fa-solid fa-adjust"></i><span class="tooltip">Black & White</span></button>
+        <button onclick="applyFilter('sepia')"><i class="fa-solid fa-tint"></i><span class="tooltip">Sepia</span></button>
+        <button onclick="applyFilter('blur')"><i class="fa-solid fa-smog"></i><span class="tooltip">Blur</span></button>
+    </div>
+</div>
+
+<div class="template-options">
+    <h3>Choose a Template</h3>
+    <div class="template-thumbnails">
+        <div class="template" data-template="grid-2x2" onclick="applyTemplate('grid-2x2')">
+            <div class="template-preview grid-2x2"></div>
+            <span>2x2 Grid</span>
+        </div>
+        <div class="template" data-template="frame-circle" onclick="applyTemplate('frame-circle')">
+            <div class="template-preview frame-circle"></div>
+            <span>Circle Frames</span>
+        </div>
+        <div class="template" data-template="frame-polaroid" onclick="applyTemplate('frame-polaroid')">
+            <div class="template-preview frame-polaroid"></div>
+            <span>Polaroid Style</span>
+        </div>
+        <div class="template" data-template="frame-heart" onclick="applyTemplate('frame-heart')">
+            <div class="template-preview frame-heart"></div>
+            <span>Heart Layout</span>
+        </div>
+        <div class="template" data-template="frame-diagonal" onclick="applyTemplate('frame-diagonal')">
+            <div class="template-preview frame-diagonal"></div>
+            <span>Diagonal Layout</span>
+        </div>
+    </div>
+</div>
+<div id="collageContainer" style="margin-top: 20px;"></div>
+
+<!-- Controls Container -->
+<div style="display: flex; flex-direction: row; gap: 16px; align-items: center; flex-wrap: wrap; margin-top: 16px;">
+
+    <!-- Brightness -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-sun" style="color: white; font-size: 14px;" title="Brightness"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="brightnessSlider"
+            style="width: 80px; height: 4px;"
+            oninput="brightnessValue = this.value; updateAdvancedFilters();">
+    </div>
+
+    <!-- Contrast -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-eye" style="color: white; font-size: 14px;" title="Contrast"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="contrastSlider"
+            style="width: 80px; height: 4px;"
+            oninput="contrastValue = this.value; updateAdvancedFilters();">
+    </div>
+
+    <!-- Saturation -->
+    <div style="display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-wand-magic-sparkles" style="color: white; font-size: 14px;" title="Saturation"></i>
+        <input type="range" min="0" max="200" value="100"
+            id="saturationSlider"
+            style="width: 80px; height: 4px;"
+            oninput="saturationValue = this.value; updateAdvancedFilters();">
+    </div>
+</div>
+
+<div class="content">
+    <div id="collage-container"></div>
+</div>
+
+<script>
+    const collageContainer = document.getElementById('collage-container');
+    let selectedImage = null;
+    let brightnessValue = 100;
+    let contrastValue = 100;
+    let saturationValue = 100;
+    let isResizingEnabled = false;
+    let resizeHandles = [];
+    let isResizing = false;
+    let resizeDirection = null;
+    let startX, startY, startWidth, startHeight, startLeft, startTop;
+
+    // Add to your existing script
+// Global variables
+let currentTemplate = null;
+
+function applyTemplate(templateType) {
+    clearTemplate();
+    currentTemplate = templateType;
+
+    // Create frame container with higher z-index
+    const frame = document.createElement('div');
+    frame.className = `collage-frame ${templateType.replace('frame-', '')}-frame`;
+    frame.style.zIndex = '20'; // Higher than images (z-index: 10)
+    
+    // Position frame absolutely to cover the container
+    frame.style.position = 'absolute';
+    frame.style.top = '0';
+    frame.style.left = '0';
+    frame.style.width = '100%';
+    frame.style.height = '100%';
+    frame.style.pointerEvents = 'none'; // Allow clicks to pass through to images
+
+    // Create slots with proper layering
+    switch(templateType) {
+        case 'grid-2x2':
+            frame.innerHTML = `
+                <div class="frame-slot" style="top:5%;left:5%;width:45%;height:45%;"></div>
+                <div class="frame-slot" style="top:5%;right:5%;width:45%;height:45%;"></div>
+                <div class="frame-slot" style="bottom:5%;left:5%;width:45%;height:45%;"></div>
+                <div class="frame-slot" style="bottom:5%;right:5%;width:45%;height:45%;"></div>
+            `;
+            break;
+        case 'frame-circle':
+            frame.innerHTML = `
+                <div class="frame-slot circle-slot" style="top:10%;left:10%;width:30%;height:30%;"></div>
+                <div class="frame-slot circle-slot" style="top:10%;right:10%;width:30%;height:30%;"></div>
+                <div class="frame-slot circle-slot" style="bottom:10%;left:10%;width:30%;height:30%;"></div>
+                <div class="frame-slot circle-slot" style="bottom:10%;right:10%;width:30%;height:30%;"></div>
+            `;
+            break;
+        case 'frame-polaroid':
+            frame.innerHTML = `
+                <div class="frame-slot polaroid-slot" style="top:5%;left:5%;width:40%;height:50%;"></div>
+                <div class="frame-slot polaroid-slot" style="top:5%;right:5%;width:40%;height:50%;"></div>
+                <div class="frame-slot polaroid-slot" style="bottom:5%;left:30%;width:40%;height:40%;"></div>
+            `;
+            break;
+        case 'frame-heart':
+            frame.innerHTML = `
+                <div class="frame-slot heart-slot" style="top:15%;left:25%;width:50%;height:50%;"></div>
+                <div class="frame-slot heart-slot" style="top:15%;right:25%;width:50%;height:50%;"></div>
+            `;
+            break;
+        case 'frame-diagonal':
+            frame.innerHTML = `
+                <div class="frame-slot diagonal-slot" style="top:10%;left:10%;width:35%;height:35%;"></div>
+                <div class="frame-slot diagonal-slot" style="top:10%;right:10%;width:35%;height:35%;"></div>
+                <div class="frame-slot diagonal-slot" style="bottom:10%;left:10%;width:35%;height:35%;"></div>
+                <div class="frame-slot diagonal-slot" style="bottom:10%;right:10%;width:35%;height:35%;"></div>
+            `;
+            break;
+        case 'frame-panorama':
+            frame.innerHTML = `
+                <div class="frame-slot panorama-slot" style="top:20%;left:10%;width:80%;height:60%;"></div>
+            `;
+            break;
+    }
+
+    // Make slots drop targets
+    frame.querySelectorAll('.frame-slot').forEach(slot => {
+        slot.style.pointerEvents = 'auto'; // Enable drops on slots
+        slot.addEventListener('dragover', allowDrop);
+        slot.addEventListener('drop', dropImage);
+    });
+
+    collageContainer.appendChild(frame);
+    
+    // Apply template styles to existing images
+    positionImagesInTemplate();
+}
+
+function positionImagesInTemplate() {
+    const slots = document.querySelectorAll('.frame-slot');
+    const images = document.querySelectorAll('.collage-image');
+    
+    images.forEach((img, index) => {
+        if (slots[index]) {
+            const slot = slots[index];
+            const slotRect = slot.getBoundingClientRect();
+            const containerRect = collageContainer.getBoundingClientRect();
+            
+            // Position image over slot
+            img.style.zIndex = '15'; // Between frame and handles
+            img.style.width = slotRect.width + 'px';
+            img.style.height = slotRect.height + 'px';
+            img.style.left = (slotRect.left - containerRect.left) + 'px';
+            img.style.top = (slotRect.top - containerRect.top) + 'px';
+            img.style.objectFit = 'cover'; // Ensure images fill the slot
+            
+            // Apply template-specific styles
+            if (currentTemplate.includes('circle')) {
+                img.style.borderRadius = '50%';
+                img.style.border = '3px solid white';
+                img.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
+            } 
+            else if (currentTemplate.includes('polaroid')) {
+                img.style.borderRadius = '2px';
+                img.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                img.style.backgroundColor = 'white';
+                img.style.paddingBottom = '20px';
+            }
+            else if (currentTemplate.includes('heart')) {
+                img.style.clipPath = 'path("M10,30 Q20,10 30,30 T50,30 T70,30 Q80,10 90,30 L50,90 Z")';
+                img.style.filter = 'drop-shadow(0 0 5px rgba(0,0,0,0.3))';
+            }
+            else if (currentTemplate.includes('diagonal')) {
+                img.style.transform = 'rotate(45deg)';
+                img.style.border = '2px solid white';
+            }
+            else if (currentTemplate.includes('panorama')) {
+                img.style.borderRadius = '8px';
+                img.style.border = '3px solid white';
+            }
+        }
+    });
+}
+
+function clearTemplate() {
+    // Remove any existing frame
+    const oldFrame = document.querySelector('.collage-frame');
+    if (oldFrame) {
+        collageContainer.removeChild(oldFrame);
+    }
+    
+    // Reset all images to normal
+    const images = document.querySelectorAll('.collage-image');
+    images.forEach(img => {
+        img.style.zIndex = '';
+        img.style.borderRadius = '';
+        img.style.border = '';
+        img.style.clipPath = '';
+        img.style.transform = '';
+        img.style.boxShadow = '';
+        img.style.padding = '';
+        img.style.backgroundColor = '';
+        img.style.filter = '';
+    });
+    
+    currentTemplate = null;
+}
+
+function allowDrop(ev) {
+    ev.preventDefault();
+}
+
+function dropImage(ev) {
+    ev.preventDefault();
+    if (!selectedImage) return;
+    
+    const slot = ev.target.closest('.frame-slot');
+    if (!slot) return;
+    
+    const slotRect = slot.getBoundingClientRect();
+    const containerRect = collageContainer.getBoundingClientRect();
+    
+    // Position image precisely over the slot
+    selectedImage.style.width = slotRect.width + 'px';
+    selectedImage.style.height = slotRect.height + 'px';
+    selectedImage.style.left = (slotRect.left - containerRect.left) + 'px';
+    selectedImage.style.top = (slotRect.top - containerRect.top) + 'px';
+    selectedImage.style.zIndex = '15';
+    selectedImage.style.objectFit = 'cover';
+    
+    // Apply template-specific styles
+    applyTemplateStylesToImage(selectedImage);
+    
+    // Mark this image as being in a template slot
+    selectedImage.dataset.inTemplate = 'true';
+}
+
+function applyTemplateStylesToImage(img) {
+    if (!currentTemplate) return;
+    
+    // Reset all possible template styles first
+    img.style.borderRadius = '';
+    img.style.border = '';
+    img.style.clipPath = '';
+    img.style.transform = '';
+    img.style.boxShadow = '';
+    img.style.padding = '';
+    img.style.backgroundColor = '';
+    img.style.filter = '';
+    
+    // Apply current template styles
+    if (currentTemplate.includes('circle')) {
+        img.style.borderRadius = '50%';
+        img.style.border = '3px solid white';
+        img.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
+    } 
+    else if (currentTemplate.includes('polaroid')) {
+        img.style.borderRadius = '2px';
+        img.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        img.style.backgroundColor = 'white';
+        img.style.paddingBottom = '20px';
+    }
+    else if (currentTemplate.includes('heart')) {
+        img.style.clipPath = 'path("M10,30 Q20,10 30,30 T50,30 T70,30 Q80,10 90,30 L50,90 Z")';
+        img.style.filter = 'drop-shadow(0 0 5px rgba(0,0,0,0.3))';
+    }
+    else if (currentTemplate.includes('diagonal')) {
+        img.style.transform = 'rotate(45deg)';
+        img.style.border = '2px solid white';
+    }
+    else if (currentTemplate.includes('panorama')) {
+        img.style.borderRadius = '8px';
+        img.style.border = '3px solid white';
+    }
+}
+
+function applyGridTemplate(rows, cols) {
+    const containerWidth = collageContainer.offsetWidth;
+    const containerHeight = collageContainer.offsetHeight;
+    const slotWidth = containerWidth / cols;
+    const slotHeight = containerHeight / rows;
+    
+    // Create grid frame
+    const frame = document.createElement('div');
+    frame.className = 'collage-frame grid-frame';
+    frame.style.width = '100%';
+    frame.style.height = '100%';
+    frame.style.display = 'grid';
+    frame.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    frame.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    frame.style.gap = '10px';
+    frame.style.padding = '10px';
+    frame.style.boxSizing = 'border-box';
+    
+    // Create slots
+    for (let i = 0; i < rows * cols; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'frame-slot';
+        slot.dataset.slotIndex = i;
+        
+        // Make slot a drop target
+        slot.addEventListener('dragover', allowDrop);
+        slot.addEventListener('drop', dropImage);
+        
+        frame.appendChild(slot);
+    }
+    
+    collageContainer.appendChild(frame);
+}
+
+function applyCircleFrameTemplate() {
+    const frame = document.createElement('div');
+    frame.className = 'collage-frame circle-frame';
+    frame.style.width = '100%';
+    frame.style.height = '100%';
+    
+    // Create 4 circle slots in a grid
+    frame.innerHTML = `
+        <div class="frame-slot" style="top: 10%; left: 10%; width: 30%; height: 30%;" data-slot-index="0"></div>
+        <div class="frame-slot" style="top: 10%; left: 60%; width: 30%; height: 30%;" data-slot-index="1"></div>
+        <div class="frame-slot" style="top: 60%; left: 10%; width: 30%; height: 30%;" data-slot-index="2"></div>
+        <div class="frame-slot" style="top: 60%; left: 60%; width: 30%; height: 30%;" data-slot-index="3"></div>
+    `;
+    
+    // Make slots drop targets
+    document.querySelectorAll('.frame-slot').forEach(slot => {
+        slot.addEventListener('dragover', allowDrop);
+        slot.addEventListener('drop', dropImage);
+    });
+    
+    collageContainer.appendChild(frame);
+}
+
+function applyPolaroidFrameTemplate() {
+    const frame = document.createElement('div');
+    frame.className = 'collage-frame polaroid-frame';
+    frame.style.width = '100%';
+    frame.style.height = '100%';
+    frame.style.display = 'flex';
+    frame.style.flexDirection = 'column';
+    frame.style.justifyContent = 'space-around';
+    frame.style.alignItems = 'center';
+    frame.style.padding = '20px';
+    frame.style.boxSizing = 'border-box';
+    frame.style.backgroundColor = '#f5f5f5';
+    
+    // Create 3 polaroid slots
+    for (let i = 0; i < 3; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'frame-slot';
+        slot.style.width = '60%';
+        slot.style.height = '25%';
+        slot.style.margin = '10px 0';
+        slot.style.position = 'relative';
+        slot.dataset.slotIndex = i;
+        
+        // Add polaroid "label" at bottom
+        const label = document.createElement('div');
+        label.style.height = '20px';
+        label.style.backgroundColor = 'white';
+        label.style.position = 'absolute';
+        label.style.bottom = '-20px';
+        label.style.left = '0';
+        label.style.right = '0';
+        slot.appendChild(label);
+        
+        slot.addEventListener('dragover', allowDrop);
+        slot.addEventListener('drop', dropImage);
+        frame.appendChild(slot);
+    }
+    
+    collageContainer.appendChild(frame);
+}
+
+function applyHeartFrameTemplate() {
+    const frame = document.createElement('div');
+    frame.className = 'collage-frame heart-frame';
+    frame.style.width = '100%';
+    frame.style.height = '100%';
+    frame.style.display = 'flex';
+    frame.style.justifyContent = 'center';
+    frame.style.alignItems = 'center';
+    
+    // Create heart-shaped slot
+    const slot = document.createElement('div');
+    slot.className = 'frame-slot';
+    slot.style.width = '60%';
+    slot.style.height = '60%';
+    slot.dataset.slotIndex = '0';
+    
+    slot.addEventListener('dragover', allowDrop);
+    slot.addEventListener('drop', dropImage);
+    frame.appendChild(slot);
+    
+    collageContainer.appendChild(frame);
+}
+
+function applyDiagonalFrameTemplate() {
+    const frame = document.createElement('div');
+    frame.className = 'collage-frame diagonal-frame';
+    frame.style.width = '100%';
+    frame.style.height = '100%';
+    frame.style.position = 'relative';
+    
+    // Create 4 diagonal slots
+    frame.innerHTML = `
+        <div class="frame-slot" style="top: 5%; left: 5%; width: 40%; height: 40%;" data-slot-index="0"></div>
+        <div class="frame-slot" style="top: 5%; right: 5%; width: 40%; height: 40%;" data-slot-index="1"></div>
+        <div class="frame-slot" style="bottom: 5%; left: 5%; width: 40%; height: 40%;" data-slot-index="2"></div>
+        <div class="frame-slot" style="bottom: 5%; right: 5%; width: 40%; height: 40%;" data-slot-index="3"></div>
+    `;
+    
+    // Rotate slots diagonally
+    document.querySelectorAll('.frame-slot').forEach(slot => {
+        slot.style.transform = 'rotate(45deg)';
+        slot.addEventListener('dragover', allowDrop);
+        slot.addEventListener('drop', dropImage);
+    });
+    
+    collageContainer.appendChild(frame);
+}
+
+
+
+// Update your existing openImages function to make images draggable
+function makeDraggable(element) {
+    element.setAttribute('draggable', 'true');
+    element.addEventListener('dragstart', function(e) {
+        e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+        selectedImage = element;
+    });
+}
+    function goHome() {
+        window.close();
+    }
+    
+    function openImages() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.multiple = true;
+
+        input.onchange = (event) => {
+            const files = event.target.files;
+            for (const file of files) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.classList.add('collage-image');
+                    img.dataset.rotation = '0';
+                    img.dataset.flipX = '1';
+                    img.dataset.flipY = '1';
+                    img.style.left = Math.random() * 500 + "px";
+                    img.style.top = Math.random() * 300 + "px";
+                    img.style.width = "200px";
+                    img.style.height = "auto";
+
+                    collageContainer.appendChild(img);
+
+                    makeDraggable(img);
+                    img.onclick = (e) => {
+                        e.stopPropagation();
+                        selectImage(img);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        input.click();
+    }
+
+    function updateAdvancedFilters() {
+        if (!selectedImage) return;
+
+        const filterString = `
+            brightness(${brightnessValue}%)
+            contrast(${contrastValue}%)
+            saturate(${saturationValue}%)
+        `.trim();
+
+        selectedImage.style.filter = filterString;
+    }
+    let isCropping = false;
+let cropStartX, cropStartY;
+let cropRect = null;
+let wasDraggable = false; // To store original draggable state
+
+function cropSelectedImage() {
+    if (!selectedImage) {
+        alert("Please select an image first");
+        return;
+    }
+
+    // Disable resizing if active
+    if (isResizingEnabled) {
+        disableResize();
+    }
+
+    // Clear any existing crop rectangle
+    if (cropRect) {
+        resetCrop();
+        return;
+    }
+
+    // Store original draggable state and disable dragging
+    wasDraggable = selectedImage.hasAttribute('draggable');
+    selectedImage.removeAttribute('draggable');
+    selectedImage.style.pointerEvents = 'none'; // Disable mouse events on image
+
+    // Set cropping mode
+    isCropping = true;
+
+    // Change cursor to indicate cropping mode
+    collageContainer.style.cursor = 'crosshair';
+
+    // Add event listeners for cropping (on container, not image)
+    collageContainer.addEventListener('mousedown', startCrop);
+    document.addEventListener('mouseup', endCrop);
+}
+
+function startCrop(e) {
+    if (!isCropping || e.target !== collageContainer) return;
+
+    e.stopPropagation();
+    e.preventDefault();
+
+    // Get container position
+    const containerRect = collageContainer.getBoundingClientRect();
+
+    // Calculate coordinates relative to container
+    cropStartX = e.clientX - containerRect.left;
+    cropStartY = e.clientY - containerRect.top;
+
+    // Create crop rectangle element
+    cropRect = document.createElement('div');
+    cropRect.className = 'crop-rectangle';
+    cropRect.style.position = 'absolute';
+    cropRect.style.left = cropStartX + 'px';
+    cropRect.style.top = cropStartY + 'px';
+    
+    collageContainer.appendChild(cropRect);
+
+    // Add mousemove listener for drawing the crop area
+    document.addEventListener('mousemove', drawCropArea);
+}
+
+function drawCropArea(e) {
+    if (!isCropping || !cropRect) return;
+
+    e.stopPropagation();
+    e.preventDefault();
+
+    const containerRect = collageContainer.getBoundingClientRect();
+    const currentX = e.clientX - containerRect.left;
+    const currentY = e.clientY - containerRect.top;
+
+    // Calculate dimensions and position
+    const width = Math.abs(currentX - cropStartX);
+    const height = Math.abs(currentY - cropStartY);
+    const left = Math.min(currentX, cropStartX);
+    const top = Math.min(currentY, cropStartY);
+
+    // Update crop rectangle
+    cropRect.style.width = width + 'px';
+    cropRect.style.height = height + 'px';
+    cropRect.style.left = left + 'px';
+    cropRect.style.top = top + 'px';
+}
+
+function endCrop(e) {
+    if (!isCropping) return;
+
+    e.stopPropagation();
+    e.preventDefault();
+
+    // Remove event listeners
+    collageContainer.removeEventListener('mousedown', startCrop);
+    document.removeEventListener('mousemove', drawCropArea);
+    document.removeEventListener('mouseup', endCrop);
+
+    // Reset cursor
+    collageContainer.style.cursor = '';
+
+    if (!cropRect) {
+        resetCrop();
+        return;
+    }
+
+    // Get crop coordinates
+    const cropRectStyle = window.getComputedStyle(cropRect);
+    const left = parseInt(cropRectStyle.left);
+    const top = parseInt(cropRectStyle.top);
+    const width = parseInt(cropRectStyle.width);
+    const height = parseInt(cropRectStyle.height);
+
+    // Remove the visual crop rectangle
+    collageContainer.removeChild(cropRect);
+    cropRect = null;
+
+    // Apply the actual crop if area is valid
+    if (width > 10 && height > 10) {
+        applyCropToImage(left, top, width, height);
+    }
+
+    resetCrop();
+}
+
+function applyCropToImage(cropLeft, cropTop, cropWidth, cropHeight) {
+    // Create canvas for cropping
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas dimensions to crop size
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+    
+    // Calculate image position relative to container
+    const imgRect = selectedImage.getBoundingClientRect();
+    const containerRect = collageContainer.getBoundingClientRect();
+    
+    // Calculate source coordinates (relative to image)
+    const srcX = cropLeft - (parseInt(selectedImage.style.left) || 0);
+    const srcY = cropTop - (parseInt(selectedImage.style.top) || 0);
+    
+    // Ensure coordinates are within image bounds
+    const boundedSrcX = Math.max(0, srcX);
+    const boundedSrcY = Math.max(0, srcY);
+    const boundedWidth = Math.min(cropWidth, selectedImage.width - boundedSrcX);
+    const boundedHeight = Math.min(cropHeight, selectedImage.height - boundedSrcY);
+    
+    // Draw the cropped portion
+    ctx.drawImage(
+        selectedImage,
+        boundedSrcX, boundedSrcY,       // source x, y
+        boundedWidth, boundedHeight,    // source width, height
+        0, 0,                          // destination x, y
+        cropWidth, cropHeight          // destination width, height
+    );
+    
+    // Replace image with cropped version
+    selectedImage.src = canvas.toDataURL();
+    
+    // Update image dimensions and position
+    selectedImage.style.width = cropWidth + 'px';
+    selectedImage.style.height = 'auto';
+    selectedImage.style.left = cropLeft + 'px';
+    selectedImage.style.top = cropTop + 'px';
+}
+
+function resetCrop() {
+    // Restore original draggable state
+    if (wasDraggable) {
+        selectedImage.setAttribute('draggable', 'true');
+    }
+    selectedImage.style.pointerEvents = 'auto';
+    
+    // Clean up any remaining crop rectangle
+    if (cropRect && cropRect.parentNode) {
+        collageContainer.removeChild(cropRect);
+    }
+    
+    // Reset variables
+    isCropping = false;
+    cropRect = null;
+    wasDraggable = false;
+    
+    // Remove all event listeners
+    collageContainer.removeEventListener('mousedown', startCrop);
+    document.removeEventListener('mousemove', drawCropArea);
+    document.removeEventListener('mouseup', endCrop);
+    
+    // Reset cursor
+    collageContainer.style.cursor = '';
+}
+
+    function makeDraggable(element) {
+        let isDragging = false, startX, startY, startLeft, startTop;
+
+        element.addEventListener('mousedown', (e) => {
+            // Skip if clicking on a resize handle
+            if (e.target.classList.contains('resize-handle')) {
+                return;
+            }
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = parseInt(element.style.left) || 0;
+            startTop = parseInt(element.style.top) || 0;
+
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', stopDrag);
+        });
+
+        function dragMove(e) {
+            if (!isDragging) return;
+            element.style.left = startLeft + (e.clientX - startX) + "px";
+            element.style.top = startTop + (e.clientY - startY) + "px";
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', stopDrag);
+        }
+    }
+
+    function applyFilter(filterType) {
+        if (!selectedImage) return;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = selectedImage.naturalWidth;
+        canvas.height = selectedImage.naturalHeight;
+
+        ctx.drawImage(selectedImage, 0, 0, canvas.width, canvas.height);
+
+        switch (filterType) {
+            case 'grayscale':
+                ctx.filter = "grayscale(100%)";
+                break;
+            case 'sepia':
+                ctx.filter = "sepia(100%)";
+                break;
+            case 'blur':
+                ctx.filter = "blur(5px)";
+                break;
+            default:
+                console.error("Invalid filter type");
+                return;
+        }
+
+        ctx.drawImage(canvas, 0, 0, canvas.width, canvas.height);
+        selectedImage.src = canvas.toDataURL();
+    }
+
+    function selectImage(img) {
+        if (selectedImage) {
+            selectedImage.classList.remove('selected');
+            disableResize();
+        }
+        selectedImage = img;
+        img.classList.add('selected');
+    }
+
+    function rotateSelected(angle) {
+        if (!selectedImage) return;
+        let rotation = parseInt(selectedImage.dataset.rotation) || 0;
+        rotation = (rotation + angle) % 360;
+        selectedImage.dataset.rotation = rotation;
+        applyTransformations(selectedImage);
+    }
+
+    function flipSelected(axis) {
+        if (!selectedImage) return;
+        if (axis === 'X') {
+            selectedImage.dataset.flipX *= -1;
+        } else {
+            selectedImage.dataset.flipY *= -1;
+        }
+        applyTransformations(selectedImage);
+    }
+
+  
+
+
+function enableResize() {
+    if (!selectedImage) {
+        alert("Please select an image first");
+        return;
+    }
+    
+    if (isResizingEnabled) return;
+    
+    // Clear any existing handles
+    disableResize();
+    
+    // Create four resize handles
+    const handlePositions = [
+        { class: 'nw', cursor: 'nw-resize' },
+        { class: 'ne', cursor: 'ne-resize' },
+        { class: 'sw', cursor: 'sw-resize' },
+        { class: 'se', cursor: 'se-resize' }
+    ];
+    
+    // Create a container for the handles
+    const handlesContainer = document.createElement('div');
+    handlesContainer.className = 'resize-handles-container';
+    handlesContainer.style.position = 'absolute';
+    handlesContainer.style.left = selectedImage.style.left;
+    handlesContainer.style.top = selectedImage.style.top;
+    handlesContainer.style.width = selectedImage.offsetWidth + 'px';
+    handlesContainer.style.height = selectedImage.offsetHeight + 'px';
+    handlesContainer.style.pointerEvents = 'none';
+    
+    collageContainer.appendChild(handlesContainer);
+    
+    handlePositions.forEach(pos => {
+        const handle = document.createElement('div');
+        handle.className = `resize-handle ${pos.class}`;
+        handle.style.cursor = pos.cursor;
+        handle.dataset.direction = pos.class;
+        handle.style.pointerEvents = 'auto';
+        
+        // Position the handle
+        if (pos.class.includes('n')) handle.style.top = '0px';
+        if (pos.class.includes('s')) handle.style.bottom = '0px';
+        if (pos.class.includes('w')) handle.style.left = '0px';
+        if (pos.class.includes('e')) handle.style.right = '0px';
+        
+        handlesContainer.appendChild(handle);
+        resizeHandles.push(handle);
+        
+        // Handle mouse events
+        handle.addEventListener('mousedown', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            startResize(e, pos.class);
+        });
+    });
+    
+    // Update container position when image moves
+    const observer = new MutationObserver(() => {
+        handlesContainer.style.left = selectedImage.style.left;
+        handlesContainer.style.top = selectedImage.style.top;
+    });
+    
+    observer.observe(selectedImage, { 
+        attributes: true,
+        attributeFilter: ['style']
+    });
+    
+    resizeHandles.observer = observer;
+    isResizingEnabled = true;
+}
+
+function startResize(e, direction) {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    isResizing = true;
+    resizeDirection = direction;
+    
+    const img = selectedImage;
+    startX = e.clientX;
+    startY = e.clientY;
+    startWidth = img.offsetWidth;
+    startHeight = img.offsetHeight;
+    startLeft = parseInt(img.style.left) || 0;
+    startTop = parseInt(img.style.top) || 0;
+    
+    // Store aspect ratio
+    const aspectRatio = startWidth / startHeight;
+    resizeHandles.aspectRatio = aspectRatio;
+    
+    // Add event listeners
+    document.addEventListener('mousemove', doResize);
+    document.addEventListener('mouseup', stopResize);
+    
+    // Prevent text selection during resize
+    document.body.style.userSelect = 'none';
+}
+
+function doResize(e) {
+    if (!isResizing) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    
+    let newWidth = startWidth;
+    let newHeight = startHeight;
+    let newLeft = startLeft;
+    let newTop = startTop;
+    
+    const maintainAspect = e.shiftKey;
+    const aspectRatio = resizeHandles.aspectRatio;
+    
+    switch(resizeDirection) {
+        case 'nw':
+            newWidth = Math.max(50, startWidth - dx);
+            if (maintainAspect) newHeight = newWidth / aspectRatio;
+            else newHeight = Math.max(50, startHeight - dy);
+            newLeft = startLeft + (startWidth - newWidth);
+            newTop = startTop + (startHeight - newHeight);
+            break;
+        case 'ne':
+            newWidth = Math.max(50, startWidth + dx);
+            if (maintainAspect) newHeight = newWidth / aspectRatio;
+            else newHeight = Math.max(50, startHeight - dy);
+            newTop = startTop + (startHeight - newHeight);
+            break;
+        case 'sw':
+            newWidth = Math.max(50, startWidth - dx);
+            if (maintainAspect) newHeight = newWidth / aspectRatio;
+            else newHeight = Math.max(50, startHeight + dy);
+            newLeft = startLeft + (startWidth - newWidth);
+            break;
+        case 'se':
+            newWidth = Math.max(50, startWidth + dx);
+            if (maintainAspect) newHeight = newWidth / aspectRatio;
+            else newHeight = Math.max(50, startHeight + dy);
+            break;
+    }
+    
+    selectedImage.style.width = newWidth + 'px';
+    selectedImage.style.height = newHeight + 'px';
+    selectedImage.style.left = newLeft + 'px';
+    selectedImage.style.top = newTop + 'px';
+    
+    // Update handles container
+    const container = document.querySelector('.resize-handles-container');
+    if (container) {
+        container.style.left = newLeft + 'px';
+        container.style.top = newTop + 'px';
+        container.style.width = newWidth + 'px';
+        container.style.height = newHeight + 'px';
+    }
+}
+
+function stopResize() {
+    if (!isResizing) return;
+    
+    isResizing = false;
+    resizeDirection = null;
+    
+    // Remove event listeners
+    document.removeEventListener('mousemove', doResize);
+    document.removeEventListener('mouseup', stopResize);
+    
+    // Restore text selection
+    document.body.style.userSelect = '';
+}
+
+function disableResize() {
+    // Remove all resize handles
+    const containers = document.querySelectorAll('.resize-handles-container');
+    containers.forEach(container => {
+        if (container.parentNode) {
+            container.parentNode.removeChild(container);
+        }
+    });
+    
+    // Disconnect observer if it exists
+    if (resizeHandles.observer) {
+        resizeHandles.observer.disconnect();
+    }
+    
+    // Clear resize handles array
+    resizeHandles = [];
+    isResizingEnabled = false;
+    
+    // Ensure any active resize is stopped
+    stopResize();
+}
+
+    function applyTransformations(img) {
+        const rotation = img.dataset.rotation;
+        const flipX = img.dataset.flipX;
+        const flipY = img.dataset.flipY;
+        img.style.transform = `rotate(${rotation}deg) scale(${flipX}, ${flipY})`;
+    }
+
+    function deleteSelectedImage() {
+        if (!selectedImage) return;
+        collageContainer.removeChild(selectedImage);
+        selectedImage = null;
+        disableResize();
+    }
+   
+    function bakeAllSliderFilters(image) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+
+        const brightness = document.getElementById('brightnessSlider').value || 100;
+        const contrast = document.getElementById('contrastSlider').value || 100;
+        const saturation = document.getElementById('saturationSlider').value || 100;
+
+        ctx.filter = `
+            brightness(${brightness}%)
+            contrast(${contrast}%)
+            saturate(${saturation}%)
+        `;
+
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        image.src = canvas.toDataURL();
+        image.style.filter = '';
+    }
+
+    const { ipcRenderer } = require('electron');
+    const fs = require('fs');
+
+    function downloadCollage() {
+    const images = collageContainer.querySelectorAll('img');
+    const hasLoadedImage = Array.from(images).some(img => img.complete && img.naturalWidth > 0);
+
+    if (!hasLoadedImage) {
+        ipcRenderer.send("show-error-dialog", {
+            title: "Save Error",
+            message: "Please add at least one image to the collage before saving."
+        });
+        return;
+    }
+
+    // Apply any pending filters
+    images.forEach(img => {
+        if (img.style.filter && img.style.filter !== 'none') {
+            bakeAllSliderFilters(img);
+        }
+    });
+
+    setTimeout(() => {
+        // Store original styles and states
+        const originalBackground = collageContainer.style.backgroundColor;
+        const selectedElements = collageContainer.querySelectorAll('.selected');
+        const templateBoxes = collageContainer.querySelectorAll('.template-box');
+        const frameElements = collageContainer.querySelectorAll('.collage-frame');
+        const resizeHandles = collageContainer.querySelectorAll('.resize-handle, .resize-handles-container');
+
+        // Hide/remove elements we don't want in the final capture
+        collageContainer.style.backgroundColor = "transparent";
+        selectedElements.forEach(el => el.classList.remove('selected'));
+        
+        // Hide template placeholders
+        templateBoxes.forEach(el => {
+            el.dataset.originalBorder = el.style.border;
+            el.dataset.originalText = el.innerText;
+            el.style.border = "none";
+            el.innerText = "";
+            el.style.opacity = "0";
+        });
+
+        // Hide frame elements but keep their visual effects
+        frameElements.forEach(frame => {
+            frame.dataset.originalDisplay = frame.style.display;
+            frame.style.opacity = "0";
+            frame.style.pointerEvents = "none";
+        });
+
+        // Hide resize handles
+        resizeHandles.forEach(handle => {
+            handle.style.display = "none";
+        });
+
+        // Capture the collage
+        html2canvas(collageContainer, {
+            backgroundColor: null,
+            scale: 2, // Higher quality
+            logging: false,
+            useCORS: true,
+            allowTaint: true
+        }).then(canvas => {
+            // Restore original styles
+            collageContainer.style.backgroundColor = originalBackground;
+            
+            templateBoxes.forEach(el => {
+                el.style.border = el.dataset.originalBorder || "1px dashed #aaa";
+                el.innerText = el.dataset.originalText || "Drop Image Here";
+                el.style.opacity = "";
+                delete el.dataset.originalBorder;
+                delete el.dataset.originalText;
+            });
+
+            frameElements.forEach(frame => {
+                frame.style.opacity = "";
+                frame.style.pointerEvents = "";
+                if (frame.dataset.originalDisplay) {
+                    frame.style.display = frame.dataset.originalDisplay;
+                }
+            });
+
+            resizeHandles.forEach(handle => {
+                handle.style.display = "";
+            });
+
+            selectedElements.forEach(el => el.classList.add('selected'));
+
+            // Proceed with saving
+            ipcRenderer.send("request-save-dialog");
+
+            ipcRenderer.once("save-file-path", (event, { filePath, extension }) => {
+                const mimeMap = {
+                    png: 'image/png',
+                    jpg: 'image/jpeg',
+                    jpeg: 'image/jpeg',
+                    webp: 'image/webp',
+                    bmp: 'image/bmp',
+                    tif: 'image/tiff',
+                    tiff: 'image/tiff'
+                };
+
+                const mime = mimeMap[extension] || 'image/png';
+                const quality = extension === 'png' ? 1 : 0.92; // Higher quality for PNG
+
+                if (extension === 'tif' || extension === 'tiff') {
+                    canvas.toBlob(blob => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const buffer = Buffer.from(reader.result);
+                            ipcRenderer.send('save-as-tiff', { filePath, buffer });
+                        };
+                        reader.readAsArrayBuffer(blob);
+                    }, 'image/png');
+                } else {
+                    canvas.toBlob(blob => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const buffer = Buffer.from(reader.result);
+                            fs.writeFile(filePath, buffer, err => {
+                                if (err) {
+                                    console.error("Failed to save image:", err);
+                                    ipcRenderer.send("show-error-dialog", {
+                                        title: "Save Error",
+                                        message: "Failed to save the collage. Please try again."
+                                    });
+                                } else {
+                                    console.log("Saved:", filePath);
+                                    ipcRenderer.send("show-save-success", filePath);
+                                }
+                            });
+                        };
+                        reader.readAsArrayBuffer(blob);
+                    }, mime, quality);
+                }
+            });
+        }).catch(err => {
+            console.error("Error capturing collage:", err);
+            ipcRenderer.send("show-error-dialog", {
+                title: "Capture Error",
+                message: "Failed to generate the collage image. Please try again."
+            });
+
+            // Restore elements even if capture failed
+            collageContainer.style.backgroundColor = originalBackground;
+            templateBoxes.forEach(el => {
+                el.style.border = el.dataset.originalBorder || "1px dashed #aaa";
+                el.innerText = el.dataset.originalText || "Drop Image Here";
+                el.style.opacity = "";
+            });
+            frameElements.forEach(frame => {
+                frame.style.opacity = "";
+                frame.style.pointerEvents = "";
+            });
+            selectedElements.forEach(el => el.classList.add('selected'));
+        });
+    }, 300); // Slightly longer delay to ensure all filters are baked
+}
+</script>
+</body>
+</html>

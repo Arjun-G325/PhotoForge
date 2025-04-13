@@ -736,6 +736,13 @@ let offsetX, offsetY;
 let resizeDirection = null;
 
 function cropImage() {
+    if (isBatchProcessing) {
+        ipcRenderer.send("show-error-dialog", {
+            title: "Crop Not Allowed",
+            message: "Cropping is not supported during batch processing. Please disable batch mode to crop images."
+        });
+        return;
+    }
     let container = document.getElementById("image-container");
     let image = document.getElementById("image-area");
     const isImageLoaded = image && image.complete && image.naturalWidth > 0;

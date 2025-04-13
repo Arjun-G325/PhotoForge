@@ -160,7 +160,7 @@
     </style>
     <script>
         
-let rotationAngle = 0;
+        let rotationAngle = 0;
 let flipX = 1, flipY = 1;
 let aspectRatio=1;
 let brightnessValue = 100;
@@ -232,6 +232,9 @@ function applyStateProperties(state) {
     document.getElementById("brightnessSlider").value = brightnessValue;
     document.getElementById("contrastSlider").value = contrastValue;
     document.getElementById("saturationSlider").value = saturationValue;
+    document.getElementById("sepiaSlider").value = sepiaValue;
+    document.getElementById("bwSlider").value = bwValue;
+    document.getElementById("blurSlider").value = blurValue;
     document.getElementById("widthInput").value = state.width ? 
         parseFloat(state.width.replace('px', '')) / 37.795 : "";
     document.getElementById("heightInput").value = state.height ? 
@@ -315,6 +318,9 @@ function openImage() {
             document.getElementById("brightnessSlider").value = 100;
             document.getElementById("contrastSlider").value = 100;
             document.getElementById("saturationSlider").value = 100;
+            document.getElementById("sepiaSlider").value = 0;
+            document.getElementById("bwSlider").value = 0;
+            document.getElementById("blurSlider").value = 0;
             updateAdvancedFilters();
 
             // Reset size inputs
@@ -671,7 +677,7 @@ function addResizeHandles() {
 
     function flipImage() {
     let imageArea = document.getElementById("image-area");
-    if (!imageArea.src) {
+    if (!imageArea.src || imageArea.style.display === "none") {
         alert("No image to flip");
         return;
     }
@@ -759,21 +765,6 @@ function applyFilters() {
     pushToHistory();
 }
 
-function adjustFilter(type) {
-    switch (type) {
-        case "sepia":
-            sepiaValue = (sepiaValue + 20) % 120; // Loop back after 100
-            break;
-        case "bw":
-            bwValue = (bwValue + 20) % 120;
-            break;
-        case "blur":
-            blurValue = (blurValue + 1) % 11;
-            break;
-    }
-    applyFilters();
-    pushToHistory();
-}
 function goHome() {
     window.close();
 }
@@ -905,6 +896,9 @@ function resetImageSettings() {
     document.getElementById("brightnessSlider").value = 100;
     document.getElementById("contrastSlider").value = 100;
     document.getElementById("saturationSlider").value = 100;
+    document.getElementById("sepiaSlider").value = 0;
+    document.getElementById("bwSlider").value = 0;
+    document.getElementById("blurSlider").value = 0;
     brightnessValue = 100;
     contrastValue = 100;
     saturationValue = 100;
@@ -918,6 +912,9 @@ function updateUIControls() {
     document.getElementById("brightnessSlider").value = brightnessValue;
     document.getElementById("contrastSlider").value = contrastValue;
     document.getElementById("saturationSlider").value = saturationValue;
+    document.getElementById("sepiaSlider").value = sepiaValue;
+    document.getElementById("bwSlider").value = bwValue;
+    document.getElementById("blurSlider").value = blurValue;
 }
 
     </script>
@@ -946,18 +943,49 @@ function updateUIControls() {
             </div>
         </div>
         <div class="partition"></div>
-    <div class="icon-grid-right" style="gap: 10px;">
-        <button onclick="adjustFilter('sepia')"><i class="fa-solid fa-droplet"></i><span class="tooltip">Sepia</span></button>
-        <button onclick="adjustFilter('bw')"><i class="fa-solid fa-circle-half-stroke"></i><span class="tooltip">B & W</span></button>
-        <button onclick="adjustFilter('blur')"><i class="fa-solid fa-water"></i><span class="tooltip">Blur</span></button>
-    </div>    
+        <div class="icon-grid-right" style="
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        max-width: 200px;
+    ">
+        <!-- Sepia -->
+        <div style="display: flex; align-items: center; gap: 4px;">
+            <i class="fa-solid fa-droplet" style="color: white; font-size: 14px;" title="Sepia"></i>
+            <input type="range" min="0" max="100" value="0"
+                id="sepiaSlider"
+                style="width: 80px; height: 4px;"
+                oninput="sepiaValue = this.value; updateAdvancedFilters();"
+                onmouseup="pushToHistory();">
+        </div>
+
+        <!-- Black & White -->
+        <div style="display: flex; align-items: center; gap: 4px;">
+            <i class="fa-solid fa-circle-half-stroke" style="color: white; font-size: 14px;" title="Black & White"></i>
+            <input type="range" min="0" max="100" value="0"
+                id="bwSlider"
+                style="width: 80px; height: 4px;"
+                oninput="bwValue = this.value; updateAdvancedFilters();"
+                onmouseup="pushToHistory();">
+        </div>
+
+        <!-- Blur -->
+        <div style="display: flex; align-items: center; gap: 4px;">
+            <i class="fa-solid fa-water" style="color: white; font-size: 14px;" title="Blur"></i>
+            <input type="range" min="0" max="10" value="0"
+                id="blurSlider"
+                style="width: 80px; height: 4px;"
+                oninput="blurValue = this.value; updateAdvancedFilters();"
+                onmouseup="pushToHistory();">
+        </div>
+    </div>
     <div class="partition"></div>
     <div class="icon-grid-right" style="
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    max-width: 200px;
-">
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        max-width: 200px;
+    ">
     <!-- Brightness -->
     <div style="display: flex; align-items: center; gap: 4px;">
         <i class="fa-solid fa-sun" style="color: white; font-size: 14px;" title="Brightness"></i>

@@ -172,118 +172,115 @@ let blurValue = 0;
 
 let historyStack = [];
 let redoStack = [];
+let currentState = null;
 
+// Modified pushToHistory function
 function pushToHistory() {
     const image = document.getElementById("image-area");
-    if (!image.src || image.style.display === "none") return;
+    if (!image.src && historyStack.length > 0) return;
 
-    const state = {
-        src: image.src,
-        width: image.style.width,  // Store width in px (no scaling factor)
-        height: image.style.height,  // Store height in px (no scaling factor)
-        filter: image.style.filter,
-        transform: image.style.transform,
-        display: image.style.display,
-        rotationAngle,
-        flipX,
-        flipY,
-        brightnessValue,
-        contrastValue,
-        saturationValue,
-        sepiaValue,
-        bwValue,
-        blurValue
-    };
-
-    const last = historyStack[historyStack.length - 1];
-    if (!last || JSON.stringify(last) !== JSON.stringify(state)) {
-        historyStack.push(state);
-        redoStack = [];
-    }
-}
-
-function undo() {
-    if (historyStack.length <= 1) return;
-
-    const image = document.getElementById("image-area");
-    const lastState = historyStack[historyStack.length - 1];
-    const prevState = historyStack[historyStack.length - 2];
-
-    // Save current to redo stack only if it's different from last history state
-    if (JSON.stringify(lastState) !== JSON.stringify({
+    // Create new state object
+    const newState = {
         src: image.src,
         width: image.style.width,
         height: image.style.height,
         filter: image.style.filter,
         transform: image.style.transform,
         display: image.style.display,
-        rotationAngle,
-        flipX,
-        flipY,
-        brightnessValue,
-        contrastValue,
-        saturationValue,
-        sepiaValue,
-        bwValue,
-        blurValue
-    })) {
-        redoStack.push(historyStack.pop());
-    } else {
-        historyStack.pop();
+        rotationAngle: rotationAngle,
+        flipX: flipX,
+        flipY: flipY,
+        brightnessValue: brightnessValue,
+        contrastValue: contrastValue,
+        saturationValue: saturationValue,
+        sepiaValue: sepiaValue,
+        bwValue: bwValue,
+        blurValue: blurValue,
+        aspectRatio: aspectRatio
+    };
+
+    // Only push if different from last state
+    if (historyStack.length === 0 || 
+        JSON.stringify(newState) !== JSON.stringify(historyStack[historyStack.length - 1])) {
+        historyStack.push(newState);
+        redoStack = []; // Clear redo stack whenever we make new changes
     }
+}
+function applyStateProperties(state) {
+    const image = document.getElementById("image-area");
+
+    // Apply visual properties
+    image.style.width = state.width || "";
+    image.style.height = state.height || "";
+    image.style.filter = state.filter || "none";
+    image.style.transform = state.transform || "none";
+    image.style.display = state.display || "block";
+
+    // Restore all state variables
+    rotationAngle = state.rotationAngle || 0;
+    flipX = state.flipX || 1;
+    flipY = state.flipY || 1;
+    brightnessValue = state.brightnessValue || 100;
+    contrastValue = state.contrastValue || 100;
+    saturationValue = state.saturationValue || 100;
+    sepiaValue = state.sepiaValue || 0;
+    bwValue = state.bwValue || 0;
+    blurValue = state.blurValue || 0;
+    aspectRatio = state.aspectRatio || 1;
+
+    // Update UI controls
+    document.getElementById("brightnessSlider").value = brightnessValue;
+    document.getElementById("contrastSlider").value = contrastValue;
+    document.getElementById("saturationSlider").value = saturationValue;
+    document.getElementById("widthInput").value = state.width ? 
+        parseFloat(state.width.replace('px', '')) / 37.795 : "";
+    document.getElementById("heightInput").value = state.height ? 
+        parseFloat(state.height.replace('px', '')) / 37.795 : "";
+}
+
+// Unified restore function
+function restoreState(state) {
+    const image = document.getElementById("image-area");
+
+    // Force reload image to prevent caching issues
+    if (image.src !== state.src) {
+        image.src = "";
+        setTimeout(() => {
+            image.src = state.src;
+            image.onload = () => applyStateProperties(state);
+        }, 10);
+    } else {
+        applyStateProperties(state);
+    }
+}
+
+function undo() {
+    if (historyStack.length <= 1) return;
+
+    // Capture current state for redo
+    const currentImageState = getCurrentState();
+    redoStack.push(currentImageState);
+
+    // Remove current state from history
+    historyStack.pop();
 
     // Restore previous state
+    const prevState = historyStack[historyStack.length - 1];
     restoreState(prevState);
 }
 
 function redo() {
     if (redoStack.length === 0) return;
-    const image = document.getElementById("image-area");
-    const next = redoStack.pop();
-    historyStack.push(next);
 
-    // Restore the src (image source)
-    if (image.src !== next.src) {
-        image.src = "";
-        setTimeout(() => {
-            image.src = next.src;
-        }, 10);
-    }
+    // Capture current state for potential undo
+    const currentImageState = getCurrentState();
+    historyStack.push(currentImageState);
 
-    // Restore dimensions (width and height)
-    image.style.width = next.width || "";
-    image.style.height = next.height || "";
+    // Get next state from redo stack
+    const nextState = redoStack.pop();
 
-    // Restore visual styles
-    image.style.filter = next.filter || "none";
-    image.style.transform = next.transform || "none";
-    image.style.display = next.display || "block";
-
-    // Restore logical state
-    rotationAngle = next.rotationAngle || 0;
-    flipX = next.flipX || 1;
-    flipY = next.flipY || 1;
-    brightnessValue = next.brightnessValue || 100;
-    contrastValue = next.contrastValue || 100;
-    saturationValue = next.saturationValue || 100;
-    sepiaValue = next.sepiaValue || 0;
-    bwValue = next.bwValue || 0;
-    blurValue = next.blurValue || 0;
-
-    // Apply the transform again
-    image.style.transform = `rotate(${rotationAngle}deg) scale(${flipX}, ${flipY})`;
-
-    // Apply filter using logic
-    updateAdvancedFilters();
-
-    // Update sliders and UI elements
-    document.getElementById("brightnessSlider").value = brightnessValue;
-    document.getElementById("contrastSlider").value = contrastValue;
-    document.getElementById("saturationSlider").value = saturationValue;
-
-    // Update other UI elements
-    document.getElementById("widthInput").value = next.width || "";
-    document.getElementById("heightInput").value = next.height || "";
+    // Restore the redone state
+    restoreState(nextState);
 }
 
 function openImage() {
@@ -798,6 +795,29 @@ function updateAdvancedFilters() {
     image.style.filter = filterString;
 }
 
+// Helper function to get current state
+function getCurrentState() {
+    const image = document.getElementById("image-area");
+    return {
+        src: image.src,
+        width: image.style.width,
+        height: image.style.height,
+        filter: image.style.filter,
+        transform: image.style.transform,
+        display: image.style.display,
+        rotationAngle: rotationAngle,
+        flipX: flipX,
+        flipY: flipY,
+        brightnessValue: brightnessValue,
+        contrastValue: contrastValue,
+        saturationValue: saturationValue,
+        sepiaValue: sepiaValue,
+        bwValue: bwValue,
+        blurValue: blurValue,
+        aspectRatio: aspectRatio
+    };
+}
+
 function RemoveImage() {
     const imageArea = document.getElementById("image-area");
     if (!imageArea.src || imageArea.style.display === "none") {
@@ -805,35 +825,10 @@ function RemoveImage() {
         return;
     }
 
-    // Create a canvas copy of the current image state
-    const canvas = document.createElement('canvas');
-    canvas.width = imageArea.naturalWidth;
-    canvas.height = imageArea.naturalHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(imageArea, 0, 0);
-    const currentImageData = canvas.toDataURL();
+    // Push current state to history
+    pushToHistory();
 
-    // Push current modified state to history
-    const currentState = {
-        src: currentImageData, // Store as data URL instead of original source
-        width: imageArea.style.width,
-        height: imageArea.style.height,
-        filter: imageArea.style.filter,
-        transform: imageArea.style.transform,
-        display: imageArea.style.display,
-        rotationAngle,
-        flipX,
-        flipY,
-        brightnessValue,
-        contrastValue,
-        saturationValue,
-        sepiaValue,
-        bwValue,
-        blurValue
-    };
-    historyStack.push(currentState);
-    
-    // Push empty state
+    // Create empty state
     const emptyState = {
         src: "",
         width: "",
@@ -849,12 +844,15 @@ function RemoveImage() {
         saturationValue: 100,
         sepiaValue: 0,
         bwValue: 0,
-        blurValue: 0
+        blurValue: 0,
+        aspectRatio: 1
     };
+
+    // Push empty state
     historyStack.push(emptyState);
     redoStack = [];
 
-    // Clear the image
+    // Visually clear the image
     imageArea.src = "";
     imageArea.style.display = "none";
     resetImageSettings();

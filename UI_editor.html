@@ -251,6 +251,56 @@ function undo() {
     document.getElementById("heightInput").value = "";
 }
 
+function redo() {
+    if (redoStack.length === 0) return;
+    const image = document.getElementById("image-area");
+    const next = redoStack.pop();
+    historyStack.push(next);
+
+    // Restore the src (image source)
+    if (image.src !== next.src) {
+        image.src = "";
+        setTimeout(() => {
+            image.src = next.src;
+        }, 10);
+    }
+
+    // Restore dimensions (width and height)
+    image.style.width = next.width || "";
+    image.style.height = next.height || "";
+
+    // Restore visual styles
+    image.style.filter = next.filter || "none";
+    image.style.transform = next.transform || "none";
+    image.style.display = next.display || "block";
+
+    // Restore logical state
+    rotationAngle = next.rotationAngle || 0;
+    flipX = next.flipX || 1;
+    flipY = next.flipY || 1;
+    brightnessValue = next.brightnessValue || 100;
+    contrastValue = next.contrastValue || 100;
+    saturationValue = next.saturationValue || 100;
+    sepiaValue = next.sepiaValue || 0;
+    bwValue = next.bwValue || 0;
+    blurValue = next.blurValue || 0;
+
+    // Apply the transform again
+    image.style.transform = `rotate(${rotationAngle}deg) scale(${flipX}, ${flipY})`;
+
+    // Apply filter using logic
+    updateAdvancedFilters();
+
+    // Update sliders and UI elements
+    document.getElementById("brightnessSlider").value = brightnessValue;
+    document.getElementById("contrastSlider").value = contrastValue;
+    document.getElementById("saturationSlider").value = saturationValue;
+
+    // Update other UI elements
+    document.getElementById("widthInput").value = next.width || "";
+    document.getElementById("heightInput").value = next.height || "";
+}
+
 function openImage() {
     const input = document.createElement("input");
     input.type = "file";

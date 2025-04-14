@@ -249,7 +249,16 @@
     <option value="">-- Select a template --</option>
     <option value="template1">Template 1 (Side by Side)</option>
     <option value="template2">Template 2 (2x2 Grid)</option>
+    <option value="template3">Template 3 (Vertical Split)</option>
+    <option value="template4">Template 4 (Horizontal Split)</option>
+    <option value="template5">Template 5 (Left Large + 2 Right Small)</option>
+    <option value="template6">Template 6 (Top Large + 2 Bottom Small)</option>
+    <option value="template7">Template 7 (Quad Mix)</option>
+    <option value="template8">Template 8 (3 Columns)</option>
+    <option value="template9">Template 9 (1 Big Center + 4 Corners)</option>
+    <option value="template10">Template 10 (Diagonal Split)</option>
 </select>
+
 <div id="collageContainer" style="margin-top: 20px;"></div>
 
 <!-- Controls Container -->
@@ -307,20 +316,95 @@
             collageContainer.innerHTML = "";
 
             if (templateName === "template1") {
-                collageContainer.innerHTML = `
-                    <div style="display: flex; gap: 10px; width: 100%; height: 100%; padding: 10px; box-sizing: border-box;">
-                        <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                        <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                    </div>`;
-            } else if (templateName === "template2") {
-                collageContainer.innerHTML = `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; height: 100%; padding: 10px; box-sizing: border-box;">
-                        <div class="template-box">Drop Image Here</div>
-                        <div class="template-box">Drop Image Here</div>
-                        <div class="template-box">Drop Image Here</div>
-                        <div class="template-box">Drop Image Here</div>
-                    </div>`;
-            }
+        // Side by Side
+        collageContainer.innerHTML = `
+            <div style="display: flex; gap: 10px; width: 100%; height: 100%; padding: 10px;">
+                <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                <div class="template-box" style="flex: 1;">Drop Image Here</div>
+            </div>`;
+    } else if (templateName === "template2") {
+        // 2x2 Grid
+        collageContainer.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; height: 100%; padding: 10px;">
+                <div class="template-box">Drop Image Here</div>
+                <div class="template-box">Drop Image Here</div>
+                <div class="template-box">Drop Image Here</div>
+                <div class="template-box">Drop Image Here</div>
+            </div>`;
+    } else if (templateName === "template3") {
+        // Vertical Split
+        collageContainer.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; height: 100%; padding: 10px;">
+                <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                <div class="template-box" style="flex: 1;">Drop Image Here</div>
+            </div>`;
+    } else if (templateName === "template4") {
+        // Horizontal Split
+        collageContainer.innerHTML = `
+            <div style="display: flex; gap: 10px; width: 100%; height: 100%; padding: 10px;">
+                <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                <div class="template-box" style="flex: 1;">Drop Image Here</div>
+            </div>`;
+    } else if (templateName === "template5") {
+        // Left Large + 2 Right Small
+        collageContainer.innerHTML = `
+            <div style="display: flex; gap: 10px; height: 100%; padding: 10px;">
+                <div class="template-box" style="width: 66%;">Drop Image Here</div>
+                <div style="display: flex; flex-direction: column; gap: 10px; width: 34%;">
+                    <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                    <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                </div>
+            </div>`;
+    } else if (templateName === "template6") {
+        // Top Large + 2 Bottom Small
+        collageContainer.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 10px; height: 100%; padding: 10px;">
+                <div class="template-box" style="height: 50%;">Drop Image Here</div>
+                <div style="display: flex; gap: 10px; height: 50%;">
+                    <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                    <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                </div>
+            </div>`;
+    } else if (templateName === "template7") {
+        // Quad Mix (Asymmetrical)
+        collageContainer.innerHTML = `
+            <div style="display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; height: 100%; padding: 10px;">
+                <div class="template-box" style="grid-row: span 2;">Drop Image Here</div>
+                <div class="template-box">Drop Image Here</div>
+                <div class="template-box">Drop Image Here</div>
+            </div>`;
+    } else if (templateName === "template8") {
+        // 3 Columns
+        collageContainer.innerHTML = `
+            <div style="display: flex; gap: 10px; height: 100%; padding: 10px;">
+                <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                <div class="template-box" style="flex: 1;">Drop Image Here</div>
+                <div class="template-box" style="flex: 1;">Drop Image Here</div>
+            </div>`;
+    } else if (templateName === "template9") {
+        // 1 Big Center + 4 Corners
+        collageContainer.innerHTML = `
+            <div style="position: relative; width: 100%; height: 100%; padding: 10px; box-sizing: border-box;">
+                <div class="template-box" style="position: absolute; top: 0; left: 0; width: 30%; height: 30%;">Drop Image Here</div>
+                <div class="template-box" style="position: absolute; top: 0; right: 0; width: 30%; height: 30%;">Drop Image Here</div>
+                <div class="template-box" style="position: absolute; bottom: 0; left: 0; width: 30%; height: 30%;">Drop Image Here</div>
+                <div class="template-box" style="position: absolute; bottom: 0; right: 0; width: 30%; height: 30%;">Drop Image Here</div>
+                <div class="template-box" style="position: absolute; top: 25%; left: 25%; width: 50%; height: 50%;">Drop Image Here</div>
+            </div>`;
+    } else if (templateName === "template10") {
+        // Diagonal Split
+        collageContainer.innerHTML = `
+            <div style="position: relative; width: 100%; height: 100%; padding: 10px; box-sizing: border-box;">
+                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; top: 0; left: 0;">
+                    <polygon points="0,0 100,0 0,100" style="fill: #eee; stroke: #aaa; stroke-width: 0.5;"></polygon>
+                    <polygon points="100,0 100,100 0,100" style="fill: #ddd; stroke: #aaa; stroke-width: 0.5;"></polygon>
+                </svg>
+                <div class="template-box" style="position: absolute; top: 10%; left: 10%; width: 35%; height: 35%;">Drop Image Here</div>
+                <div class="template-box" style="position: absolute; bottom: 10%; right: 10%; width: 35%; height: 35%;">Drop Image Here</div>
+            </div>`;
+    }
         }
 
         templateSelect.addEventListener("change", function () {

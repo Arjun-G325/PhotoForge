@@ -696,7 +696,7 @@ function saveImageToFile(filePath, extension) {
     }
 
     const tempImg = new Image();
-    tempImg.crossOrigin = "Anonymous"; // Important for data URLs
+    tempImg.crossOrigin = "Anonymous";
     tempImg.onload = function() {
         const imgWidth = tempImg.width;
         const imgHeight = tempImg.height;
@@ -955,7 +955,7 @@ function cropImage() {
         cropBox = null;
         isCropping = false;
 
-        // ✅ Remove crop message
+        // Remove crop message
         const msg = document.getElementById("crop-message");
         if (msg) container.removeChild(msg);
     };
@@ -1501,7 +1501,7 @@ function restoreState(state) {
     const image = document.getElementById("image-area");
     if (!image || !state) return;
 
-    suppressResize = true;  // ✅ Prevent resize events during restore
+    suppressResize = true;  // Prevent resize events during restore
 
     image.src = state.src || "";
 
@@ -1530,7 +1530,7 @@ function restoreState(state) {
 
     updateUIControls(state);
 
-    suppressResize = false;  // ✅ Re-enable normal behavior
+    suppressResize = false;  // Re-enable normal behavior
 }
 
 

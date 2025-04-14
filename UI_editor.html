@@ -17,6 +17,7 @@
             height: 100vh;
             justify-content: space-between;
             align-items: center;
+            overflow: hidden;
         }
         .batch-controls {
     display: flex;
@@ -243,6 +244,130 @@ let currentImageIndex = -1;
 let imageSavePaths = [];  // New array to track save path per image
 let suppressResize = false;
 let suppressInputEvents = false;
+let isScribbling = false;
+let canvas, ctx;
+let lastX, lastY;
+
+function flattenScribblesIntoImage() {
+    const image = document.getElementById("image-area");
+    const scribbleCanvas = document.getElementById("scribbleCanvas");
+    if (!image || !scribbleCanvas) return;
+
+    const imgWidth = image.naturalWidth;
+    const imgHeight = image.naturalHeight;
+
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = imgWidth;
+    tempCanvas.height = imgHeight;
+    const ctx = tempCanvas.getContext("2d");
+
+    const tempImg = new Image();
+    tempImg.src = image.src;
+
+    tempImg.onload = () => {
+        // Draw the base image
+        ctx.drawImage(tempImg, 0, 0, imgWidth, imgHeight);
+
+        // Draw the scribbles scaled properly
+        const imageRect = image.getBoundingClientRect();
+        const scribbleCanvasRect = scribbleCanvas.getBoundingClientRect();
+
+        const scaleX = imgWidth / imageRect.width;
+        const scaleY = imgHeight / imageRect.height;
+
+        ctx.scale(scaleX, scaleY);
+        ctx.drawImage(scribbleCanvas, imageRect.left - scribbleCanvasRect.left, imageRect.top - scribbleCanvasRect.top);
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transform
+
+        // Flattened image as base image
+        const newSrc = tempCanvas.toDataURL();
+        image.src = newSrc;
+        imageList[currentImageIndex] = newSrc;
+
+        // Clear scribbles and reset canvas
+        removeScribbleCanvas();
+
+        // Update state and history
+        updateCurrentState();
+        pushToHistory();
+    };
+}
+
+function toggleScribbleTool() {
+    const btn = document.getElementById("scribbleBtn");
+    const colorPicker = document.getElementById("scribbleColor");
+
+    isScribbling = !isScribbling;
+    btn.style.backgroundColor = isScribbling ? "#1e90ff" : "transparent";
+    colorPicker.style.display = isScribbling ? "inline-block" : "none";
+
+    const imageArea = document.getElementById("image-area");
+
+    if (isScribbling) {
+        imageArea.style.cursor = "crosshair";
+        enableScribbleCanvas();
+    } else {
+        imageArea.style.cursor = "default";
+        removeScribbleCanvas();
+    }
+}
+
+function enableScribbleCanvas() {
+    const container = document.getElementById("image-container");
+    canvas = document.createElement("canvas");
+    canvas.id = "scribbleCanvas";
+    canvas.style.position = "absolute";
+    canvas.style.top = "0";
+    canvas.style.left = "0";
+    canvas.style.pointerEvents = "auto";
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    container.appendChild(canvas);
+
+    ctx = canvas.getContext("2d");
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.lineWidth = 2;
+
+    canvas.addEventListener("mousedown", startDraw);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", stopDraw);
+    canvas.addEventListener("mouseout", stopDraw);
+}
+
+function removeScribbleCanvas() {
+    const existingCanvas = document.getElementById("scribbleCanvas");
+    if (existingCanvas) existingCanvas.remove();
+}
+
+let drawing = false;
+
+function startDraw(e) {
+    drawing = true;
+    const rect = canvas.getBoundingClientRect();
+    lastX = e.clientX - rect.left;
+    lastY = e.clientY - rect.top;
+}
+
+function draw(e) {
+    if (!drawing) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    ctx.strokeStyle = document.getElementById("scribbleColor").value;
+
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    lastX = x;
+    lastY = y;
+}
+
+function stopDraw() {
+    drawing = false;
+    pushToHistory();
+}
 
 function toggleBatchProcessing() {
     const checkbox = document.getElementById("batchCheckbox");
@@ -612,194 +737,169 @@ function nextImage() {
 }
 
 const { ipcRenderer } = require('electron');
-
 function saveImageAs() {
-    const image = document.getElementById("image-area");
-    const isImageLoaded = image && image.complete && image.naturalWidth > 0;
-
-    if (!isImageLoaded) {
-        ipcRenderer.send("show-error-dialog", {
-            title: "Save Error",
-            message: "Please load an image before saving."
-        });
-        return;
-    }
-
-    ipcRenderer.send("request-save-dialog");
+const image = document.getElementById("image-area");
+const isImageLoaded = image && image.complete && image.naturalWidth > 0;
+if (!isImageLoaded) {
+    ipcRenderer.send("show-error-dialog", {
+        title: "Save Error",
+        message: "Please load an image before saving."
+    });
+    return;
 }
-
+ipcRenderer.send("request-save-dialog");
+}
 function saveImage() {
-    if (currentImageIndex === -1 || !imageList[currentImageIndex]) return;
-
-    if (isBatchProcessing) {
-        // Batch save all images
-        saveAllImages();
-    } else {
-        // Normal single image save
-        const saveInfo = imageSavePaths[currentImageIndex];
-        if (!saveInfo || !saveInfo.filePath || !saveInfo.extension) {
-            saveImageAs(); // Prompt Save As if path not set
-            return;
-        }
-        saveImageToFile(saveInfo.filePath, saveInfo.extension);
+if (currentImageIndex === -1 || !imageList[currentImageIndex]) return;
+if (isBatchProcessing) {
+    // Batch save all images
+    saveAllImages();
+} else {
+    // Normal single image save
+    const saveInfo = imageSavePaths[currentImageIndex];
+    if (!saveInfo || !saveInfo.filePath || !saveInfo.extension) {
+        saveImageAs(); // Prompt Save As if path not set
+        return;
     }
+    saveImageToFile(saveInfo.filePath, saveInfo.extension);
 }
-
+}
 function saveAllImages() {
-    if (imageList.length === 0) {
-        alert("No images to save");
-        return;
+if (imageList.length === 0) {
+    alert("No images to save");
+    return;
+}
+const originalIndex = currentImageIndex;
+let successCount = 0;
+let errorCount = 0;
+for (let i = 0; i < imageList.length; i++) {
+    currentImageIndex = i;
+    const saveInfo = imageSavePaths[i];
+    if (!saveInfo || !saveInfo.filePath || !saveInfo.extension) {
+        errorCount++;
+        continue; // Skip images without save paths
     }
-
-    const originalIndex = currentImageIndex;
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (let i = 0; i < imageList.length; i++) {
-        currentImageIndex = i;
-        const saveInfo = imageSavePaths[i];
-        
-        if (!saveInfo || !saveInfo.filePath || !saveInfo.extension) {
-            errorCount++;
-            continue; // Skip images without save paths
-        }
-
-        try {
-            saveImageToFile(saveInfo.filePath, saveInfo.extension);
-            successCount++;
-        } catch (e) {
-            errorCount++;
-        }
-    }
-
-    currentImageIndex = originalIndex;
-    displayImage(originalIndex);
-    
-    if (errorCount > 0) {
-        alert(`Saved ${successCount} images, ${errorCount} failed (missing save path)`);
-    } else {
-        alert(`Successfully saved ${successCount} images`);
+    try {
+        saveImageToFile(saveInfo.filePath, saveInfo.extension);
+        successCount++;
+    } catch (e) {
+        errorCount++;
     }
 }
-
+currentImageIndex = originalIndex;
+displayImage(originalIndex);
+if (errorCount > 0) {
+    alert(`Saved ${successCount} images, ${errorCount} failed (missing save path)`);
+} else {
+    alert(`Successfully saved ${successCount} images`);
+}
+}
 function saveImageToFile(filePath, extension) {
-    const image = document.getElementById("image-area");
-    if (!image || !image.src) {
-        alert("No image loaded.");
+const image = document.getElementById("image-area");
+if (!image || !image.src) {
+    alert("No image loaded.");
+    return;
+}
+const state = getCurrentState();
+if (!state) {
+    alert("No image state found.");
+    return;
+}
+const tempImg = new Image();
+tempImg.crossOrigin = "Anonymous";
+tempImg.onload = function() {
+    const imgWidth = tempImg.width;
+    const imgHeight = tempImg.height;
+    if (!imgWidth || !imgHeight) {
+        alert("Image dimensions are invalid.");
         return;
     }
-
-    const state = getCurrentState();
-    if (!state) {
-        alert("No image state found.");
-        return;
+    const angle = state.rotationAngle || 0;
+    const radians = angle * Math.PI / 180;
+    const rotate90or270 = Math.abs(angle) % 180 === 90;
+    const canvas = document.createElement("canvas");
+    canvas.width = rotate90or270 ? imgHeight : imgWidth;
+    canvas.height = rotate90or270 ? imgWidth : imgHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(radians);
+    ctx.scale(state.flipX ?? 1, state.flipY ?? 1);
+    ctx.filter = `
+        brightness(${state.brightnessValue ?? 100}%)
+        contrast(${state.contrastValue ?? 100}%)
+        saturate(${state.saturationValue ?? 100}%)
+        sepia(${state.sepiaValue ?? 0}%)
+        grayscale(${state.bwValue ?? 0}%)
+        blur(${state.blurValue ?? 0}px)
+    `.trim();
+    ctx.drawImage(tempImg, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
+// Merge scribbleCanvas if active
+const scribbleCanvas = document.getElementById("scribbleCanvas");
+if (scribbleCanvas) {
+const scaleX = canvas.width / scribbleCanvas.width;
+const scaleY = canvas.height / scribbleCanvas.height;
+ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0); // scale to fit
+ctx.drawImage(scribbleCanvas, 0, 0);
+ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+}
+    ctx.restore();
+    // Determine quality based on format
+    let quality = 0.92; // Default quality for JPEG/WEBP
+    if (extension === 'png' || extension === 'bmp') {
+        quality = 1.0; // Lossless formats
     }
-
-    const tempImg = new Image();
-    tempImg.crossOrigin = "Anonymous";
-    tempImg.onload = function() {
-        const imgWidth = tempImg.width;
-        const imgHeight = tempImg.height;
-
-        if (!imgWidth || !imgHeight) {
-            alert("Image dimensions are invalid.");
+    // Convert to proper MIME type
+    let mimeType;
+    switch (extension.toLowerCase()) {
+        case 'jpg':
+        case 'jpeg':
+            mimeType = 'image/jpeg';
+            break;
+        case 'webp':
+            mimeType = 'image/webp';
+            break;
+        case 'bmp':
+            mimeType = 'image/bmp';
+            break;
+        default:
+            mimeType = 'image/png';
+    }
+    // Convert canvas to buffer
+    canvas.toBlob(async (blob) => {
+        if (!blob) {
+            alert("Failed to create image blob");
             return;
         }
-
-        const angle = state.rotationAngle || 0;
-        const radians = angle * Math.PI / 180;
-        const rotate90or270 = Math.abs(angle) % 180 === 90;
-
-        const canvas = document.createElement("canvas");
-        canvas.width = rotate90or270 ? imgHeight : imgWidth;
-        canvas.height = rotate90or270 ? imgWidth : imgHeight;
-
-        const ctx = canvas.getContext("2d");
-        ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate(radians);
-        ctx.scale(state.flipX ?? 1, state.flipY ?? 1);
-
-        ctx.filter = `
-            brightness(${state.brightnessValue ?? 100}%)
-            contrast(${state.contrastValue ?? 100}%)
-            saturate(${state.saturationValue ?? 100}%)
-            sepia(${state.sepiaValue ?? 0}%)
-            grayscale(${state.bwValue ?? 0}%)
-            blur(${state.blurValue ?? 0}px)
-        `.trim();
-
-        ctx.drawImage(tempImg, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
-        ctx.restore();
-
-        // Determine quality based on format
-        let quality = 0.92; // Default quality for JPEG/WEBP
-        if (extension === 'png' || extension === 'bmp') {
-            quality = 1.0; // Lossless formats
-        }
-
-        // Convert to proper MIME type
-        let mimeType;
-        switch (extension.toLowerCase()) {
-            case 'jpg':
-            case 'jpeg':
-                mimeType = 'image/jpeg';
-                break;
-            case 'webp':
-                mimeType = 'image/webp';
-                break;
-            case 'bmp':
-                mimeType = 'image/bmp';
-                break;
-            default:
-                mimeType = 'image/png';
-        }
-
-        // Convert canvas to buffer
-        canvas.toBlob(async (blob) => {
-            if (!blob) {
-                alert("Failed to create image blob");
-                return;
+        try {
+            const arrayBuffer = await blob.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            // Ensure directory exists
+            const path = require('path');
+            const fs = require('fs');
+            const dir = path.dirname(filePath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
             }
-
-            try {
-                const arrayBuffer = await blob.arrayBuffer();
-                const buffer = Buffer.from(arrayBuffer);
-                
-                // Ensure directory exists
-                const path = require('path');
-                const fs = require('fs');
-                const dir = path.dirname(filePath);
-                
-                if (!fs.existsSync(dir)) {
-                    fs.mkdirSync(dir, { recursive: true });
-                }
-
-                // Write file synchronously to ensure completion
-                fs.writeFileSync(filePath, buffer);
-            } catch (err) {
-                alert(`Failed to save image: ${err.message}`);
-            }
-        }, mimeType, quality);
-    };
-
-    tempImg.onerror = function() {
-        alert("Error loading image for saving");
-    };
-
-    tempImg.src = image.src;
+            // Write file synchronously to ensure completion
+            fs.writeFileSync(filePath, buffer);
+        } catch (err) {
+            alert(`Failed to save image: ${err.message}`);
+        }
+    }, mimeType, quality);
+};
+tempImg.onerror = function() {
+    alert("Error loading image for saving");
+};
+tempImg.src = image.src;
 }
-
 ipcRenderer.on("save-file-path", async (event, { filePath, extension }) => {
-    if (!filePath || currentImageIndex === -1) return;
-
-    const saveInfo = { filePath, extension };
-    imageSavePaths[currentImageIndex] = saveInfo; // Per-image path
-    currentSavePath = saveInfo; // Optional fallback
-
-    saveImageToFile(filePath, extension);
+if (!filePath || currentImageIndex === -1) return;
+const saveInfo = { filePath, extension };
+imageSavePaths[currentImageIndex] = saveInfo; // Per-image path
+currentSavePath = saveInfo; // Optional fallback
+saveImageToFile(filePath, extension);
 });
-
 let startX, startY;
 let cropBox = null;
 let isCropping = false;
@@ -1692,9 +1792,18 @@ suppressInputEvents = false;
         <input type="checkbox" id="batchCheckbox">
         <label for="batchCheckbox">Process Batch</label>
     </div>
-    
-</div>
+
+    <div class="scribble-controls" style="display: flex; align-items: center; gap: 8px;">
+        <button id="scribbleBtn" onclick="toggleScribbleTool()" style="background: none; border: none; cursor: pointer;">
+            <i class="fa-solid fa-pen" style="color: white;"></i>
+            <span class="tooltip">Scribble</span>
+        </button>
+        <input type="color" id="scribbleColor" style="display: none;" title="Scribble Color">
     </div>
+</div>
+</div>
+
+
     
     <div class="content">
         <div id="image-container">
@@ -1705,6 +1814,7 @@ suppressInputEvents = false;
         <button onclick="prevImage()"><i class="fa-solid fa-chevron-left"></i><span class="tooltip">Previous</span></button>
         <button onclick="nextImage()"><i class="fa-solid fa-chevron-right"></i><span class="tooltip">Next</span></button>
     </div>
+         
     <div id="image-count" style="color: white; margin-top: 5px;"></div>
     
 </body>

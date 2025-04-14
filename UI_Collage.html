@@ -267,12 +267,13 @@
     </div>
     <div class="partition"></div>
 
-<div class="icon-grid">
-    <button onclick="enableDrawing()"><i class="fa-solid fa-paintbrush"></i><span class="tooltip">Draw</span></button>
-    <button onclick="disableDrawing()"><i class="fa-solid fa-ban"></i><span class="tooltip">Stop Drawing</span></button>
-    <input type="color" id="drawingColor" value="#ff0000" title="Drawing Color" style="width: 30px; height: 30px; cursor: pointer;">
-    <input type="range" id="brushSize" min="1" max="50" value="5" title="Brush Size" style="width: 60px;">
-</div>
+    <div class="icon-grid">
+        <button onclick="enableDrawing()"><i class="fa-solid fa-paintbrush"></i><span class="tooltip">Draw</span></button>
+        <button onclick="enableEraser()"><i class="fa-solid fa-eraser"></i><span class="tooltip">Eraser</span></button>
+        <button onclick="disableDrawing()"><i class="fa-solid fa-ban"></i><span class="tooltip">Stop Drawing</span></button>
+        <input type="color" id="drawingColor" value="#ff0000" title="Drawing Color" style="width: 30px; height: 30px; cursor: pointer;">
+        <input type="range" id="brushSize" min="1" max="50" value="5" title="Brush Size" style="width: 60px;">
+    </div>
 </div>
 
 <label for="templateSelect">Choose a template:</label>
@@ -340,6 +341,7 @@
     let startX, startY, startWidth, startHeight, startLeft, startTop;
    
     let isDrawingEnabled = false;
+    let isEraserEnabled = false;
 let isDrawing = false;
 let lastX = 0;
 let lastY = 0;
@@ -455,6 +457,104 @@ let currentDrawingCtx = null;
     function goHome() {
         window.close();
     }
+    function enableEraser() {
+    if (!selectedImage) {
+        alert("Please select an image first");
+        return;
+    }
+    
+    if (isCropping) resetCrop();
+    if (isResizingEnabled) disableResize();
+    
+    isEraserEnabled = true;
+    isDrawingEnabled = false;
+    
+    const drawingCanvas = selectedImage.nextElementSibling;
+    if (!drawingCanvas || !drawingCanvas.classList.contains('drawing-canvas')) {
+        alert("No drawing to erase. Please draw something first.");
+        isEraserEnabled = false;
+        return;
+    }
+    
+    drawingCanvas.style.pointerEvents = 'auto';
+    document.body.style.cursor = 'crosshair';
+    
+    drawingCanvas.addEventListener('mousedown', startErasing);
+    drawingCanvas.addEventListener('mousemove', erase);
+    drawingCanvas.addEventListener('mouseup', stopErasing);
+    drawingCanvas.addEventListener('mouseout', stopErasing);
+}
+
+function startErasing(e) {
+    isDrawing = true;
+    const rect = e.target.getBoundingClientRect();
+    lastX = e.clientX - rect.left;
+    lastY = e.clientY - rect.top;
+    
+    // Erase at the starting point
+    eraseAtPosition(lastX, lastY);
+}
+
+function erase(e) {
+    if (!isDrawing) return;
+    
+    const rect = e.target.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Erase along the path
+    eraseLine(lastX, lastY, x, y);
+    
+    lastX = x;
+    lastY = y;
+}
+
+function eraseAtPosition(x, y) {
+    const drawingCanvas = selectedImage.nextElementSibling;
+    if (!drawingCanvas) return;
+    
+    const ctx = drawingCanvas.getContext('2d');
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(x, y, brushSize/2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+}
+
+function eraseLine(x1, y1, x2, y2) {
+    const drawingCanvas = selectedImage.nextElementSibling;
+    if (!drawingCanvas) return;
+    
+    const ctx = drawingCanvas.getContext('2d');
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
+}
+
+function stopErasing() {
+    isDrawing = false;
+}
+
+function disableEraser() {
+    if (!selectedImage) return;
+    
+    const drawingCanvas = selectedImage.nextElementSibling;
+    if (!drawingCanvas) return;
+    
+    isEraserEnabled = false;
+    document.body.style.cursor = '';
+    drawingCanvas.style.pointerEvents = 'none';
+    
+    drawingCanvas.removeEventListener('mousedown', startErasing);
+    drawingCanvas.removeEventListener('mousemove', erase);
+    drawingCanvas.removeEventListener('mouseup', stopErasing);
+    drawingCanvas.removeEventListener('mouseout', stopErasing);
+}
     function initializeDrawingCanvas() {
     // Create canvas for drawing
     drawingCanvas = document.createElement('canvas');
@@ -498,6 +598,7 @@ function enableDrawing() {
     
     if (isCropping) resetCrop();
     if (isResizingEnabled) disableResize();
+    if (isEraserEnabled) disableEraser();
     
     isDrawingEnabled = true;
     const drawingCanvas = selectedImage.nextElementSibling;
@@ -899,6 +1000,7 @@ function makeDraggable(element) {
         selectedImage.classList.remove('selected');
         disableResize();
         disableDrawing();
+        disableEraser();
     }
     
     selectedImage = img;
@@ -925,6 +1027,7 @@ function makeDraggable(element) {
     currentDrawingCtx.lineWidth = brushSize;
     currentDrawingCtx.lineJoin = 'round';
     currentDrawingCtx.lineCap = 'round';
+    currentDrawingCanvas = drawingCanvas;
     
     // Add event listeners for color and brush size changes
     document.getElementById('drawingColor').addEventListener('input', function() {
@@ -1103,27 +1206,39 @@ function doResize(e) {
             break;
     }
     
-    // Resize the drawing canvas first (preserve content)
+    // Resize the drawing canvas
     const drawingCanvas = selectedImage.nextElementSibling;
     if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
-        // Create a temporary canvas to preserve the drawing
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = drawingCanvas.width;
-        tempCanvas.height = drawingCanvas.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.drawImage(drawingCanvas, 0, 0);
+        // Create a new canvas with the new dimensions
+        const newCanvas = document.createElement('canvas');
+        newCanvas.className = 'drawing-canvas';
+        newCanvas.width = newWidth;
+        newCanvas.height = newHeight;
         
-        // Resize the drawing canvas
-        drawingCanvas.width = newWidth;
-        drawingCanvas.height = newHeight;
-        drawingCanvas.style.width = newWidth + 'px';
-        drawingCanvas.style.height = newHeight + 'px';
-        drawingCanvas.style.left = newLeft + 'px';
-        drawingCanvas.style.top = newTop + 'px';
+        // Copy the drawing content without scaling
+        const newCtx = newCanvas.getContext('2d');
+        const oldCtx = drawingCanvas.getContext('2d');
         
-        // Redraw the preserved content scaled to new size
-        const ctx = drawingCanvas.getContext('2d');
-        ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, newWidth, newHeight);
+        // Get the image data from the original canvas
+        const imageData = oldCtx.getImageData(0, 0, drawingCanvas.width, drawingCanvas.height);
+        
+        // Put it on the new canvas at the same position
+        newCtx.putImageData(imageData, 0, 0);
+        
+        // Replace the old canvas with the new one
+        drawingCanvas.parentNode.replaceChild(newCanvas, drawingCanvas);
+        
+        // Style the new canvas
+        newCanvas.style.position = 'absolute';
+        newCanvas.style.left = newLeft + 'px';
+        newCanvas.style.top = newTop + 'px';
+        newCanvas.style.width = newWidth + 'px';
+        newCanvas.style.height = newHeight + 'px';
+        newCanvas.style.pointerEvents = 'none';
+        
+        // Update current drawing context reference
+        currentDrawingCtx = newCtx;
+        currentDrawingCanvas = newCanvas;
     }
     
     // Then resize the image
@@ -1185,12 +1300,19 @@ function disableResize() {
     }
 
     function deleteSelectedImage() {
-        if (!selectedImage) return;
-        collageContainer.removeChild(selectedImage);
-        selectedImage = null;
-        disableResize();
+    if (!selectedImage) return;
+    
+    // Find and remove the associated drawing canvas
+    const drawingCanvas = selectedImage.nextElementSibling;
+    if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
+        collageContainer.removeChild(drawingCanvas);
     }
-   
+    
+    // Remove the image
+    collageContainer.removeChild(selectedImage);
+    selectedImage = null;
+    disableResize();
+}
     function bakeAllSliderFilters(image) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');

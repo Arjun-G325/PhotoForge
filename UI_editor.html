@@ -1289,28 +1289,132 @@ function debounce(fn, delay) {
     };
 }
 
-// Update the window.onload event listeners to handle input events better
+function handleSliderInput(sliderId, value) {
+    const image = document.getElementById("image-area");
+    const state = getCurrentState();
+    if (!image || !state || !image.src) return;
+
+    // Update the corresponding value in state
+    switch(sliderId) {
+        case 'brightnessSlider':
+            state.brightnessValue = value;
+            break;
+        case 'contrastSlider':
+            state.contrastValue = value;
+            break;
+        case 'saturationSlider':
+            state.saturationValue = value;
+            break;
+        case 'sepiaSlider':
+            state.sepiaValue = value;
+            break;
+        case 'bwSlider':
+            state.bwValue = value;
+            break;
+        case 'blurSlider':
+            state.blurValue = value;
+            break;
+    }
+
+    // Build the filter string
+    const filterString = `
+        brightness(${state.brightnessValue}%)
+        contrast(${state.contrastValue}%)
+        saturate(${state.saturationValue}%)
+        sepia(${state.sepiaValue}%)
+        grayscale(${state.bwValue}%)
+        blur(${state.blurValue}px)
+    `.trim();
+
+    // Apply to current image
+    image.style.filter = filterString;
+    state.filter = filterString;
+
+    // If batch processing is enabled, apply to all images
+    if (isBatchProcessing) {
+        const originalIndex = currentImageIndex;
+        const currentFilters = {
+            brightness: state.brightnessValue,
+            contrast: state.contrastValue,
+            saturation: state.saturationValue,
+            sepia: state.sepiaValue,
+            bw: state.bwValue,
+            blur: state.blurValue
+        };
+
+        // Apply to all images
+        for (let i = 0; i < imageList.length; i++) {
+            currentImageIndex = i;
+            const imgState = getCurrentState();
+            if (!imgState) continue;
+
+            // Update all filter values in state
+            imgState.brightnessValue = currentFilters.brightness;
+            imgState.contrastValue = currentFilters.contrast;
+            imgState.saturationValue = currentFilters.saturation;
+            imgState.sepiaValue = currentFilters.sepia;
+            imgState.bwValue = currentFilters.bw;
+            imgState.blurValue = currentFilters.blur;
+            imgState.filter = filterString;
+
+            // Update the image display if it's the currently displayed image
+            if (i === originalIndex) {
+                image.style.filter = filterString;
+            }
+        }
+
+        currentImageIndex = originalIndex;
+    }
+}
+
+function handleSliderChange() {
+    // Push current state to history
+    pushToHistory();
+    
+    // If batch processing, update all images in history
+    if (isBatchProcessing) {
+        const originalIndex = currentImageIndex;
+        const currentState = getCurrentState();
+        
+        if (currentState) {
+            for (let i = 0; i < imageList.length; i++) {
+                currentImageIndex = i;
+                const imgState = getCurrentState();
+                
+                if (imgState) {
+                    // Update the state with current filter values
+                    imgState.brightnessValue = currentState.brightnessValue;
+                    imgState.contrastValue = currentState.contrastValue;
+                    imgState.saturationValue = currentState.saturationValue;
+                    imgState.sepiaValue = currentState.sepiaValue;
+                    imgState.bwValue = currentState.bwValue;
+                    imgState.blurValue = currentState.blurValue;
+                    imgState.filter = currentState.filter;
+                    
+                    pushToHistory();
+                }
+            }
+        }
+        
+        currentImageIndex = originalIndex;
+    }
+}
+
 window.onload = function () {
     const widthInput = document.getElementById("widthInput");
     const heightInput = document.getElementById("heightInput");
 
     widthInput.addEventListener("input", debounce(function () {
-    if (suppressInputEvents) return;
-    heightInput.value = "";
-    resizeImage();
-}, 300));
+        if (suppressInputEvents) return;
+        heightInput.value = "";
+        resizeImage();
+    }, 300));
 
-heightInput.addEventListener("input", debounce(function () {
-    if (suppressInputEvents) return;
-    widthInput.value = "";
-    resizeImage();
-}, 300));
-
-    // Sliders still work
-    document.querySelectorAll('input[type="range"]').forEach(slider => {
-        slider.addEventListener("input", updateAdvancedFilters);
-        slider.addEventListener("change", pushToHistory);
-    });
+    heightInput.addEventListener("input", debounce(function () {
+        if (suppressInputEvents) return;
+        widthInput.value = "";
+        resizeImage();
+    }, 300));
 };
 
 function applyFilters() {
@@ -1516,8 +1620,8 @@ suppressInputEvents = false;
             <input type="range" min="0" max="100" value="0"
                 id="sepiaSlider"
                 style="width: 80px; height: 4px;"
-                oninput="sepiaValue = this.value; updateAdvancedFilters();"
-                onmouseup="pushToHistory();">
+                oninput="handleSliderInput(this.id, this.value)"
+    onchange="handleSliderChange()">
         </div>
 
         <!-- Black & White -->
@@ -1526,8 +1630,8 @@ suppressInputEvents = false;
             <input type="range" min="0" max="100" value="0"
                 id="bwSlider"
                 style="width: 80px; height: 4px;"
-                oninput="bwValue = this.value; updateAdvancedFilters();"
-                onmouseup="pushToHistory();">
+                oninput="handleSliderInput(this.id, this.value)"
+    onchange="handleSliderChange()">
         </div>
 
         <!-- Blur -->
@@ -1536,8 +1640,8 @@ suppressInputEvents = false;
             <input type="range" min="0" max="10" value="0"
                 id="blurSlider"
                 style="width: 80px; height: 4px;"
-                oninput="blurValue = this.value; updateAdvancedFilters();"
-                onmouseup="pushToHistory();">
+                oninput="handleSliderInput(this.id, this.value)"
+    onchange="handleSliderChange()">
         </div>
     </div>
     <div class="partition"></div>
@@ -1553,8 +1657,8 @@ suppressInputEvents = false;
         <input type="range" min="0" max="200" value="100"
             id="brightnessSlider"
             style="width: 80px; height: 4px;"
-            oninput="brightnessValue = this.value; updateAdvancedFilters();"
-            onmouseup="pushToHistory();">
+            oninput="handleSliderInput(this.id, this.value)"
+    onchange="handleSliderChange()">
     </div>
 
     <!-- Contrast -->
@@ -1563,8 +1667,8 @@ suppressInputEvents = false;
         <input type="range" min="0" max="200" value="100"
             id="contrastSlider"
             style="width: 80px; height: 4px;"
-            oninput="contrastValue = this.value; updateAdvancedFilters();"
-            onmouseup="pushToHistory();">
+            oninput="handleSliderInput(this.id, this.value)"
+    onchange="handleSliderChange()">
     </div>
 
     <!-- Saturation -->
@@ -1573,8 +1677,8 @@ suppressInputEvents = false;
         <input type="range" min="0" max="200" value="100"
             id="saturationSlider"
             style="width: 80px; height: 4px;"
-            oninput="saturationValue = this.value; updateAdvancedFilters();"
-            onmouseup="pushToHistory();">
+            oninput="handleSliderInput(this.id, this.value)"
+    onchange="handleSliderChange()">
     </div>
 </div>
       <div class="partition"></div>

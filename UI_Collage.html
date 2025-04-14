@@ -210,6 +210,29 @@
             color: #777;
             font-style: italic;
         }
+        .drawing-canvas {
+    position: absolute;
+    pointer-events: none;
+    z-index: 5;
+    border: 2px solid transparent;
+}
+
+.selected + .drawing-canvas {
+    border-color: yellow;
+}
+
+#drawingColor {
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0 5px;
+}
+
+#brushSize {
+    margin: 0 5px;
+    background: #555;
+    height: 4px;
+}
     </style>
 </head>
 
@@ -242,6 +265,14 @@
         <button onclick="applyFilter('sepia')"><i class="fa-solid fa-tint"></i><span class="tooltip">Sepia</span></button>
         <button onclick="applyFilter('blur')"><i class="fa-solid fa-smog"></i><span class="tooltip">Blur</span></button>
     </div>
+    <div class="partition"></div>
+
+<div class="icon-grid">
+    <button onclick="enableDrawing()"><i class="fa-solid fa-paintbrush"></i><span class="tooltip">Draw</span></button>
+    <button onclick="disableDrawing()"><i class="fa-solid fa-ban"></i><span class="tooltip">Stop Drawing</span></button>
+    <input type="color" id="drawingColor" value="#ff0000" title="Drawing Color" style="width: 30px; height: 30px; cursor: pointer;">
+    <input type="range" id="brushSize" min="1" max="50" value="5" title="Brush Size" style="width: 60px;">
+</div>
 </div>
 
 <label for="templateSelect">Choose a template:</label>
@@ -307,6 +338,14 @@
     let isResizing = false;
     let resizeDirection = null;
     let startX, startY, startWidth, startHeight, startLeft, startTop;
+   
+    let isDrawingEnabled = false;
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+let currentColor = '#ff0000';
+let brushSize = 5;
+let currentDrawingCtx = null;
 
     document.addEventListener("DOMContentLoaded", function () {
         const templateSelect = document.getElementById("templateSelect");
@@ -416,6 +455,113 @@
     function goHome() {
         window.close();
     }
+    function initializeDrawingCanvas() {
+    // Create canvas for drawing
+    drawingCanvas = document.createElement('canvas');
+    drawingCanvas.id = 'drawing-canvas';
+    drawingCanvas.style.position = 'absolute';
+    drawingCanvas.style.top = '0';
+    drawingCanvas.style.left = '0';
+    drawingCanvas.style.zIndex = '10';
+    drawingCanvas.style.pointerEvents = 'none';
+    
+    // Set canvas size to match container
+    drawingCanvas.width = collageContainer.offsetWidth;
+    drawingCanvas.height = collageContainer.offsetHeight;
+    
+    collageContainer.appendChild(drawingCanvas);
+    drawingCtx = drawingCanvas.getContext('2d');
+    
+    // Set initial drawing styles
+    drawingCtx.strokeStyle = currentColor;
+    drawingCtx.lineWidth = brushSize;
+    drawingCtx.lineJoin = 'round';
+    drawingCtx.lineCap = 'round';
+    
+    // Watch for color and brush size changes
+    document.getElementById('drawingColor').addEventListener('input', function() {
+        currentColor = this.value;
+        drawingCtx.strokeStyle = currentColor;
+    });
+    
+    document.getElementById('brushSize').addEventListener('input', function() {
+        brushSize = this.value;
+        drawingCtx.lineWidth = brushSize;
+    });
+}
+
+function enableDrawing() {
+    if (!selectedImage) {
+        alert("Please select an image first");
+        return;
+    }
+    
+    if (isCropping) resetCrop();
+    if (isResizingEnabled) disableResize();
+    
+    isDrawingEnabled = true;
+    const drawingCanvas = selectedImage.nextElementSibling;
+    drawingCanvas.style.pointerEvents = 'auto';
+    document.body.style.cursor = 'crosshair';
+    
+    drawingCanvas.addEventListener('mousedown', startDrawing);
+    drawingCanvas.addEventListener('mousemove', draw);
+    drawingCanvas.addEventListener('mouseup', stopDrawing);
+    drawingCanvas.addEventListener('mouseout', stopDrawing);
+}
+
+function disableDrawing() {
+    if (!selectedImage) return;
+    
+    const drawingCanvas = selectedImage.nextElementSibling;
+    if (!drawingCanvas) return;
+    
+    isDrawingEnabled = false;
+    isDrawing = false;
+    document.body.style.cursor = '';
+    drawingCanvas.style.pointerEvents = 'none';
+    
+    drawingCanvas.removeEventListener('mousedown', startDrawing);
+    drawingCanvas.removeEventListener('mousemove', draw);
+    drawingCanvas.removeEventListener('mouseup', stopDrawing);
+    drawingCanvas.removeEventListener('mouseout', stopDrawing);
+}
+
+function startDrawing(e) {
+    isDrawing = true;
+    const rect = e.target.getBoundingClientRect();
+    lastX = e.clientX - rect.left;
+    lastY = e.clientY - rect.top;
+    
+    currentDrawingCtx.beginPath();
+    currentDrawingCtx.arc(lastX, lastY, brushSize/2, 0, Math.PI * 2);
+    currentDrawingCtx.fill();
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    
+    const rect = e.target.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    currentDrawingCtx.beginPath();
+    currentDrawingCtx.moveTo(lastX, lastY);
+    currentDrawingCtx.lineTo(x, y);
+    currentDrawingCtx.stroke();
+    
+    lastX = x;
+    lastY = y;
+}
+
+function stopDrawing() {
+    isDrawing = false;
+}
+function clearDrawing() {
+    if (drawingCanvas) {
+        drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+    }
+}
     
     function openImages() {
         const input = document.createElement('input');
@@ -467,8 +613,7 @@
     let isCropping = false;
 let cropStartX, cropStartY;
 let cropRect = null;
-let wasDraggable = false; // To store original draggable state
-
+let wasDraggable = false;
 function cropSelectedImage() {
     if (!selectedImage) {
         alert("Please select an image first");
@@ -489,27 +634,34 @@ function cropSelectedImage() {
     // Store original draggable state and disable dragging
     wasDraggable = selectedImage.hasAttribute('draggable');
     selectedImage.removeAttribute('draggable');
-    selectedImage.style.pointerEvents = 'none'; // Disable mouse events on image
+    selectedImage.style.pointerEvents = 'none';
 
     // Set cropping mode
     isCropping = true;
 
     // Change cursor to indicate cropping mode
-    collageContainer.style.cursor = 'crosshair';
+    document.body.style.cursor = 'crosshair';
 
-    // Add event listeners for cropping (on container, not image)
-    collageContainer.addEventListener('mousedown', startCrop);
+    // Add event listeners for cropping - listen on the whole document
+    document.addEventListener('mousedown', startCrop);
+    document.addEventListener('mousemove', drawCropArea);
     document.addEventListener('mouseup', endCrop);
 }
 
 function startCrop(e) {
-    if (!isCropping || e.target !== collageContainer) return;
+    if (!isCropping) return;
+    
+    // Don't start crop if clicking on a button or other UI element
+    if (e.target.closest('button, .toolbar, .resize-handle')) {
+        return;
+    }
 
     e.stopPropagation();
     e.preventDefault();
 
-    // Get container position
-    const containerRect = collageContainer.getBoundingClientRect();
+    // Get container position - use the selected image's offset parent
+    const container = selectedImage.offsetParent || collageContainer;
+    const containerRect = container.getBoundingClientRect();
 
     // Calculate coordinates relative to container
     cropStartX = e.clientX - containerRect.left;
@@ -518,14 +670,12 @@ function startCrop(e) {
     // Create crop rectangle element
     cropRect = document.createElement('div');
     cropRect.className = 'crop-rectangle';
-    cropRect.style.position = 'absolute';
-    cropRect.style.left = cropStartX + 'px';
-    cropRect.style.top = cropStartY + 'px';
+    cropRect.style.left = (cropStartX + container.scrollLeft) + 'px';
+    cropRect.style.top = (cropStartY + container.scrollTop) + 'px';
+    cropRect.style.width = '0px';
+    cropRect.style.height = '0px';
     
-    collageContainer.appendChild(cropRect);
-
-    // Add mousemove listener for drawing the crop area
-    document.addEventListener('mousemove', drawCropArea);
+    container.appendChild(cropRect);
 }
 
 function drawCropArea(e) {
@@ -534,15 +684,16 @@ function drawCropArea(e) {
     e.stopPropagation();
     e.preventDefault();
 
-    const containerRect = collageContainer.getBoundingClientRect();
+    const container = selectedImage.offsetParent || collageContainer;
+    const containerRect = container.getBoundingClientRect();
     const currentX = e.clientX - containerRect.left;
     const currentY = e.clientY - containerRect.top;
 
     // Calculate dimensions and position
     const width = Math.abs(currentX - cropStartX);
     const height = Math.abs(currentY - cropStartY);
-    const left = Math.min(currentX, cropStartX);
-    const top = Math.min(currentY, cropStartY);
+    const left = Math.min(currentX, cropStartX) + container.scrollLeft;
+    const top = Math.min(currentY, cropStartY) + container.scrollTop;
 
     // Update crop rectangle
     cropRect.style.width = width + 'px';
@@ -551,19 +702,77 @@ function drawCropArea(e) {
     cropRect.style.top = top + 'px';
 }
 
+function applyCropToImage(cropLeft, cropTop, cropWidth, cropHeight) {
+    // Create canvas for cropping
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas dimensions to crop size
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+    
+    // Calculate image position relative to its container
+    const imgRect = selectedImage.getBoundingClientRect();
+    const container = selectedImage.offsetParent || collageContainer;
+    const containerRect = container.getBoundingClientRect();
+    
+    // Calculate source coordinates (relative to image)
+    const imgLeft = imgRect.left - containerRect.left + container.scrollLeft;
+    const imgTop = imgRect.top - containerRect.top + container.scrollTop;
+    
+    const srcX = cropLeft - imgLeft;
+    const srcY = cropTop - imgTop;
+    
+    // Get actual image dimensions (accounting for CSS scaling)
+    const imgDisplayWidth = imgRect.width;
+    const imgDisplayHeight = imgRect.height;
+    const imgNaturalWidth = selectedImage.naturalWidth;
+    const imgNaturalHeight = selectedImage.naturalHeight;
+    
+    // Calculate scale factors
+    const scaleX = imgNaturalWidth / imgDisplayWidth;
+    const scaleY = imgNaturalHeight / imgDisplayHeight;
+    
+    // Calculate source coordinates in original image pixels
+    const srcXOriginal = Math.max(0, srcX * scaleX);
+    const srcYOriginal = Math.max(0, srcY * scaleY);
+    const widthOriginal = Math.min(cropWidth * scaleX, imgNaturalWidth - srcXOriginal);
+    const heightOriginal = Math.min(cropHeight * scaleY, imgNaturalHeight - srcYOriginal);
+    
+    // Draw the cropped portion
+    ctx.drawImage(
+        selectedImage,
+        srcXOriginal, srcYOriginal,       // source x, y
+        widthOriginal, heightOriginal,    // source width, height
+        0, 0,                            // destination x, y
+        cropWidth, cropHeight            // destination width, height
+    );
+    
+    // Replace image with cropped version
+    selectedImage.src = canvas.toDataURL();
+    
+    // Update image dimensions and position
+    selectedImage.style.width = cropWidth + 'px';
+    selectedImage.style.height = 'auto';
+    selectedImage.style.left = (cropLeft - container.scrollLeft) + 'px';
+    selectedImage.style.top = (cropTop - container.scrollTop) + 'px';
+}
+
+
+
 function endCrop(e) {
     if (!isCropping) return;
 
     e.stopPropagation();
     e.preventDefault();
 
+    // Reset cursor first
+    document.body.style.cursor = '';
+
     // Remove event listeners
-    collageContainer.removeEventListener('mousedown', startCrop);
+    document.removeEventListener('mousedown', startCrop);
     document.removeEventListener('mousemove', drawCropArea);
     document.removeEventListener('mouseup', endCrop);
-
-    // Reset cursor
-    collageContainer.style.cursor = '';
 
     if (!cropRect) {
         resetCrop();
@@ -578,7 +787,9 @@ function endCrop(e) {
     const height = parseInt(cropRectStyle.height);
 
     // Remove the visual crop rectangle
-    collageContainer.removeChild(cropRect);
+    if (cropRect.parentNode) {
+        cropRect.parentNode.removeChild(cropRect);
+    }
     cropRect = null;
 
     // Apply the actual crop if area is valid
@@ -589,49 +800,10 @@ function endCrop(e) {
     resetCrop();
 }
 
-function applyCropToImage(cropLeft, cropTop, cropWidth, cropHeight) {
-    // Create canvas for cropping
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Set canvas dimensions to crop size
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
-    
-    // Calculate image position relative to container
-    const imgRect = selectedImage.getBoundingClientRect();
-    const containerRect = collageContainer.getBoundingClientRect();
-    
-    // Calculate source coordinates (relative to image)
-    const srcX = cropLeft - (parseInt(selectedImage.style.left) || 0);
-    const srcY = cropTop - (parseInt(selectedImage.style.top) || 0);
-    
-    // Ensure coordinates are within image bounds
-    const boundedSrcX = Math.max(0, srcX);
-    const boundedSrcY = Math.max(0, srcY);
-    const boundedWidth = Math.min(cropWidth, selectedImage.width - boundedSrcX);
-    const boundedHeight = Math.min(cropHeight, selectedImage.height - boundedSrcY);
-    
-    // Draw the cropped portion
-    ctx.drawImage(
-        selectedImage,
-        boundedSrcX, boundedSrcY,       // source x, y
-        boundedWidth, boundedHeight,    // source width, height
-        0, 0,                          // destination x, y
-        cropWidth, cropHeight          // destination width, height
-    );
-    
-    // Replace image with cropped version
-    selectedImage.src = canvas.toDataURL();
-    
-    // Update image dimensions and position
-    selectedImage.style.width = cropWidth + 'px';
-    selectedImage.style.height = 'auto';
-    selectedImage.style.left = cropLeft + 'px';
-    selectedImage.style.top = cropTop + 'px';
-}
-
 function resetCrop() {
+    // Reset cursor
+    document.body.style.cursor = '';
+    
     // Restore original draggable state
     if (wasDraggable) {
         selectedImage.setAttribute('draggable', 'true');
@@ -640,7 +812,7 @@ function resetCrop() {
     
     // Clean up any remaining crop rectangle
     if (cropRect && cropRect.parentNode) {
-        collageContainer.removeChild(cropRect);
+        cropRect.parentNode.removeChild(cropRect);
     }
     
     // Reset variables
@@ -649,45 +821,48 @@ function resetCrop() {
     wasDraggable = false;
     
     // Remove all event listeners
-    collageContainer.removeEventListener('mousedown', startCrop);
+    document.removeEventListener('mousedown', startCrop);
     document.removeEventListener('mousemove', drawCropArea);
     document.removeEventListener('mouseup', endCrop);
-    
-    // Reset cursor
-    collageContainer.style.cursor = '';
 }
+function makeDraggable(element) {
+    let isDragging = false, startX, startY, startLeft, startTop;
 
-    function makeDraggable(element) {
-        let isDragging = false, startX, startY, startLeft, startTop;
+    element.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('resize-handle')) return;
+        
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = parseInt(element.style.left) || 0;
+        startTop = parseInt(element.style.top) || 0;
 
-        element.addEventListener('mousedown', (e) => {
-            // Skip if clicking on a resize handle
-            if (e.target.classList.contains('resize-handle')) {
-                return;
-            }
-            
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            startLeft = parseInt(element.style.left) || 0;
-            startTop = parseInt(element.style.top) || 0;
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('mouseup', stopDrag);
+    });
 
-            document.addEventListener('mousemove', dragMove);
-            document.addEventListener('mouseup', stopDrag);
-        });
-
-        function dragMove(e) {
-            if (!isDragging) return;
-            element.style.left = startLeft + (e.clientX - startX) + "px";
-            element.style.top = startTop + (e.clientY - startY) + "px";
-        }
-
-        function stopDrag() {
-            isDragging = false;
-            document.removeEventListener('mousemove', dragMove);
-            document.removeEventListener('mouseup', stopDrag);
+    function dragMove(e) {
+        if (!isDragging) return;
+        const newLeft = startLeft + (e.clientX - startX);
+        const newTop = startTop + (e.clientY - startY);
+        
+        element.style.left = newLeft + "px";
+        element.style.top = newTop + "px";
+        
+        // Move drawing canvas with the image
+        const drawingCanvas = element.nextElementSibling;
+        if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
+            drawingCanvas.style.left = newLeft + "px";
+            drawingCanvas.style.top = newTop + "px";
         }
     }
+
+    function stopDrag() {
+        isDragging = false;
+        document.removeEventListener('mousemove', dragMove);
+        document.removeEventListener('mouseup', stopDrag);
+    }
+}
 
     function applyFilter(filterType) {
         if (!selectedImage) return;
@@ -720,14 +895,52 @@ function resetCrop() {
     }
 
     function selectImage(img) {
-        if (selectedImage) {
-            selectedImage.classList.remove('selected');
-            disableResize();
-        }
-        selectedImage = img;
-        img.classList.add('selected');
+    if (selectedImage) {
+        selectedImage.classList.remove('selected');
+        disableResize();
+        disableDrawing();
     }
-
+    
+    selectedImage = img;
+    img.classList.add('selected');
+    
+    // Find or create drawing canvas for this image
+    let drawingCanvas = img.nextElementSibling;
+    if (!drawingCanvas || !drawingCanvas.classList.contains('drawing-canvas')) {
+        drawingCanvas = document.createElement('canvas');
+        drawingCanvas.className = 'drawing-canvas';
+        drawingCanvas.width = img.offsetWidth;
+        drawingCanvas.height = img.offsetHeight;
+        img.parentNode.insertBefore(drawingCanvas, img.nextSibling);
+    }
+    
+    // Position canvas exactly over the image
+    drawingCanvas.style.left = img.style.left;
+    drawingCanvas.style.top = img.style.top;
+    drawingCanvas.style.width = img.style.width;
+    drawingCanvas.style.height = img.style.height;
+    
+    currentDrawingCtx = drawingCanvas.getContext('2d');
+    currentDrawingCtx.strokeStyle = currentColor;
+    currentDrawingCtx.lineWidth = brushSize;
+    currentDrawingCtx.lineJoin = 'round';
+    currentDrawingCtx.lineCap = 'round';
+    
+    // Add event listeners for color and brush size changes
+    document.getElementById('drawingColor').addEventListener('input', function() {
+        currentColor = this.value;
+        if (currentDrawingCtx) {
+            currentDrawingCtx.strokeStyle = currentColor;
+        }
+    });
+    
+    document.getElementById('brushSize').addEventListener('input', function() {
+        brushSize = this.value;
+        if (currentDrawingCtx) {
+            currentDrawingCtx.lineWidth = brushSize;
+        }
+    });
+}
     function rotateSelected(angle) {
         if (!selectedImage) return;
         let rotation = parseInt(selectedImage.dataset.rotation) || 0;
@@ -890,6 +1103,30 @@ function doResize(e) {
             break;
     }
     
+    // Resize the drawing canvas first (preserve content)
+    const drawingCanvas = selectedImage.nextElementSibling;
+    if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
+        // Create a temporary canvas to preserve the drawing
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = drawingCanvas.width;
+        tempCanvas.height = drawingCanvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(drawingCanvas, 0, 0);
+        
+        // Resize the drawing canvas
+        drawingCanvas.width = newWidth;
+        drawingCanvas.height = newHeight;
+        drawingCanvas.style.width = newWidth + 'px';
+        drawingCanvas.style.height = newHeight + 'px';
+        drawingCanvas.style.left = newLeft + 'px';
+        drawingCanvas.style.top = newTop + 'px';
+        
+        // Redraw the preserved content scaled to new size
+        const ctx = drawingCanvas.getContext('2d');
+        ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, newWidth, newHeight);
+    }
+    
+    // Then resize the image
     selectedImage.style.width = newWidth + 'px';
     selectedImage.style.height = newHeight + 'px';
     selectedImage.style.left = newLeft + 'px';
@@ -904,7 +1141,6 @@ function doResize(e) {
         container.style.height = newHeight + 'px';
     }
 }
-
 function stopResize() {
     if (!isResizing) return;
     
@@ -981,99 +1217,149 @@ function disableResize() {
     const fs = require('fs');
 
     function downloadCollage() {
-        const images = collageContainer.querySelectorAll('img');
+    const images = collageContainer.querySelectorAll('img');
+    const hasLoadedImage = Array.from(images).some(img => img.complete && img.naturalWidth > 0);
 
-        const hasLoadedImage = Array.from(images).some(img => img.complete && img.naturalWidth > 0);
+    if (!hasLoadedImage) {
+        ipcRenderer.send("show-error-dialog", {
+            title: "Save Error",
+            message: "Please add at least one image to the collage before saving."
+        });
+        return;
+    }
 
-        if (!hasLoadedImage) {
-            ipcRenderer.send("show-error-dialog", {
-                title: "Save Error",
-                message: "Please add at least one image to the collage before saving."
-            });
-            return;
-        }
+    // Create a temporary container
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.width = collageContainer.offsetWidth + 'px';
+    tempContainer.style.height = collageContainer.offsetHeight + 'px';
 
-        images.forEach(img => {
+    // Process each image with its drawings
+    const processPromises = Array.from(images).map(img => {
+        return new Promise((resolve) => {
             if (img.style.filter && img.style.filter !== 'none') {
                 bakeAllSliderFilters(img);
             }
+
+            const drawingCanvas = img.nextElementSibling;
+            
+            if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
+                // Create a new canvas that combines the image and drawings
+                const combinedCanvas = document.createElement('canvas');
+                const ctx = combinedCanvas.getContext('2d');
+                
+                // Wait for image to load
+                const tempImg = new Image();
+                tempImg.onload = () => {
+                    // Set canvas dimensions to match the displayed size
+                    combinedCanvas.width = img.offsetWidth;
+                    combinedCanvas.height = img.offsetHeight;
+                    
+                    // Draw the image (scaled to canvas size)
+                    ctx.drawImage(tempImg, 0, 0, combinedCanvas.width, combinedCanvas.height);
+                    
+                    // Draw the drawings
+                    ctx.drawImage(drawingCanvas, 0, 0);
+                    
+                    // Create a new image element with the combined content
+                    const combinedImg = document.createElement('img');
+                    combinedImg.src = combinedCanvas.toDataURL();
+                    combinedImg.style.position = 'absolute';
+                    combinedImg.style.left = img.style.left;
+                    combinedImg.style.top = img.style.top;
+                    combinedImg.style.width = img.style.width;
+                    combinedImg.style.height = img.style.height;
+                    
+                    resolve(combinedImg);
+                };
+                tempImg.src = img.src;
+            } else {
+                // If no drawing canvas, just clone the image
+                const clone = img.cloneNode(true);
+                clone.style.position = 'absolute';
+                clone.style.left = img.style.left;
+                clone.style.top = img.style.top;
+                clone.style.width = img.style.width;
+                clone.style.height = img.style.height;
+                resolve(clone);
+            }
+        });
+    });
+
+    // Wait for all images to be processed
+    Promise.all(processPromises).then(processedImages => {
+        // Add all processed images to temp container
+        processedImages.forEach(img => {
+            tempContainer.appendChild(img);
         });
 
-        setTimeout(() => {
-            const originalBackground = collageContainer.style.backgroundColor;
-            collageContainer.style.backgroundColor = "transparent";
+        document.body.appendChild(tempContainer);
 
-            const selectedElements = collageContainer.querySelectorAll('.selected');
-            const templateBoxes = collageContainer.querySelectorAll('.template-box');
+        html2canvas(tempContainer, {
+            backgroundColor: null,
+            ignoreElements: (element) => element === collageContainer
+        }).then(canvas => {
+            document.body.removeChild(tempContainer);
+            
+            ipcRenderer.send("request-save-dialog");
+            
+            ipcRenderer.once("save-file-path", (event, { filePath, extension }) => {
+                const mimeMap = {
+                    png: 'image/png',
+                    jpg: 'image/jpeg',
+                    jpeg: 'image/jpeg',
+                    webp: 'image/webp',
+                    bmp: 'image/bmp',
+                    tif: 'image/tiff',
+                    tiff: 'image/tiff'
+                };
 
-            selectedElements.forEach(el => el.classList.remove('selected'));
+                const mime = mimeMap[extension] || 'image/png';
 
-            templateBoxes.forEach(el => {
-                el.dataset.originalBorder = el.style.border;
-                el.dataset.originalText = el.innerText;
-                el.style.border = "none";
-                el.innerText = "";
+                if (extension === 'tif' || extension === 'tiff') {
+                    canvas.toBlob(blob => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const buffer = Buffer.from(reader.result);
+                            ipcRenderer.send('save-as-tiff', { filePath, buffer });
+                        };
+                        reader.readAsArrayBuffer(blob);
+                    }, 'image/png');
+                } else {
+                    canvas.toBlob(blob => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const buffer = Buffer.from(reader.result);
+                            fs.writeFile(filePath, buffer, err => {
+                                if (err) {
+                                    console.error("Failed to save image:", err);
+                                    ipcRenderer.send("show-error-dialog", {
+                                        title: "Save Error",
+                                        message: "Failed to save the image. Please try again."
+                                    });
+                                } else {
+                                    console.log("Saved:", filePath);
+                                    ipcRenderer.send("show-success-dialog", {
+                                        title: "Success",
+                                        message: "Collage saved successfully!"
+                                    });
+                                }
+                            });
+                        };
+                        reader.readAsArrayBuffer(blob);
+                    }, mime);
+                }
             });
-
-            html2canvas(collageContainer, {
-                backgroundColor: null
-            }).then(canvas => {
-                collageContainer.style.backgroundColor = originalBackground;
-
-                templateBoxes.forEach(el => {
-                    el.style.border = el.dataset.originalBorder || "1px dashed #aaa";
-                    el.innerText = el.dataset.originalText || "Drop Image Here";
-                    delete el.dataset.originalBorder;
-                    delete el.dataset.originalText;
-                });
-
-                selectedElements.forEach(el => el.classList.add('selected'));
-
-                ipcRenderer.send("request-save-dialog");
-
-                ipcRenderer.once("save-file-path", (event, { filePath, extension }) => {
-                    const mimeMap = {
-                        png: 'image/png',
-                        jpg: 'image/jpeg',
-                        jpeg: 'image/jpeg',
-                        webp: 'image/webp',
-                        bmp: 'image/bmp',
-                        tif: 'image/tiff',
-                        tiff: 'image/tiff'
-                    };
-
-                    const mime = mimeMap[extension] || 'image/png';
-
-                    if (extension === 'tif' || extension === 'tiff') {
-                        canvas.toBlob(blob => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                                const buffer = Buffer.from(reader.result);
-                                ipcRenderer.send('save-as-tiff', { filePath, buffer });
-                            };
-                            reader.readAsArrayBuffer(blob);
-                        }, 'image/png');
-                    } else {
-                        canvas.toBlob(blob => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                                const buffer = Buffer.from(reader.result);
-                                const fs = require('fs');
-                                fs.writeFile(filePath, buffer, err => {
-                                    if (err) {
-                                        console.error("Failed to save image:", err);
-                                    } else {
-                                        console.log("Saved:", filePath);
-                                    }
-                                });
-                            };
-                            reader.readAsArrayBuffer(blob);
-                        }, mime);
-                    }
-                });
+        }).catch(err => {
+            console.error("Error generating collage:", err);
+            ipcRenderer.send("show-error-dialog", {
+                title: "Error",
+                message: "Failed to generate collage. Please try again."
             });
-        }, 200);
-    }
+        });
+    });
+}
 </script>
 </body>
 </html>

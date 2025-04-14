@@ -1128,7 +1128,7 @@ function adjustImageSize(image) {
 }
 
 function resizeImage() {
-    if (suppressResize) return;  // ✅ Skip resizing during undo/restore
+    if (suppressResize) return;
 
     const imageArea = document.getElementById("image-area");
     const widthInput = document.getElementById("widthInput");
@@ -1156,24 +1156,56 @@ function resizeImage() {
     const newWidth = widthInput.value.trim() === "" ? null : parseFloat(widthInput.value);
     const newHeight = heightInput.value.trim() === "" ? null : parseFloat(heightInput.value);
 
-    if (isWidthChange && newWidth !== null) {
-        heightInput.value = "";
-    } else if (isHeightChange && newHeight !== null) {
-        widthInput.value = "";
-    }
+    if (isBatchProcessing) {
+        // Batch processing mode - apply same size to all images
+        const originalIndex = currentImageIndex;
+        
+        if (isWidthChange && newWidth !== null) {
+            // Apply same width to all images
+            for (let i = 0; i < imageList.length; i++) {
+                currentImageIndex = i;
+                const imgState = getCurrentState();
+                if (!imgState) continue;
+                
+                imgState.width = `${newWidth * 37.795}px`;
+                imgState.height = "";
+                restoreState(imgState);
+                pushToHistory();
+            }
+            heightInput.value = "";
+        } 
+        else if (isHeightChange && newHeight !== null) {
+            // Apply same height to all images
+            for (let i = 0; i < imageList.length; i++) {
+                currentImageIndex = i;
+                const imgState = getCurrentState();
+                if (!imgState) continue;
+                
+                imgState.height = `${newHeight * 37.795}px`;
+                imgState.width = "";
+                restoreState(imgState);
+                pushToHistory();
+            }
+            widthInput.value = "";
+        }
+        
+        currentImageIndex = originalIndex;
+        displayImage(originalIndex);
+    } else {
+        // Normal single-image processing
+        if (isWidthChange && newWidth !== null) {
+            heightInput.value = "";
+            imageArea.style.width = `${newWidth * 37.795}px`;
+            imageArea.style.height = "";
+        } else if (isHeightChange && newHeight !== null) {
+            widthInput.value = "";
+            imageArea.style.height = `${newHeight * 37.795}px`;
+            imageArea.style.width = "";
+        }
 
-    if (newWidth !== null && !isNaN(newWidth)) {
-        heightInput.value = "";
-        imageArea.style.width = `${newWidth * 37.795}px`;
-        imageArea.style.height = "";
-    } else if (newHeight !== null && !isNaN(newHeight)) {
-        widthInput.value = "";
-        imageArea.style.height = `${newHeight * 37.795}px`;
-        imageArea.style.width = "";
+        updateCurrentState();
+        pushToHistory();
     }
-
-    updateCurrentState();
-    pushToHistory();
 }
 
 function debounce(fn, delay) {

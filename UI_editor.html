@@ -627,17 +627,59 @@ function saveImageAs() {
 
     ipcRenderer.send("request-save-dialog");
 }
+
 function saveImage() {
     if (currentImageIndex === -1 || !imageList[currentImageIndex]) return;
 
-    const saveInfo = imageSavePaths[currentImageIndex];
+    if (isBatchProcessing) {
+        // Batch save all images
+        saveAllImages();
+    } else {
+        // Normal single image save
+        const saveInfo = imageSavePaths[currentImageIndex];
+        if (!saveInfo || !saveInfo.filePath || !saveInfo.extension) {
+            saveImageAs(); // Prompt Save As if path not set
+            return;
+        }
+        saveImageToFile(saveInfo.filePath, saveInfo.extension);
+    }
+}
 
-    if (!saveInfo || !saveInfo.filePath || !saveInfo.extension) {
-        saveImageAs(); // Prompt Save As only if not set
+function saveAllImages() {
+    if (imageList.length === 0) {
+        alert("No images to save");
         return;
     }
 
-    saveImageToFile(saveInfo.filePath, saveInfo.extension);
+    const originalIndex = currentImageIndex;
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < imageList.length; i++) {
+        currentImageIndex = i;
+        const saveInfo = imageSavePaths[i];
+        
+        if (!saveInfo || !saveInfo.filePath || !saveInfo.extension) {
+            errorCount++;
+            continue; // Skip images without save paths
+        }
+
+        try {
+            saveImageToFile(saveInfo.filePath, saveInfo.extension);
+            successCount++;
+        } catch (e) {
+            errorCount++;
+        }
+    }
+
+    currentImageIndex = originalIndex;
+    displayImage(originalIndex);
+    
+    if (errorCount > 0) {
+        alert(`Saved ${successCount} images, ${errorCount} failed (missing save path)`);
+    } else {
+        alert(`Successfully saved ${successCount} images`);
+    }
 }
 
 function saveImageToFile(filePath, extension) {
@@ -654,66 +696,97 @@ function saveImageToFile(filePath, extension) {
     }
 
     const tempImg = new Image();
-    tempImg.onload = () => {
-            const imgWidth = tempImg.width;
-            const imgHeight = tempImg.height;
+    tempImg.crossOrigin = "Anonymous"; // Important for data URLs
+    tempImg.onload = function() {
+        const imgWidth = tempImg.width;
+        const imgHeight = tempImg.height;
 
-            if (!imgWidth || !imgHeight) {
-                alert("Image dimensions are invalid.");
+        if (!imgWidth || !imgHeight) {
+            alert("Image dimensions are invalid.");
+            return;
+        }
+
+        const angle = state.rotationAngle || 0;
+        const radians = angle * Math.PI / 180;
+        const rotate90or270 = Math.abs(angle) % 180 === 90;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = rotate90or270 ? imgHeight : imgWidth;
+        canvas.height = rotate90or270 ? imgWidth : imgHeight;
+
+        const ctx = canvas.getContext("2d");
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(radians);
+        ctx.scale(state.flipX ?? 1, state.flipY ?? 1);
+
+        ctx.filter = `
+            brightness(${state.brightnessValue ?? 100}%)
+            contrast(${state.contrastValue ?? 100}%)
+            saturate(${state.saturationValue ?? 100}%)
+            sepia(${state.sepiaValue ?? 0}%)
+            grayscale(${state.bwValue ?? 0}%)
+            blur(${state.blurValue ?? 0}px)
+        `.trim();
+
+        ctx.drawImage(tempImg, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
+        ctx.restore();
+
+        // Determine quality based on format
+        let quality = 0.92; // Default quality for JPEG/WEBP
+        if (extension === 'png' || extension === 'bmp') {
+            quality = 1.0; // Lossless formats
+        }
+
+        // Convert to proper MIME type
+        let mimeType;
+        switch (extension.toLowerCase()) {
+            case 'jpg':
+            case 'jpeg':
+                mimeType = 'image/jpeg';
+                break;
+            case 'webp':
+                mimeType = 'image/webp';
+                break;
+            case 'bmp':
+                mimeType = 'image/bmp';
+                break;
+            default:
+                mimeType = 'image/png';
+        }
+
+        // Convert canvas to buffer
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                alert("Failed to create image blob");
                 return;
             }
 
-            const angle = state.rotationAngle || 0;
-            const radians = angle * Math.PI / 180;
-            const rotate90or270 = Math.abs(angle) % 180 === 90;
-
-            const canvas = document.createElement("canvas");
-            canvas.width = rotate90or270 ? imgHeight : imgWidth;
-            canvas.height = rotate90or270 ? imgWidth : imgHeight;
-
-            const ctx = canvas.getContext("2d");
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate(radians);
-            ctx.scale(state.flipX ?? 1, state.flipY ?? 1);
-
-            ctx.filter = `
-                brightness(${state.brightnessValue ?? 100}%)
-                contrast(${state.contrastValue ?? 100}%)
-                saturate(${state.saturationValue ?? 100}%)
-                sepia(${state.sepiaValue ?? 0}%)
-                grayscale(${state.bwValue ?? 0}%)
-                blur(${state.blurValue ?? 0}px)
-            `.trim();
-
-            ctx.drawImage(tempImg, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
-            ctx.restore();
-
-            const mimeType = extension === 'jpg' ? 'image/jpeg' :
-                             extension === 'jpeg' ? 'image/jpeg' :
-                             extension === 'webp' ? 'image/webp' :
-                             extension === 'bmp' ? 'image/bmp' :
-                             'image/png';
-
-            canvas.toBlob(async (outBlob) => {
-                if (!outBlob) {
-                    alert("Failed to create blob from canvas.");
-                    return;
+            try {
+                const arrayBuffer = await blob.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                
+                // Ensure directory exists
+                const path = require('path');
+                const fs = require('fs');
+                const dir = path.dirname(filePath);
+                
+                if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir, { recursive: true });
                 }
-                    const arrayBuffer = await outBlob.arrayBuffer();
-                    const buffer = Buffer.from(arrayBuffer);
-                    const fs = require('fs');
-                    fs.writeFile(filePath, buffer, (err) => {
-                        if (err) {
-                            alert("Write failed: " + err.message);
-                        } else {
-                            alert("Image saved successfully!");
-                        }
-                    });
-            }, mimeType);
+
+                // Write file synchronously to ensure completion
+                fs.writeFileSync(filePath, buffer);
+            } catch (err) {
+                alert(`Failed to save image: ${err.message}`);
+            }
+        }, mimeType, quality);
     };
 
-    // This MUST be last to ensure event handlers are in place
+    tempImg.onerror = function() {
+        alert("Error loading image for saving");
+    };
+
     tempImg.src = image.src;
 }
 

@@ -160,26 +160,30 @@
             align-items: center;
             justify-content: center;
             width: 100%;
+            height:(100vh-150px);
         }
 
         #image-container {
             width: 95vw;
-            height: 85vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #444;
-            border: 2px solid #555;
-            overflow: hidden;
-            position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #444;
+    border: 2px solid #555;
+    overflow: hidden;
+    position: relative;
+    max-height: 100%;
         }
 
         #image-area {
             max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            display: none;
-            transform-origin: center;
+    max-height: 100%;
+    object-fit: contain;
+    display: none;
+    transform-origin: center;
+    height: auto;
+    width: auto;
         }
         
         /* Remove number input arrows */
@@ -226,6 +230,42 @@
         .batch-apply-btn:hover {
             background-color: #0077cc;
         }
+        /* Add to the style section */
+.secondary-toolbar {
+    background-color: #333;
+    display: flex;
+    align-items: center;
+    border: 2px solid #444;
+    width: 100%;
+    padding: 5px;
+    height: 40px;
+}
+
+.scribble-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 10px;
+}
+
+.scribble-size-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: white;
+    font-size: 12px;
+}
+
+.scribble-size-input {
+    width: 40px;
+    padding: 3px;
+    text-align: center;
+    font-size: 12px;
+    border: none;
+    border-radius: 4px;
+    background-color: #555;
+    color: white;
+}
     </style>
     <script>
 let isBatchProcessing = false;
@@ -248,86 +288,145 @@ let isScribbling = false;
 let canvas, ctx;
 let lastX, lastY;
 
+function isCanvasEmpty(canvas) {
+    if (!canvas) return true;
+    const ctx = canvas.getContext('2d');
+    const pixelBuffer = new Uint32Array(
+        ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer
+    );
+    return !pixelBuffer.some(color => color !== 0);
+}
+
 function flattenScribblesIntoImage() {
     const image = document.getElementById("image-area");
     const scribbleCanvas = document.getElementById("scribbleCanvas");
     if (!image || !scribbleCanvas) return;
 
-    const imgWidth = image.naturalWidth;
-    const imgHeight = image.naturalHeight;
-
     const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = imgWidth;
-    tempCanvas.height = imgHeight;
-    const ctx = tempCanvas.getContext("2d");
+    const imgRect = image.getBoundingClientRect();
+    const containerRect = document.getElementById("image-container").getBoundingClientRect();
+    
+    tempCanvas.width = image.naturalWidth;
+    tempCanvas.height = image.naturalHeight;
+    const tempCtx = tempCanvas.getContext("2d");
 
     const tempImg = new Image();
     tempImg.src = image.src;
-
-    tempImg.onload = () => {
-        // Draw the base image
-        ctx.drawImage(tempImg, 0, 0, imgWidth, imgHeight);
-
-        // Draw the scribbles scaled properly
-        const imageRect = image.getBoundingClientRect();
-        const scribbleCanvasRect = scribbleCanvas.getBoundingClientRect();
-
-        const scaleX = imgWidth / imageRect.width;
-        const scaleY = imgHeight / imageRect.height;
-
-        ctx.scale(scaleX, scaleY);
-        ctx.drawImage(scribbleCanvas, imageRect.left - scribbleCanvasRect.left, imageRect.top - scribbleCanvasRect.top);
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transform
-
-        // Flattened image as base image
-        const newSrc = tempCanvas.toDataURL();
-        image.src = newSrc;
-        imageList[currentImageIndex] = newSrc;
-
-        // Clear scribbles and reset canvas
-        removeScribbleCanvas();
-
-        // Update state and history
+    
+    tempImg.onload = function() {
+        // Draw original image
+        tempCtx.drawImage(tempImg, 0, 0, tempCanvas.width, tempCanvas.height);
+        
+        // Calculate exact position offsets
+        const offsetX = imgRect.left - containerRect.left;
+        const offsetY = imgRect.top - containerRect.top;
+        
+        // Calculate scaling factors
+        const scaleX = tempCanvas.width / imgRect.width;
+        const scaleY = tempCanvas.height / imgRect.height;
+        
+        // Draw scribbles with proper positioning and scaling
+        tempCtx.save();
+        tempCtx.scale(scaleX, scaleY);
+        tempCtx.drawImage(scribbleCanvas, offsetX, offsetY);
+        tempCtx.restore();
+        
+        // Update image source
+        image.src = tempCanvas.toDataURL();
+        imageList[currentImageIndex] = image.src;
+        
         updateCurrentState();
         pushToHistory();
     };
 }
 
-function toggleScribbleTool() {
-    const btn = document.getElementById("scribbleBtn");
-    const colorPicker = document.getElementById("scribbleColor");
+function clearScribbleCanvas() {
 
-    isScribbling = !isScribbling;
-    btn.style.backgroundColor = isScribbling ? "#1e90ff" : "transparent";
-    colorPicker.style.display = isScribbling ? "inline-block" : "none";
-
-    const imageArea = document.getElementById("image-area");
-
-    if (isScribbling) {
-        imageArea.style.cursor = "crosshair";
-        enableScribbleCanvas();
-    } else {
-        imageArea.style.cursor = "default";
-        removeScribbleCanvas();
+    const scribbleCanvas = document.getElementById("scribbleCanvas");
+    if (scribbleCanvas) {
+        const ctx = scribbleCanvas.getContext("2d");
+        ctx.clearRect(0, 0, scribbleCanvas.width, scribbleCanvas.height);
     }
 }
 
+function toggleScribbleTool() {
+    const btn = document.getElementById("scribbleBtn");
+    const colorPicker = document.getElementById("scribbleColor");
+    const sizeControl = document.querySelector(".scribble-size-container");
+    const clearBtn = document.getElementById("clearScribbleBtn");
+
+    const wasScribbling = isScribbling;
+    isScribbling = !isScribbling;
+
+    if (isScribbling) {
+        btn.style.backgroundColor = "#1e90ff";
+        colorPicker.style.display = "inline-block";
+        sizeControl.style.display = "flex";
+        clearBtn.style.display = "inline-block";
+        document.getElementById("image-area").style.cursor = "crosshair";
+
+        if (!document.getElementById("scribbleCanvas")) {
+            enableScribbleCanvas();
+        }
+    } else {
+        // COMMIT before turning off
+        const scribbleCanvas = document.getElementById("scribbleCanvas");
+        if (scribbleCanvas && !isCanvasEmpty(scribbleCanvas)) {
+            flattenScribblesIntoImage();
+        } else {
+            removeScribbleCanvas(); // Nothing to commit
+        }
+
+        btn.style.backgroundColor = "transparent";
+        colorPicker.style.display = "none";
+        sizeControl.style.display = "none";
+        document.getElementById("image-area").style.cursor = "default";
+    }
+}
+
+function commitScribble() {
+    flattenScribblesIntoImage();
+    isScribbling = false;
+
+    document.getElementById("scribbleBtn").style.backgroundColor = "transparent";
+    document.getElementById("scribbleColor").style.display = "none";
+    document.getElementById("scribbleSize").style.display = "none";
+    document.getElementById("commitScribbleBtn").style.display = "none";
+    document.getElementById("image-area").style.cursor = "default";
+}
+
+
 function enableScribbleCanvas() {
     const container = document.getElementById("image-container");
+    removeScribbleCanvas();
+
+    const image = document.getElementById("image-area");
+
+    // Get displayed image dimensions
+    const style = window.getComputedStyle(image);
+    const width = parseFloat(style.width);
+    const height = parseFloat(style.height);
+
+    // Create canvas
     canvas = document.createElement("canvas");
     canvas.id = "scribbleCanvas";
     canvas.style.position = "absolute";
     canvas.style.top = "0";
     canvas.style.left = "0";
-    canvas.style.pointerEvents = "auto";
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
+    canvas.style.zIndex = "10";
+    canvas.style.pointerEvents = "auto";
+
     container.appendChild(canvas);
 
     ctx = canvas.getContext("2d");
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = parseInt(document.getElementById("scribbleSize").value);
+    ctx.strokeStyle = document.getElementById("scribbleColor").value;
 
     canvas.addEventListener("mousedown", startDraw);
     canvas.addEventListener("mousemove", draw);
@@ -337,7 +436,13 @@ function enableScribbleCanvas() {
 
 function removeScribbleCanvas() {
     const existingCanvas = document.getElementById("scribbleCanvas");
-    if (existingCanvas) existingCanvas.remove();
+    if (existingCanvas) {
+        existingCanvas.removeEventListener("mousedown", startDraw);
+        existingCanvas.removeEventListener("mousemove", draw);
+        existingCanvas.removeEventListener("mouseup", stopDraw);
+        existingCanvas.removeEventListener("mouseout", stopDraw);
+        existingCanvas.remove();
+    }
 }
 
 let drawing = false;
@@ -347,6 +452,8 @@ function startDraw(e) {
     const rect = canvas.getBoundingClientRect();
     lastX = e.clientX - rect.left;
     lastY = e.clientY - rect.top;
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
 }
 
 function draw(e) {
@@ -354,19 +461,20 @@ function draw(e) {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    ctx.strokeStyle = document.getElementById("scribbleColor").value;
 
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
+    ctx.strokeStyle = document.getElementById("scribbleColor").value;
     ctx.lineTo(x, y);
     ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+
     lastX = x;
     lastY = y;
 }
 
+
 function stopDraw() {
     drawing = false;
-    pushToHistory();
 }
 
 function toggleBatchProcessing() {
@@ -391,6 +499,14 @@ function toggleBatchProcessing() {
         applyFiltersToAll(false);
     }
 }
+
+// Add to the script section
+function updateScribbleSize() {
+    if (ctx) {
+        ctx.lineWidth = parseInt(document.getElementById("scribbleSize").value);
+    }
+}
+
 function applyFiltersToAll(askForConfirmation = true) {
     if (imageList.length === 0) {
         alert("No images to process");
@@ -795,104 +911,120 @@ if (errorCount > 0) {
 }
 }
 function saveImageToFile(filePath, extension) {
-const image = document.getElementById("image-area");
-if (!image || !image.src) {
-    alert("No image loaded.");
-    return;
-}
-const state = getCurrentState();
-if (!state) {
-    alert("No image state found.");
-    return;
-}
-const tempImg = new Image();
-tempImg.crossOrigin = "Anonymous";
-tempImg.onload = function() {
-    const imgWidth = tempImg.width;
-    const imgHeight = tempImg.height;
-    if (!imgWidth || !imgHeight) {
-        alert("Image dimensions are invalid.");
+    const image = document.getElementById("image-area");
+    if (!image || !image.src) {
+        alert("No image loaded.");
         return;
     }
-    const angle = state.rotationAngle || 0;
-    const radians = angle * Math.PI / 180;
-    const rotate90or270 = Math.abs(angle) % 180 === 90;
-    const canvas = document.createElement("canvas");
-    canvas.width = rotate90or270 ? imgHeight : imgWidth;
-    canvas.height = rotate90or270 ? imgWidth : imgHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate(radians);
-    ctx.scale(state.flipX ?? 1, state.flipY ?? 1);
-    ctx.filter = `
-        brightness(${state.brightnessValue ?? 100}%)
-        contrast(${state.contrastValue ?? 100}%)
-        saturate(${state.saturationValue ?? 100}%)
-        sepia(${state.sepiaValue ?? 0}%)
-        grayscale(${state.bwValue ?? 0}%)
-        blur(${state.blurValue ?? 0}px)
-    `.trim();
-    ctx.drawImage(tempImg, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
-// Merge scribbleCanvas if active
-const scribbleCanvas = document.getElementById("scribbleCanvas");
-if (scribbleCanvas) {
-const scaleX = canvas.width / scribbleCanvas.width;
-const scaleY = canvas.height / scribbleCanvas.height;
-ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0); // scale to fit
-ctx.drawImage(scribbleCanvas, 0, 0);
-ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
-}
-    ctx.restore();
-    // Determine quality based on format
-    let quality = 0.92; // Default quality for JPEG/WEBP
-    if (extension === 'png' || extension === 'bmp') {
-        quality = 1.0; // Lossless formats
+
+    const state = getCurrentState();
+    if (!state) {
+        alert("No image state found.");
+        return;
     }
-    // Convert to proper MIME type
-    let mimeType;
-    switch (extension.toLowerCase()) {
-        case 'jpg':
-        case 'jpeg':
-            mimeType = 'image/jpeg';
-            break;
-        case 'webp':
-            mimeType = 'image/webp';
-            break;
-        case 'bmp':
-            mimeType = 'image/bmp';
-            break;
-        default:
-            mimeType = 'image/png';
-    }
-    // Convert canvas to buffer
-    canvas.toBlob(async (blob) => {
-        if (!blob) {
-            alert("Failed to create image blob");
+
+    const tempImg = new Image();
+    tempImg.crossOrigin = "Anonymous";
+    tempImg.onload = function() {
+        const imgWidth = tempImg.width;
+        const imgHeight = tempImg.height;
+        if (!imgWidth || !imgHeight) {
+            alert("Image dimensions are invalid.");
             return;
         }
-        try {
-            const arrayBuffer = await blob.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            // Ensure directory exists
-            const path = require('path');
-            const fs = require('fs');
-            const dir = path.dirname(filePath);
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, { recursive: true });
-            }
-            // Write file synchronously to ensure completion
-            fs.writeFileSync(filePath, buffer);
-        } catch (err) {
-            alert(`Failed to save image: ${err.message}`);
+
+        const angle = state.rotationAngle || 0;
+        const radians = angle * Math.PI / 180;
+        const rotate90or270 = Math.abs(angle) % 180 === 90;
+        
+        const canvas = document.createElement("canvas");
+        canvas.width = rotate90or270 ? imgHeight : imgWidth;
+        canvas.height = rotate90or270 ? imgWidth : imgHeight;
+        
+        const ctx = canvas.getContext("2d");
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(radians);
+        ctx.scale(state.flipX ?? 1, state.flipY ?? 1);
+        ctx.filter = `
+            brightness(${state.brightnessValue ?? 100}%)
+            contrast(${state.contrastValue ?? 100}%)
+            saturate(${state.saturationValue ?? 100}%)
+            sepia(${state.sepiaValue ?? 0}%)
+            grayscale(${state.bwValue ?? 0}%)
+            blur(${state.blurValue ?? 0}px)
+        `.trim();
+        ctx.drawImage(tempImg, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
+        
+        // Merge scribbleCanvas if active
+        const scribbleCanvas = document.getElementById("scribbleCanvas");
+        if (scribbleCanvas && !isCanvasEmpty(scribbleCanvas)) {
+            // Calculate scaling factors to match the image dimensions
+            const imgRect = image.getBoundingClientRect();
+            const scaleX = imgWidth / imgRect.width;
+            const scaleY = imgHeight / imgRect.height;
+            
+            // Draw the scribbles with proper scaling
+            ctx.save();
+            ctx.setTransform(scaleX, 0, 0, scaleY, -imgWidth/2, -imgHeight/2);
+            ctx.drawImage(scribbleCanvas, 0, 0);
+            ctx.restore();
         }
-    }, mimeType, quality);
-};
-tempImg.onerror = function() {
-    alert("Error loading image for saving");
-};
-tempImg.src = image.src;
+        
+        ctx.restore();
+
+        // Determine quality based on format
+        let quality = 0.92; // Default quality for JPEG/WEBP
+        if (extension === 'png' || extension === 'bmp') {
+            quality = 1.0; // Lossless formats
+        }
+
+        // Convert to proper MIME type
+        let mimeType;
+        switch (extension.toLowerCase()) {
+            case 'jpg':
+            case 'jpeg':
+                mimeType = 'image/jpeg';
+                break;
+            case 'webp':
+                mimeType = 'image/webp';
+                break;
+            case 'bmp':
+                mimeType = 'image/bmp';
+                break;
+            default:
+                mimeType = 'image/png';
+        }
+
+        // Convert canvas to buffer
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                alert("Failed to create image blob");
+                return;
+            }
+            try {
+                const arrayBuffer = await blob.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                // Ensure directory exists
+                const path = require('path');
+                const fs = require('fs');
+                const dir = path.dirname(filePath);
+                if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir, { recursive: true });
+                }
+                // Write file synchronously to ensure completion
+                fs.writeFileSync(filePath, buffer);
+            } catch (err) {
+                alert(`Failed to save image: ${err.message}`);
+            }
+        }, mimeType, quality);
+    };
+    tempImg.onerror = function() {
+        alert("Error loading image for saving");
+    };
+    tempImg.src = image.src;
 }
+
 ipcRenderer.on("save-file-path", async (event, { filePath, extension }) => {
 if (!filePath || currentImageIndex === -1) return;
 const saveInfo = { filePath, extension };
@@ -1793,17 +1925,27 @@ suppressInputEvents = false;
         <label for="batchCheckbox">Process Batch</label>
     </div>
 
-    <div class="scribble-controls" style="display: flex; align-items: center; gap: 8px;">
-        <button id="scribbleBtn" onclick="toggleScribbleTool()" style="background: none; border: none; cursor: pointer;">
-            <i class="fa-solid fa-pen" style="color: white;"></i>
+</div>
+</div>
+
+<div class="secondary-toolbar">
+    <div class="scribble-controls">
+        <button id="scribbleBtn" onclick="toggleScribbleTool()">
+            <i class="fa-solid fa-pen"></i>
             <span class="tooltip">Scribble</span>
         </button>
-        <input type="color" id="scribbleColor" style="display: none;" title="Scribble Color">
+        <input type="color" id="scribbleColor" title="Scribble Color" style="display: none;">
+        <div class="scribble-size-container" style="display: none;" id="scribbleSizeContainer">
+            <span>Size:</span>
+            <input type="number" class="scribble-size-input" id="scribbleSize" min="1" max="20" value="2" onchange="updateScribbleSize()">
+        </div>
+        <button id="clearScribbleBtn" onclick="clearScribbleCanvas()">
+            <i class="fa-solid fa-close"></i>
+            <span class="tooltip">Clear Drawing</span>
+        </button>
     </div>
 </div>
 </div>
-
-
     
     <div class="content">
         <div id="image-container">

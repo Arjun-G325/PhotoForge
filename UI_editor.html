@@ -298,47 +298,62 @@ function isCanvasEmpty(canvas) {
 }
 
 function flattenScribblesIntoImage() {
-    const image = document.getElementById("image-area");
     const scribbleCanvas = document.getElementById("scribbleCanvas");
-    if (!image || !scribbleCanvas) return;
+    if (!scribbleCanvas || isCanvasEmpty(scribbleCanvas)) return;
 
-    const tempCanvas = document.createElement("canvas");
-    const imgRect = image.getBoundingClientRect();
-    const containerRect = document.getElementById("image-container").getBoundingClientRect();
-    
-    tempCanvas.width = image.naturalWidth;
-    tempCanvas.height = image.naturalHeight;
-    const tempCtx = tempCanvas.getContext("2d");
+    if (isBatchProcessing) {
+        const originalIndex = currentImageIndex;
+        for (let i = 0; i < imageList.length; i++) {
+            mergeDrawingOntoImage(i, scribbleCanvas);
+        }
+        currentImageIndex = originalIndex;
+        displayImage(originalIndex);
+    } else {
+        mergeDrawingOntoImage(currentImageIndex, scribbleCanvas);
+        displayImage(currentImageIndex);
+    }
 
-    const tempImg = new Image();
-    tempImg.src = image.src;
-    
-    tempImg.onload = function() {
-        // Draw original image
-        tempCtx.drawImage(tempImg, 0, 0, tempCanvas.width, tempCanvas.height);
-        
-        // Calculate exact position offsets
-        const offsetX = imgRect.left - containerRect.left;
-        const offsetY = imgRect.top - containerRect.top;
-        
-        // Calculate scaling factors
-        const scaleX = tempCanvas.width / imgRect.width;
-        const scaleY = tempCanvas.height / imgRect.height;
-        
-        // Draw scribbles with proper positioning and scaling
-        tempCtx.save();
-        tempCtx.scale(scaleX, scaleY);
-        tempCtx.drawImage(scribbleCanvas, offsetX, offsetY);
-        tempCtx.restore();
-        
-        // Update image source
-        image.src = tempCanvas.toDataURL();
-        imageList[currentImageIndex] = image.src;
-        
-        updateCurrentState();
-        pushToHistory();
-    };
+    removeScribbleCanvas();
 }
+
+function mergeDrawingOntoImage(index, scribbleCanvas) {
+            const tempImg = new Image();
+            tempImg.src = imageList[index];
+
+            tempImg.onload = () => {
+                const imgWidth = tempImg.naturalWidth;
+                const imgHeight = tempImg.naturalHeight;
+
+                const mergedCanvas = document.createElement("canvas");
+                mergedCanvas.width = imgWidth;
+                mergedCanvas.height = imgHeight;
+                const ctx = mergedCanvas.getContext("2d");
+
+                // Draw the original image
+                ctx.drawImage(tempImg, 0, 0, imgWidth, imgHeight);
+
+                // Calculate the scaling factors based on the original image and displayed size
+                const displayedImg = document.getElementById("image-area");
+                const displayWidth = displayedImg.clientWidth;
+                const displayHeight = displayedImg.clientHeight;
+                
+                const scaleX = imgWidth / displayWidth;
+                const scaleY = imgHeight / displayHeight;
+
+                // Draw the scribbleCanvas with proper scaling to match the original image dimensions
+                ctx.drawImage(scribbleCanvas, 
+                    0, 0, scribbleCanvas.width, scribbleCanvas.height,
+                    0, 0, imgWidth, imgHeight);
+
+                // Save result
+                const result = mergedCanvas.toDataURL();
+                imageList[index] = result;
+                const state = imageStates[index];
+                state.src = result;
+                pushToHistory();
+            };
+        }
+
 
 function clearScribbleCanvas() {
 
@@ -350,89 +365,97 @@ function clearScribbleCanvas() {
 }
 
 function toggleScribbleTool() {
-    const btn = document.getElementById("scribbleBtn");
-    const colorPicker = document.getElementById("scribbleColor");
-    const sizeControl = document.querySelector(".scribble-size-container");
-    const clearBtn = document.getElementById("clearScribbleBtn");
+            const btn = document.getElementById("scribbleBtn");
+            const colorPicker = document.getElementById("scribbleColor");
+            const sizeControl = document.querySelector(".scribble-size-container");
 
-    const wasScribbling = isScribbling;
-    isScribbling = !isScribbling;
+            const wasScribbling = isScribbling;
+            isScribbling = !isScribbling;
 
-    if (isScribbling) {
-        btn.style.backgroundColor = "#1e90ff";
-        colorPicker.style.display = "inline-block";
-        sizeControl.style.display = "flex";
-        clearBtn.style.display = "inline-block";
-        document.getElementById("image-area").style.cursor = "crosshair";
+            if (isScribbling) {
+                btn.style.backgroundColor = "#1e90ff";
+                colorPicker.style.display = "inline-block";
+                sizeControl.style.display = "flex";
+                document.getElementById("image-area").style.cursor = "crosshair";
 
-        if (!document.getElementById("scribbleCanvas")) {
-            enableScribbleCanvas();
+                if (!document.getElementById("scribbleCanvas")) {
+                    enableScribbleCanvas();
+                }
+            } else {
+                const scribbleCanvas = document.getElementById("scribbleCanvas");
+                if (scribbleCanvas && !isCanvasEmpty(scribbleCanvas)) {
+                    // Only commit if there's actually something drawn
+                    commitScribble();
+                } else {
+                    // Just remove the canvas if empty
+                    removeScribbleCanvas();
+                }
+
+                btn.style.backgroundColor = "white";
+                colorPicker.style.display = "none";
+                sizeControl.style.display = "none";
+                document.getElementById("image-area").style.cursor = "default";
+            }
         }
-    } else {
-        // COMMIT before turning off
-        const scribbleCanvas = document.getElementById("scribbleCanvas");
-        if (scribbleCanvas && !isCanvasEmpty(scribbleCanvas)) {
-            flattenScribblesIntoImage();
-        } else {
-            removeScribbleCanvas(); // Nothing to commit
+
+        function commitScribble() {
+            const scribbleCanvas = document.getElementById("scribbleCanvas");
+            if (!scribbleCanvas || isCanvasEmpty(scribbleCanvas)) {
+                removeScribbleCanvas();
+                return;
+            }
+
+            // For batch mode, we need to handle all images
+            if (isBatchProcessing) {
+                const originalIndex = currentImageIndex;
+                for (let i = 0; i < imageList.length; i++) {
+                    mergeDrawingOntoImage(i, scribbleCanvas);
+                }
+                currentImageIndex = originalIndex;
+                displayImage(originalIndex);
+            } else {
+                // For single image mode
+                mergeDrawingOntoImage(currentImageIndex, scribbleCanvas);
+                displayImage(currentImageIndex);
+            }
+
+            removeScribbleCanvas();
+            isScribbling = false;
         }
 
-        btn.style.backgroundColor = "transparent";
-        colorPicker.style.display = "none";
-        sizeControl.style.display = "none";
-        document.getElementById("image-area").style.cursor = "default";
-    }
-}
+        function enableScribbleCanvas() {
+            const container = document.getElementById("image-container");
+            removeScribbleCanvas();
 
-function commitScribble() {
-    flattenScribblesIntoImage();
-    isScribbling = false;
+            const image = document.getElementById("image-area");
+            const containerRect = container.getBoundingClientRect();
 
-    document.getElementById("scribbleBtn").style.backgroundColor = "transparent";
-    document.getElementById("scribbleColor").style.display = "none";
-    document.getElementById("scribbleSize").style.display = "none";
-    document.getElementById("commitScribbleBtn").style.display = "none";
-    document.getElementById("image-area").style.cursor = "default";
-}
+            // Create canvas matching the container size
+            canvas = document.createElement("canvas");
+            canvas.id = "scribbleCanvas";
+            canvas.style.position = "absolute";
+            canvas.style.top = "0";
+            canvas.style.left = "0";
+            canvas.style.width = "100%";
+            canvas.style.height = "100%";
+            canvas.width = containerRect.width;
+            canvas.height = containerRect.height;
+            canvas.style.zIndex = "10";
+            canvas.style.pointerEvents = "auto";
 
+            container.appendChild(canvas);
 
-function enableScribbleCanvas() {
-    const container = document.getElementById("image-container");
-    removeScribbleCanvas();
+            ctx = canvas.getContext("2d");
+            ctx.lineJoin = "round";
+            ctx.lineCap = "round";
+            ctx.lineWidth = parseInt(document.getElementById("scribbleSize").value);
+            ctx.strokeStyle = document.getElementById("scribbleColor").value;
 
-    const image = document.getElementById("image-area");
-
-    // Get displayed image dimensions
-    const style = window.getComputedStyle(image);
-    const width = parseFloat(style.width);
-    const height = parseFloat(style.height);
-
-    // Create canvas
-    canvas = document.createElement("canvas");
-    canvas.id = "scribbleCanvas";
-    canvas.style.position = "absolute";
-    canvas.style.top = "0";
-    canvas.style.left = "0";
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
-    canvas.style.zIndex = "10";
-    canvas.style.pointerEvents = "auto";
-
-    container.appendChild(canvas);
-
-    ctx = canvas.getContext("2d");
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.lineWidth = parseInt(document.getElementById("scribbleSize").value);
-    ctx.strokeStyle = document.getElementById("scribbleColor").value;
-
-    canvas.addEventListener("mousedown", startDraw);
-    canvas.addEventListener("mousemove", draw);
-    canvas.addEventListener("mouseup", stopDraw);
-    canvas.addEventListener("mouseout", stopDraw);
-}
+            canvas.addEventListener("mousedown", startDraw);
+            canvas.addEventListener("mousemove", draw);
+            canvas.addEventListener("mouseup", stopDraw);
+            canvas.addEventListener("mouseout", stopDraw);
+        }
 
 function removeScribbleCanvas() {
     const existingCanvas = document.getElementById("scribbleCanvas");
@@ -1939,10 +1962,6 @@ suppressInputEvents = false;
             <span>Size:</span>
             <input type="number" class="scribble-size-input" id="scribbleSize" min="1" max="20" value="2" onchange="updateScribbleSize()">
         </div>
-        <button id="clearScribbleBtn" onclick="clearScribbleCanvas()">
-            <i class="fa-solid fa-close"></i>
-            <span class="tooltip">Clear Drawing</span>
-        </button>
     </div>
 </div>
 </div>

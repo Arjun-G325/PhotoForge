@@ -804,61 +804,108 @@ function drawCropArea(e) {
 }
 
 function applyCropToImage(cropLeft, cropTop, cropWidth, cropHeight) {
-    // Create canvas for cropping
+    // Create canvas for cropping the image
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    
+
     // Set canvas dimensions to crop size
     canvas.width = cropWidth;
     canvas.height = cropHeight;
-    
+
     // Calculate image position relative to its container
     const imgRect = selectedImage.getBoundingClientRect();
     const container = selectedImage.offsetParent || collageContainer;
     const containerRect = container.getBoundingClientRect();
-    
+
     // Calculate source coordinates (relative to image)
     const imgLeft = imgRect.left - containerRect.left + container.scrollLeft;
     const imgTop = imgRect.top - containerRect.top + container.scrollTop;
-    
+
     const srcX = cropLeft - imgLeft;
     const srcY = cropTop - imgTop;
-    
+
     // Get actual image dimensions (accounting for CSS scaling)
     const imgDisplayWidth = imgRect.width;
     const imgDisplayHeight = imgRect.height;
     const imgNaturalWidth = selectedImage.naturalWidth;
     const imgNaturalHeight = selectedImage.naturalHeight;
-    
+
     // Calculate scale factors
     const scaleX = imgNaturalWidth / imgDisplayWidth;
     const scaleY = imgNaturalHeight / imgDisplayHeight;
-    
+
     // Calculate source coordinates in original image pixels
     const srcXOriginal = Math.max(0, srcX * scaleX);
     const srcYOriginal = Math.max(0, srcY * scaleY);
     const widthOriginal = Math.min(cropWidth * scaleX, imgNaturalWidth - srcXOriginal);
     const heightOriginal = Math.min(cropHeight * scaleY, imgNaturalHeight - srcYOriginal);
-    
+
     // Draw the cropped portion
     ctx.drawImage(
         selectedImage,
         srcXOriginal, srcYOriginal,       // source x, y
         widthOriginal, heightOriginal,    // source width, height
         0, 0,                            // destination x, y
-        cropWidth, cropHeight            // destination width, height
+        cropWidth, cropHeight             // destination width, height
     );
-    
+
     // Replace image with cropped version
     selectedImage.src = canvas.toDataURL();
-    
+
     // Update image dimensions and position
     selectedImage.style.width = cropWidth + 'px';
     selectedImage.style.height = 'auto';
     selectedImage.style.left = (cropLeft - container.scrollLeft) + 'px';
     selectedImage.style.top = (cropTop - container.scrollTop) + 'px';
-}
 
+    // Crop the drawing canvas
+    const drawingCanvas = selectedImage.nextElementSibling;
+    if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
+        const drawingCtx = drawingCanvas.getContext('2d');
+        
+        // Create a temporary canvas for the cropped drawing
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = cropWidth;
+        tempCanvas.height = cropHeight;
+        
+        // Calculate the scale factor between drawing canvas and displayed image
+        const drawingToDisplayX = drawingCanvas.width / imgDisplayWidth;
+        const drawingToDisplayY = drawingCanvas.height / imgDisplayHeight;
+        
+        // Calculate crop coordinates in drawing canvas space
+        const drawingCropX = srcX * drawingToDisplayX;
+        const drawingCropY = srcY * drawingToDisplayY;
+        const drawingCropWidth = cropWidth * drawingToDisplayX;
+        const drawingCropHeight = cropHeight * drawingToDisplayY;
+        
+        // Draw the cropped portion of the drawing
+        tempCtx.drawImage(
+            drawingCanvas,
+            drawingCropX, drawingCropY,     // source x, y
+            drawingCropWidth, drawingCropHeight, // source width, height
+            0, 0,                           // destination x, y
+            cropWidth, cropHeight           // destination width, height
+        );
+        
+        // Resize the drawing canvas to match the new image size
+        drawingCanvas.width = cropWidth;
+        drawingCanvas.height = cropHeight;
+        drawingCtx.drawImage(tempCanvas, 0, 0);
+        
+        // Update drawing canvas position and size to match the image
+        drawingCanvas.style.left = selectedImage.style.left;
+        drawingCanvas.style.top = selectedImage.style.top;
+        drawingCanvas.style.width = cropWidth + 'px';
+        drawingCanvas.style.height = cropHeight + 'px';
+        
+        // Reset transformations (they'll be reapplied in applyTransformations)
+        drawingCanvas.style.transform = '';
+    }
+    
+    // Reapply any transformations to both image and drawing canvas
+    applyTransformations(selectedImage);
+}
 
 
 function endCrop(e) {
@@ -1206,46 +1253,39 @@ function doResize(e) {
             break;
     }
     
-    // Resize the drawing canvas
-    const drawingCanvas = selectedImage.nextElementSibling;
-    if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
-        // Create a new canvas with the new dimensions
-        const newCanvas = document.createElement('canvas');
-        newCanvas.className = 'drawing-canvas';
-        newCanvas.width = newWidth;
-        newCanvas.height = newHeight;
-        
-        // Copy the drawing content without scaling
-        const newCtx = newCanvas.getContext('2d');
-        const oldCtx = drawingCanvas.getContext('2d');
-        
-        // Get the image data from the original canvas
-        const imageData = oldCtx.getImageData(0, 0, drawingCanvas.width, drawingCanvas.height);
-        
-        // Put it on the new canvas at the same position
-        newCtx.putImageData(imageData, 0, 0);
-        
-        // Replace the old canvas with the new one
-        drawingCanvas.parentNode.replaceChild(newCanvas, drawingCanvas);
-        
-        // Style the new canvas
-        newCanvas.style.position = 'absolute';
-        newCanvas.style.left = newLeft + 'px';
-        newCanvas.style.top = newTop + 'px';
-        newCanvas.style.width = newWidth + 'px';
-        newCanvas.style.height = newHeight + 'px';
-        newCanvas.style.pointerEvents = 'none';
-        
-        // Update current drawing context reference
-        currentDrawingCtx = newCtx;
-        currentDrawingCanvas = newCanvas;
-    }
-    
-    // Then resize the image
+    // Resize the image
     selectedImage.style.width = newWidth + 'px';
     selectedImage.style.height = newHeight + 'px';
     selectedImage.style.left = newLeft + 'px';
     selectedImage.style.top = newTop + 'px';
+    
+    // Resize the drawing canvas
+    const drawingCanvas = selectedImage.nextElementSibling;
+    if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
+        // Create a temporary canvas to preserve the drawing
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = drawingCanvas.width;
+        tempCanvas.height = drawingCanvas.height;
+        tempCtx.drawImage(drawingCanvas, 0, 0);
+        
+        // Resize the drawing canvas
+        drawingCanvas.width = newWidth;
+        drawingCanvas.height = newHeight;
+        const ctx = drawingCanvas.getContext('2d');
+        
+        // Scale the drawing to the new size
+        ctx.save();
+        ctx.scale(newWidth / tempCanvas.width, newHeight / tempCanvas.height);
+        ctx.drawImage(tempCanvas, 0, 0);
+        ctx.restore();
+        
+        // Update drawing canvas position and size
+        drawingCanvas.style.width = newWidth + 'px';
+        drawingCanvas.style.height = newHeight + 'px';
+        drawingCanvas.style.left = newLeft + 'px';
+        drawingCanvas.style.top = newTop + 'px';
+    }
     
     // Update handles container
     const container = document.querySelector('.resize-handles-container');
@@ -1292,12 +1332,18 @@ function disableResize() {
     stopResize();
 }
 
-    function applyTransformations(img) {
-        const rotation = img.dataset.rotation;
-        const flipX = img.dataset.flipX;
-        const flipY = img.dataset.flipY;
-        img.style.transform = `rotate(${rotation}deg) scale(${flipX}, ${flipY})`;
+function applyTransformations(img) {
+    const rotation = img.dataset.rotation;
+    const flipX = img.dataset.flipX;
+    const flipY = img.dataset.flipY;
+    img.style.transform = `rotate(${rotation}deg) scale(${flipX}, ${flipY})`;
+    
+    // Apply same transformations to drawing canvas
+    const drawingCanvas = img.nextElementSibling;
+    if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
+        drawingCanvas.style.transform = `rotate(${rotation}deg) scale(${flipX}, ${flipY})`;
     }
+}
 
     function deleteSelectedImage() {
     if (!selectedImage) return;

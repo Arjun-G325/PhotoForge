@@ -266,6 +266,10 @@
     background-color: #555;
     color: white;
 }
+#paintCanvas {
+    pointer-events: auto;
+    mix-blend-mode: normal;
+}
     </style>
     <script>
 let isBatchProcessing = false;
@@ -284,9 +288,16 @@ let currentImageIndex = -1;
 let imageSavePaths = [];  // New array to track save path per image
 let suppressResize = false;
 let suppressInputEvents = false;
-let isScribbling = false;
+
 let canvas, ctx;
 let lastX, lastY;
+let isPainting = false;
+let paintCanvas, paintCtx;
+let lastPaintX, lastPaintY;
+let paintSize = 5;
+let paintColor = "#000000";
+let isErasing = false;
+let eraserSize = 10;
 
 function isCanvasEmpty(canvas) {
     if (!canvas) return true;
@@ -297,238 +308,292 @@ function isCanvasEmpty(canvas) {
     return !pixelBuffer.some(color => color !== 0);
 }
 
-function flattenScribblesIntoImage() {
-    const scribbleCanvas = document.getElementById("scribbleCanvas");
-    if (!scribbleCanvas || isCanvasEmpty(scribbleCanvas)) return;
 
-    if (isBatchProcessing) {
-        const originalIndex = currentImageIndex;
-        for (let i = 0; i < imageList.length; i++) {
-            mergeDrawingOntoImage(i, scribbleCanvas);
-        }
-        currentImageIndex = originalIndex;
-        displayImage(originalIndex);
+// Update the enablePaintCanvas function
+function enablePaintCanvas() {
+    const container = document.getElementById("image-container");
+    removePaintCanvas();
+
+    const image = document.getElementById("image-area");
+    const containerRect = container.getBoundingClientRect();
+    const imageRect = image.getBoundingClientRect();
+
+    // Create canvas matching the image size and position
+    paintCanvas = document.createElement("canvas");
+    paintCanvas.id = "paintCanvas";
+    paintCanvas.style.position = "absolute";
+    paintCanvas.style.top = imageRect.top - containerRect.top + "px";
+    paintCanvas.style.left = imageRect.left - containerRect.left + "px";
+    paintCanvas.style.width = imageRect.width + "px";
+    paintCanvas.style.height = imageRect.height + "px";
+    paintCanvas.width = imageRect.width;
+    paintCanvas.height = imageRect.height;
+    paintCanvas.style.zIndex = "10";
+    paintCanvas.style.pointerEvents = "auto";
+    paintCanvas.style.cursor = "crosshair";
+
+    container.appendChild(paintCanvas);
+
+    paintCtx = paintCanvas.getContext("2d");
+    paintCtx.lineJoin = "round";
+    paintCtx.lineCap = "round";
+    paintCtx.lineWidth = paintSize;
+    paintCtx.strokeStyle = paintColor;
+
+    // Clear any existing listeners first
+    paintCanvas.removeEventListener("mousedown", startPaint);
+    paintCanvas.removeEventListener("mousemove", paint);
+    paintCanvas.removeEventListener("mouseup", stopPaint);
+    paintCanvas.removeEventListener("mouseout", stopPaint);
+
+    // Set up new event listeners
+    paintCanvas.addEventListener("mousedown", startPaint);
+    paintCanvas.addEventListener("mousemove", paint);
+    paintCanvas.addEventListener("mouseup", stopPaint);
+    paintCanvas.addEventListener("mouseout", stopPaint);
+}
+
+// Update the paint function
+function paint(e) {
+    if (!isPainting) return;
+    
+    const rect = paintCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (isErasing) {
+        // Erase mode
+        paintCtx.globalCompositeOperation = "destination-out";
+        paintCtx.beginPath();
+        paintCtx.arc(x, y, eraserSize/2, 0, Math.PI * 2);
+        paintCtx.fill();
     } else {
-        mergeDrawingOntoImage(currentImageIndex, scribbleCanvas);
-        displayImage(currentImageIndex);
+        // Paint mode
+        paintCtx.globalCompositeOperation = "source-over";
+        paintCtx.lineWidth = paintSize;
+        paintCtx.strokeStyle = paintColor;
+        paintCtx.lineTo(x, y);
+        paintCtx.stroke();
     }
-
-    removeScribbleCanvas();
+    
+    lastPaintX = x;
+    lastPaintY = y;
 }
 
-function mergeDrawingOntoImage(index, scribbleCanvas) {
-            const tempImg = new Image();
-            tempImg.src = imageList[index];
-
-            tempImg.onload = () => {
-                const imgWidth = tempImg.naturalWidth;
-                const imgHeight = tempImg.naturalHeight;
-
-                const mergedCanvas = document.createElement("canvas");
-                mergedCanvas.width = imgWidth;
-                mergedCanvas.height = imgHeight;
-                const ctx = mergedCanvas.getContext("2d");
-
-                // Draw the original image
-                ctx.drawImage(tempImg, 0, 0, imgWidth, imgHeight);
-
-                // Calculate the scaling factors based on the original image and displayed size
-                const displayedImg = document.getElementById("image-area");
-                const displayWidth = displayedImg.clientWidth;
-                const displayHeight = displayedImg.clientHeight;
-                
-                const scaleX = imgWidth / displayWidth;
-                const scaleY = imgHeight / displayHeight;
-
-                // Draw the scribbleCanvas with proper scaling to match the original image dimensions
-                ctx.drawImage(scribbleCanvas, 
-                    0, 0, scribbleCanvas.width, scribbleCanvas.height,
-                    0, 0, imgWidth, imgHeight);
-
-                // Save result
-                const result = mergedCanvas.toDataURL();
-                imageList[index] = result;
-                const state = imageStates[index];
-                state.src = result;
-                pushToHistory();
-            };
-        }
-
-
-function clearScribbleCanvas() {
-
-    const scribbleCanvas = document.getElementById("scribbleCanvas");
-    if (scribbleCanvas) {
-        const ctx = scribbleCanvas.getContext("2d");
-        ctx.clearRect(0, 0, scribbleCanvas.width, scribbleCanvas.height);
+// Update the startPaint function
+function startPaint(e) {
+    isPainting = true;
+    const rect = paintCanvas.getBoundingClientRect();
+    lastPaintX = e.clientX - rect.left;
+    lastPaintY = e.clientY - rect.top;
+    
+    if (isErasing) {
+        // Start erasing
+        paintCtx.globalCompositeOperation = "destination-out";
+        paintCtx.beginPath();
+        paintCtx.arc(lastPaintX, lastPaintY, eraserSize/2, 0, Math.PI * 2);
+        paintCtx.fill();
+    } else {
+        // Start painting
+        paintCtx.globalCompositeOperation = "source-over";
+        paintCtx.beginPath();
+        paintCtx.moveTo(lastPaintX, lastPaintY);
+        paintCtx.lineTo(lastPaintX, lastPaintY);
+        paintCtx.stroke();
     }
 }
 
-function toggleScribbleTool() {
-            const btn = document.getElementById("scribbleBtn");
-            const colorPicker = document.getElementById("scribbleColor");
-            const sizeControl = document.querySelector(".scribble-size-container");
+// Update the togglePaintTool function
+function togglePaintTool() {
+    const btn = document.getElementById("paintBtn");
+    const colorPicker = document.getElementById("paintColor");
+    const sizeControl = document.getElementById("paintSizeContainer");
+    const clearBtn = document.getElementById("clearPaintBtn");
+    const commitBtn = document.getElementById("commitPaintBtn");
+    const eraserBtn = document.getElementById("eraserBtn");
+    const eraserSizeControl = document.getElementById("eraserSizeContainer");
 
-            const wasScribbling = isScribbling;
-            isScribbling = !isScribbling;
+    // Toggle the painting state
+    isPainting = !isPainting;
 
-            if (isScribbling) {
-                btn.style.backgroundColor = "#1e90ff";
-                colorPicker.style.display = "inline-block";
-                sizeControl.style.display = "flex";
-                document.getElementById("image-area").style.cursor = "crosshair";
-
-                if (!document.getElementById("scribbleCanvas")) {
-                    enableScribbleCanvas();
-                }
+    if (isPainting) {
+        // Activate paint mode
+        btn.style.backgroundColor = "#1e90ff";
+        colorPicker.style.display = "inline-block";
+        sizeControl.style.display = "flex";
+        clearBtn.style.display = "inline-block";
+        commitBtn.style.display = "inline-block";
+        eraserBtn.style.display = "inline-block";
+        eraserSizeControl.style.display = "flex";
+        document.getElementById("image-area").style.cursor = "crosshair";
+        
+        // Enable the paint canvas
+        enablePaintCanvas();
+    } else {
+        // Deactivate paint mode
+        btn.style.backgroundColor = "transparent";
+        colorPicker.style.display = "none";
+        sizeControl.style.display = "none";
+        clearBtn.style.display = "none";
+        commitBtn.style.display = "none";
+        eraserBtn.style.display = "none";
+        eraserSizeControl.style.display = "none";
+        document.getElementById("image-area").style.cursor = "default";
+        
+        // Remove paint canvas if empty
+        const paintCanvas = document.getElementById("paintCanvas");
+        if (paintCanvas && isCanvasEmpty(paintCanvas)) {
+            removePaintCanvas();
+        } else if (paintCanvas) {
+            // Ask user if they want to commit changes
+            if (confirm("Commit paint changes?")) {
+                commitPaint();
             } else {
-                const scribbleCanvas = document.getElementById("scribbleCanvas");
-                if (scribbleCanvas && !isCanvasEmpty(scribbleCanvas)) {
-                    // Only commit if there's actually something drawn
-                    commitScribble();
-                } else {
-                    // Just remove the canvas if empty
-                    removeScribbleCanvas();
-                }
-
-                btn.style.backgroundColor = "white";
-                colorPicker.style.display = "none";
-                sizeControl.style.display = "none";
-                document.getElementById("image-area").style.cursor = "default";
+                removePaintCanvas();
             }
         }
+    }
+}
 
-        function commitScribble() {
-            const scribbleCanvas = document.getElementById("scribbleCanvas");
-            if (!scribbleCanvas || isCanvasEmpty(scribbleCanvas)) {
-                removeScribbleCanvas();
-                return;
-            }
 
-            // For batch mode, we need to handle all images
-            if (isBatchProcessing) {
-                const originalIndex = currentImageIndex;
-                for (let i = 0; i < imageList.length; i++) {
-                    mergeDrawingOntoImage(i, scribbleCanvas);
-                }
-                currentImageIndex = originalIndex;
-                displayImage(originalIndex);
-            } else {
-                // For single image mode
-                mergeDrawingOntoImage(currentImageIndex, scribbleCanvas);
-                displayImage(currentImageIndex);
-            }
+function updatePaintColor() {
+    paintColor = document.getElementById("paintColor").value;
+    if (paintCtx) {
+        paintCtx.strokeStyle = paintColor;
+    }
+}
 
-            removeScribbleCanvas();
-            isScribbling = false;
-        }
+function updatePaintSize() {
+    paintSize = parseInt(document.getElementById("paintSize").value);
+    if (paintCtx) {
+        paintCtx.lineWidth = paintSize;
+    }
+}
 
-        function enableScribbleCanvas() {
-            const container = document.getElementById("image-container");
-            removeScribbleCanvas();
+function updateEraserSize() {
+    eraserSize = parseInt(document.getElementById("eraserSize").value);
+}
 
-            const image = document.getElementById("image-area");
-            const containerRect = container.getBoundingClientRect();
+function toggleEraser() {
+    isErasing = !isErasing;
+    const eraserBtn = document.getElementById("eraserBtn");
+    
+    if (isErasing) {
+        eraserBtn.style.backgroundColor = "#1e90ff";
+        document.getElementById("image-area").style.cursor = "crosshair";
+    } else {
+        eraserBtn.style.backgroundColor = "transparent";
+        document.getElementById("image-area").style.cursor = "default";
+    }
+}
 
-            // Create canvas matching the container size
-            canvas = document.createElement("canvas");
-            canvas.id = "scribbleCanvas";
-            canvas.style.position = "absolute";
-            canvas.style.top = "0";
-            canvas.style.left = "0";
-            canvas.style.width = "100%";
-            canvas.style.height = "100%";
-            canvas.width = containerRect.width;
-            canvas.height = containerRect.height;
-            canvas.style.zIndex = "10";
-            canvas.style.pointerEvents = "auto";
 
-            container.appendChild(canvas);
 
-            ctx = canvas.getContext("2d");
-            ctx.lineJoin = "round";
-            ctx.lineCap = "round";
-            ctx.lineWidth = parseInt(document.getElementById("scribbleSize").value);
-            ctx.strokeStyle = document.getElementById("scribbleColor").value;
+function stopPaint() {
+    isPainting = false;
+    paintCtx.closePath();
+}
 
-            canvas.addEventListener("mousedown", startDraw);
-            canvas.addEventListener("mousemove", draw);
-            canvas.addEventListener("mouseup", stopDraw);
-            canvas.addEventListener("mouseout", stopDraw);
-        }
-
-function removeScribbleCanvas() {
-    const existingCanvas = document.getElementById("scribbleCanvas");
+function removePaintCanvas() {
+    const existingCanvas = document.getElementById("paintCanvas");
     if (existingCanvas) {
-        existingCanvas.removeEventListener("mousedown", startDraw);
-        existingCanvas.removeEventListener("mousemove", draw);
-        existingCanvas.removeEventListener("mouseup", stopDraw);
-        existingCanvas.removeEventListener("mouseout", stopDraw);
+        existingCanvas.removeEventListener("mousedown", startPaint);
+        existingCanvas.removeEventListener("mousemove", paint);
+        existingCanvas.removeEventListener("mouseup", stopPaint);
+        existingCanvas.removeEventListener("mouseout", stopPaint);
         existingCanvas.remove();
     }
 }
 
-let drawing = false;
-
-function startDraw(e) {
-    drawing = true;
-    const rect = canvas.getBoundingClientRect();
-    lastX = e.clientX - rect.left;
-    lastY = e.clientY - rect.top;
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-}
-
-function draw(e) {
-    if (!drawing) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    ctx.strokeStyle = document.getElementById("scribbleColor").value;
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-
-    lastX = x;
-    lastY = y;
+function startPaint(e) {
+    isPainting = true;
+    const rect = paintCanvas.getBoundingClientRect();
+    lastPaintX = e.clientX - rect.left;
+    lastPaintY = e.clientY - rect.top;
+    paintCtx.beginPath();
+    paintCtx.moveTo(lastPaintX, lastPaintY);
+    paintCtx.lineTo(lastPaintX, lastPaintY);
+    paintCtx.stroke();
 }
 
 
-function stopDraw() {
-    drawing = false;
+
+
+function clearPaintCanvas() {
+    if (paintCtx) {
+        paintCtx.clearRect(0, 0, paintCanvas.width, paintCanvas.height);
+    }
 }
 
-function toggleBatchProcessing() {
-    const checkbox = document.getElementById("batchCheckbox");
-    const applyBtn = document.getElementById("batchApplyBtn");
-    
-    isBatchProcessing = checkbox.checked;
-    applyBtn.style.display = isBatchProcessing ? "none" : "block"; // Hide apply button when in auto mode
-    
+function commitPaint() {
+    const paintCanvas = document.getElementById("paintCanvas");
+    if (!paintCanvas || isCanvasEmpty(paintCanvas)) {
+        removePaintCanvas();
+        return;
+    }
+
+    // For batch mode, we need to handle all images
     if (isBatchProcessing) {
-        // Store current filter values
-        batchFilters = {
-            brightness: parseInt(document.getElementById("brightnessSlider").value),
-            contrast: parseInt(document.getElementById("contrastSlider").value),
-            saturation: parseInt(document.getElementById("saturationSlider").value),
-            sepia: parseInt(document.getElementById("sepiaSlider").value),
-            bw: parseInt(document.getElementById("bwSlider").value),
-            blur: parseInt(document.getElementById("blurSlider").value)
-        };
-        
-        // Apply current filters to all images immediately
-        applyFiltersToAll(false);
+        const originalIndex = currentImageIndex;
+        for (let i = 0; i < imageList.length; i++) {
+            mergePaintOntoImage(i, paintCanvas);
+        }
+        currentImageIndex = originalIndex;
+        displayImage(originalIndex);
+    } else {
+        // For single image mode
+        mergePaintOntoImage(currentImageIndex, paintCanvas);
+        displayImage(currentImageIndex);
     }
+
+    removePaintCanvas();
+    isPainting = false;
+    document.getElementById("paintBtn").style.backgroundColor = "transparent";
+    document.getElementById("paintColor").style.display = "none";
+    document.getElementById("paintSizeContainer").style.display = "none";
+    document.getElementById("clearPaintBtn").style.display = "none";
+    document.getElementById("image-area").style.cursor = "default";
 }
 
-// Add to the script section
-function updateScribbleSize() {
-    if (ctx) {
-        ctx.lineWidth = parseInt(document.getElementById("scribbleSize").value);
-    }
+function mergePaintOntoImage(index, paintCanvas) {
+    const tempImg = new Image();
+    tempImg.src = imageList[index];
+
+    tempImg.onload = () => {
+        const imgWidth = tempImg.naturalWidth;
+        const imgHeight = tempImg.naturalHeight;
+
+        const mergedCanvas = document.createElement("canvas");
+        mergedCanvas.width = imgWidth;
+        mergedCanvas.height = imgHeight;
+        const ctx = mergedCanvas.getContext("2d");
+
+        // Draw the original image
+        ctx.drawImage(tempImg, 0, 0, imgWidth, imgHeight);
+
+        // Calculate the scaling factors based on the original image and displayed size
+        const displayedImg = document.getElementById("image-area");
+        const displayWidth = displayedImg.clientWidth;
+        const displayHeight = displayedImg.clientHeight;
+        
+        const scaleX = imgWidth / displayWidth;
+        const scaleY = imgHeight / displayHeight;
+
+        // Draw the paintCanvas with proper scaling to match the original image dimensions
+        ctx.drawImage(paintCanvas, 
+            0, 0, paintCanvas.width, paintCanvas.height,
+            0, 0, imgWidth, imgHeight);
+
+        // Save result
+        const result = mergedCanvas.toDataURL();
+        imageList[index] = result;
+        const state = imageStates[index];
+        state.src = result;
+        pushToHistory();
+    };
 }
+
+
 
 function applyFiltersToAll(askForConfirmation = true) {
     if (imageList.length === 0) {
@@ -991,6 +1056,21 @@ function saveImageToFile(filePath, extension) {
             ctx.save();
             ctx.setTransform(scaleX, 0, 0, scaleY, -imgWidth/2, -imgHeight/2);
             ctx.drawImage(scribbleCanvas, 0, 0);
+            ctx.restore();
+        }
+        
+        // Merge paintCanvas if active
+        const paintCanvas = document.getElementById("paintCanvas");
+        if (paintCanvas && !isCanvasEmpty(paintCanvas)) {
+            // Calculate scaling factors to match the image dimensions
+            const imgRect = image.getBoundingClientRect();
+            const scaleX = imgWidth / imgRect.width;
+            const scaleY = imgHeight / imgRect.height;
+            
+            // Draw the paint with proper scaling
+            ctx.save();
+            ctx.setTransform(scaleX, 0, 0, scaleY, -imgWidth/2, -imgHeight/2);
+            ctx.drawImage(paintCanvas, 0, 0);
             ctx.restore();
         }
         
@@ -1953,17 +2033,32 @@ suppressInputEvents = false;
 
 <div class="secondary-toolbar">
     <div class="scribble-controls">
-        <button id="scribbleBtn" onclick="toggleScribbleTool()">
-            <i class="fa-solid fa-pen"></i>
-            <span class="tooltip">Scribble</span>
+        <button id="paintBtn" onclick="togglePaintTool()">
+            <i class="fa-solid fa-paintbrush"></i>
+            <span class="tooltip">Paint</span>
         </button>
-        <input type="color" id="scribbleColor" title="Scribble Color" style="display: none;">
-        <div class="scribble-size-container" style="display: none;" id="scribbleSizeContainer">
+        <input type="color" id="paintColor" title="Paint Color" value="#000000" style="display: none;" onchange="updatePaintColor()">
+        <div class="scribble-size-container" style="display: none;" id="paintSizeContainer">
             <span>Size:</span>
-            <input type="number" class="scribble-size-input" id="scribbleSize" min="1" max="20" value="2" onchange="updateScribbleSize()">
+            <input type="number" class="scribble-size-input" id="paintSize" min="1" max="50" value="5" onchange="updatePaintSize()">
         </div>
+        <div class="scribble-size-container" style="display: none;" id="eraserSizeContainer">
+            <span>Eraser:</span>
+            <input type="number" class="scribble-size-input" id="eraserSize" min="1" max="50" value="10" onchange="updateEraserSize()">
+        </div>
+        <button id="eraserBtn" style="display: none;" onclick="toggleEraser()">
+            <i class="fa-solid fa-eraser"></i>
+            <span class="tooltip">Eraser</span>
+        </button>
+        <button id="clearPaintBtn" style="display: none;" onclick="clearPaintCanvas()">
+            <i class="fa-solid fa-trash"></i>
+            <span class="tooltip">Clear</span>
+        </button>
+        <button id="commitPaintBtn" style="display: none; margin-left: 10px;" onclick="commitPaint()">
+            <i class="fa-solid fa-check"></i>
+            <span class="tooltip">Commit Paint</span>
+        </button>
     </div>
-</div>
 </div>
     
     <div class="content">

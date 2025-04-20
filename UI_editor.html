@@ -353,9 +353,39 @@ function enablePaintCanvas() {
     paintCanvas.addEventListener("mouseout", stopPaint);
 }
 
-// Update the paint function
+function startPaint(e) {
+    const btn = document.getElementById("paintBtn");
+    const isPaintActive = btn.style.backgroundColor === "rgb(30, 144, 255)";
+    
+    if (!isPaintActive) return;
+    
+    isPainting = true;
+    const rect = paintCanvas.getBoundingClientRect();
+    lastPaintX = e.clientX - rect.left;
+    lastPaintY = e.clientY - rect.top;
+    
+    if (isErasing) {
+        // Start erasing
+        paintCtx.globalCompositeOperation = "destination-out";
+        paintCtx.beginPath();
+        paintCtx.arc(lastPaintX, lastPaintY, eraserSize/2, 0, Math.PI * 2);
+        paintCtx.fill();
+    } else {
+        // Start painting
+        paintCtx.globalCompositeOperation = "source-over";
+        paintCtx.beginPath();
+        paintCtx.moveTo(lastPaintX, lastPaintY);
+        paintCtx.lineTo(lastPaintX, lastPaintY);
+        paintCtx.stroke();
+    }
+}
+
+// Modify the paint function to be:
 function paint(e) {
-    if (!isPainting) return;
+    const btn = document.getElementById("paintBtn");
+    const isPaintActive = btn.style.backgroundColor === "rgb(30, 144, 255)";
+    
+    if (!isPainting || !isPaintActive) return;
     
     const rect = paintCanvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -379,31 +409,11 @@ function paint(e) {
     lastPaintX = x;
     lastPaintY = y;
 }
-
-// Update the startPaint function
-function startPaint(e) {
-    isPainting = true;
-    const rect = paintCanvas.getBoundingClientRect();
-    lastPaintX = e.clientX - rect.left;
-    lastPaintY = e.clientY - rect.top;
-    
-    if (isErasing) {
-        // Start erasing
-        paintCtx.globalCompositeOperation = "destination-out";
-        paintCtx.beginPath();
-        paintCtx.arc(lastPaintX, lastPaintY, eraserSize/2, 0, Math.PI * 2);
-        paintCtx.fill();
-    } else {
-        // Start painting
-        paintCtx.globalCompositeOperation = "source-over";
-        paintCtx.beginPath();
-        paintCtx.moveTo(lastPaintX, lastPaintY);
-        paintCtx.lineTo(lastPaintX, lastPaintY);
-        paintCtx.stroke();
-    }
+function isPaintToolActive() {
+    const btn = document.getElementById("paintBtn");
+    return btn.style.backgroundColor === "rgb(30, 144, 255)";
 }
 
-// Update the togglePaintTool function
 function togglePaintTool() {
     const btn = document.getElementById("paintBtn");
     const colorPicker = document.getElementById("paintColor");
@@ -412,11 +422,12 @@ function togglePaintTool() {
     const commitBtn = document.getElementById("commitPaintBtn");
     const eraserBtn = document.getElementById("eraserBtn");
     const eraserSizeControl = document.getElementById("eraserSizeContainer");
+    const imageArea = document.getElementById("image-area");
 
-    // Toggle the painting state
-    isPainting = !isPainting;
-
-    if (isPainting) {
+    // Toggle the painting active state (not the actual painting flag)
+    const isPaintActive = btn.style.backgroundColor === "rgb(30, 144, 255)";
+    
+    if (!isPaintActive) {
         // Activate paint mode
         btn.style.backgroundColor = "#1e90ff";
         colorPicker.style.display = "inline-block";
@@ -425,10 +436,17 @@ function togglePaintTool() {
         commitBtn.style.display = "inline-block";
         eraserBtn.style.display = "inline-block";
         eraserSizeControl.style.display = "flex";
-        document.getElementById("image-area").style.cursor = "crosshair";
         
-        // Enable the paint canvas
-        enablePaintCanvas();
+        // Update cursor to crosshair when paint mode is active
+        if (paintCanvas) {
+            paintCanvas.style.cursor = "crosshair";
+        }
+        imageArea.style.cursor = "crosshair";
+        
+        // Enable the paint canvas if it doesn't exist
+        if (!document.getElementById("paintCanvas")) {
+            enablePaintCanvas();
+        }
     } else {
         // Deactivate paint mode
         btn.style.backgroundColor = "transparent";
@@ -438,24 +456,17 @@ function togglePaintTool() {
         commitBtn.style.display = "none";
         eraserBtn.style.display = "none";
         eraserSizeControl.style.display = "none";
-        document.getElementById("image-area").style.cursor = "default";
         
-        // Remove paint canvas if empty
-        const paintCanvas = document.getElementById("paintCanvas");
-        if (paintCanvas && isCanvasEmpty(paintCanvas)) {
-            removePaintCanvas();
-        } else if (paintCanvas) {
-            // Ask user if they want to commit changes
-            if (confirm("Commit paint changes?")) {
-                commitPaint();
-            } else {
-                removePaintCanvas();
-            }
+        // Reset cursor to default when paint mode is inactive
+        if (paintCanvas) {
+            paintCanvas.style.cursor = "default";
         }
+        imageArea.style.cursor = "default";
+        
+        // Keep the paint canvas but disable painting
+        isPainting = false;
     }
 }
-
-
 function updatePaintColor() {
     paintColor = document.getElementById("paintColor").value;
     if (paintCtx) {
@@ -505,16 +516,7 @@ function removePaintCanvas() {
     }
 }
 
-function startPaint(e) {
-    isPainting = true;
-    const rect = paintCanvas.getBoundingClientRect();
-    lastPaintX = e.clientX - rect.left;
-    lastPaintY = e.clientY - rect.top;
-    paintCtx.beginPath();
-    paintCtx.moveTo(lastPaintX, lastPaintY);
-    paintCtx.lineTo(lastPaintX, lastPaintY);
-    paintCtx.stroke();
-}
+
 
 
 

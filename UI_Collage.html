@@ -125,7 +125,7 @@
 
         #collage-container {
             width: 90vw;
-            height: 80vh;
+            height: 75vh;
             position: relative;
             background: #444;
             border: 2px solid #555;
@@ -973,6 +973,11 @@ function resetCrop() {
     document.removeEventListener('mousemove', drawCropArea);
     document.removeEventListener('mouseup', endCrop);
 }
+function resizeImageToBox(img, width, height) {
+    img.style.width = width + 'px';
+    img.style.height = height + 'px';
+}
+
 function makeDraggable(element) {
     let isDragging = false, startX, startY, startLeft, startTop;
 
@@ -1005,11 +1010,52 @@ function makeDraggable(element) {
         }
     }
 
-    function stopDrag() {
-        isDragging = false;
-        document.removeEventListener('mousemove', dragMove);
-        document.removeEventListener('mouseup', stopDrag);
+    function stopDrag(e) {
+    isDragging = false;
+    document.removeEventListener('mousemove', dragMove);
+    document.removeEventListener('mouseup', stopDrag);
+
+    // Check if image overlaps a template box
+    const templateBoxes = document.querySelectorAll('.template-box');
+    const imageRect = element.getBoundingClientRect();
+
+    for (const box of templateBoxes) {
+        const boxRect = box.getBoundingClientRect();
+
+        const isOverlapping = !(
+            imageRect.right < boxRect.left ||
+            imageRect.left > boxRect.right ||
+            imageRect.bottom < boxRect.top ||
+            imageRect.top > boxRect.bottom
+        );
+
+        if (isOverlapping) {
+            // Snap to template box position
+            const containerRect = collageContainer.getBoundingClientRect();
+            element.style.left = (boxRect.left - containerRect.left) + 'px';
+            element.style.top = (boxRect.top - containerRect.top) + 'px';
+
+            // Resize image to match template box
+            const boxWidth = box.offsetWidth;
+            const boxHeight = box.offsetHeight;
+            resizeImageToBox(element, boxWidth, boxHeight);
+
+            // Move drawing canvas too
+            const drawingCanvas = element.nextElementSibling;
+            if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
+                drawingCanvas.style.left = element.style.left;
+                drawingCanvas.style.top = element.style.top;
+                drawingCanvas.width = boxWidth;
+                drawingCanvas.height = boxHeight;
+                drawingCanvas.style.width = boxWidth + 'px';
+                drawingCanvas.style.height = boxHeight + 'px';
+            }
+
+            break; // Only apply to first matching box
+        }
     }
+}
+
 }
 
     function applyFilter(filterType) {

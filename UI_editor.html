@@ -516,11 +516,6 @@ function removePaintCanvas() {
     }
 }
 
-
-
-
-
-
 function clearPaintCanvas() {
     if (paintCtx) {
         paintCtx.clearRect(0, 0, paintCanvas.width, paintCanvas.height);
@@ -807,7 +802,6 @@ Object.assign(imageStates[currentImageIndex], nextState);
 restoreState(nextState);
 
 }
-
 
 function undoAllImages() {
     // Save current index

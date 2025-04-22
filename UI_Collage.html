@@ -198,6 +198,42 @@
     transform: scale(1.3);
     background: #1a73e8;
 }
+.tilt-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #ff9800;
+    border: 2px solid white;
+    border-radius: 50%;
+    z-index: 30;
+    pointer-events: auto;
+    transform: translate(-50%, -50%);
+    transition: all 0.1s ease;
+}
+
+.tilt-handle.top {
+    top: 0;
+    left: 50%;
+    cursor: ns-resize;
+}
+
+.tilt-handle.right {
+    top: 50%;
+    right: 0;
+    cursor: ew-resize;
+}
+
+.tilt-handle.bottom {
+    bottom: 0;
+    left: 50%;
+    cursor: ns-resize;
+}
+
+.tilt-handle.left {
+    top: 50%;
+    left: 0;
+    cursor: ew-resize;
+}
         .selected {
             border: 3px solid yellow !important;
             z-index: 5;
@@ -258,6 +294,7 @@
         <button onclick="rotateSelected(90)"><i class="fa-solid fa-rotate-right"></i><span class="tooltip">Rotate Right</span></button>
         <button onclick="flipSelected('X')"><i class="fa-solid fa-arrows-left-right"></i><span class="tooltip">Flip Horizontally</span></button>
         <button onclick="flipSelected('Y')"><i class="fa-solid fa-arrows-up-down"></i><span class="tooltip">Flip Vertically</span></button>
+        <button onclick="enableTilt()"><i class="fa-solid fa-sliders"></i><span class="tooltip">Tilt</span></button>
     </div>
 
     <div class="partition"></div>
@@ -281,16 +318,22 @@
 <label for="templateSelect">Choose a template:</label>
 <select id="templateSelect">
     <option value="">-- Select a template --</option>
-    <option value="template1">Template 1 (Side by Side)</option>
-    <option value="template2">Template 2 (2x2 Grid)</option>
-    <option value="template3">Template 3 (Vertical Split)</option>
-    <option value="template4">Template 4 (Horizontal Split)</option>
-    <option value="template5">Template 5 (Left Large + 2 Right Small)</option>
-    <option value="template6">Template 6 (Top Large + 2 Bottom Small)</option>
-    <option value="template7">Template 7 (Quad Mix)</option>
-    <option value="template8">Template 8 (3 Columns)</option>
-    <option value="template9">Template 9 (1 Big Center + 4 Corners)</option>
-    <option value="template10">Template 10 (Diagonal Split)</option>
+    <option value="template1">Modern Frame (White Border)</option>
+    <option value="template2">Polaroid Style</option>
+    <option value="template3">Instagram Grid</option>
+    <option value="template4">Photo Strip</option>
+    <option value="template5">Elegant Shadow Box</option>
+    <option value="template6">Vintage Polaroid Mix</option>
+    <option value="template7">Modern Collage (Multi Image)</option>
+    <option value="template8">Symmetrical Grid</option>
+    <option value="template9">Random Split</option>
+    <option value="template10">Mosaic Style</option>
+    <option value="template11"> Side by Side</option>
+    <option value="template13">Vertical Split</option>
+    <option value="template14">Horizontal Split</option>
+    <option value="template17">Quad Mix</option>
+    
+    
 </select>
 
 <div id="collageContainer" style="margin-top: 20px;"></div>
@@ -347,34 +390,167 @@
 let isDrawing = false;
 let lastX = 0;
 let lastY = 0;
-let currentColor = '#ff0000';
-let brushSize = 5;
+let currentColor;
+let brushSize;
 let currentDrawingCtx = null;
+document.addEventListener("DOMContentLoaded", function() {
+    // Initialize from UI controls
+    currentColor = document.getElementById('drawingColor').value;
+    brushSize = parseInt(document.getElementById('brushSize').value);
+    
+    // Set up event listeners for controls
+    updateBrushSettings();
+});
 
     document.addEventListener("DOMContentLoaded", function () {
         const templateSelect = document.getElementById("templateSelect");
         const collageContainer = document.getElementById("collage-container");
+        
 
         function createTemplate(templateName) {
             collageContainer.innerHTML = "";
 
             if (templateName === "template1") {
+        // Modern Frame (White Border)
+        collageContainer.innerHTML = `
+            <div style="position: relative; width: 100%; height: 100%; background: white; padding: 20px; box-sizing: border-box;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; height: 100%;">
+                    <div class="template-box" style="background: #f5f5f5; border: 15px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">Drop Image Here</div>
+                    <div class="template-box" style="background: #f5f5f5; border: 15px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">Drop Image Here</div>
+                    <div class="template-box" style="background: #f5f5f5; border: 15px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">Drop Image Here</div>
+                    <div class="template-box" style="background: #f5f5f5; border: 15px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">Drop Image Here</div>
+                </div>
+            </div>`;
+    } else if (templateName === "template2") {
+        // Polaroid Style
+        collageContainer.innerHTML = `
+            <div style="position: relative; width: 100%; height: 100%; background: #f0f0f0; display: flex; flex-wrap: wrap; align-content: flex-start; padding: 20px; gap: 30px;">
+                <div style="position: relative; width: 40%; height: 40%; background: white; padding: 15px 15px 40px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(-5deg);">
+                    <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+                </div>
+                <div style="position: relative; width: 40%; height: 40%; background: white; padding: 15px 15px 40px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(3deg);">
+                    <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+                </div>
+                <div style="position: relative; width: 40%; height: 40%; background: white; padding: 15px 15px 40px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(1deg);">
+                    <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+                </div>
+                <div style="position: relative; width: 40%; height: 40%; background: white; padding: 15px 15px 40px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(-2deg);">
+                    <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+                </div>
+            </div>`;
+    } else if (templateName === "template3") {
+        // Instagram Grid
+        collageContainer.innerHTML = `
+            <div style="position: relative; width: 100%; height: 100%; background: #fafafa; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 2px;">
+                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+            </div>`;
+    } else if (templateName === "template4") {
+        // Photo Strip
+        collageContainer.innerHTML = `
+            <div style="position: relative; width: 100%; height: 100%; background: #333; display: flex; justify-content: center; align-items: center; padding: 20px;">
+                <div style="display: flex; height: 80%; gap: 15px;">
+                    <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
+                    <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
+                    <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
+                    <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
+                    <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
+                </div>
+            </div>`;
+    }  else if (templateName === "template5") {
+        // Elegant Shadow Box
+        collageContainer.innerHTML = `
+            <div style="position: relative; width: 100%; height: 100%; background: #f8f8f8; display: flex; justify-content: center; align-items: center;">
+                <div style="width: 90%; height: 90%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px;">
+                    <div class="template-box" style="background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 4px;">Drop Image Here</div>
+                    <div class="template-box" style="background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 4px;">Drop Image Here</div>
+                    <div class="template-box" style="background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 4px;">Drop Image Here</div>
+                    <div class="template-box" style="background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 4px;">Drop Image Here</div>
+                </div>
+            </div>`;
+    } 
+     else if (templateName === "template6") {
+        // Vintage Polaroid Mix
+        collageContainer.innerHTML = `
+            <div style="position: relative; width: 100%; height: 100%; background: #e8e8e8; display: flex; flex-wrap: wrap; align-content: flex-start; padding: 20px; gap: 30px;">
+                <div style="position: relative; width: 30%; height: 40%; background: white; padding: 15px 15px 60px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(-3deg);">
+                    <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+                    <div style="position: absolute; bottom: 15px; left: 15px; right: 15px; height: 30px; font-family: 'Courier New', monospace; font-size: 14px; color: #888;">Add caption</div>
+                </div>
+                <div style="position: relative; width: 30%; height: 30%; background: white; padding: 15px 15px 50px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(2deg);">
+                    <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+                    <div style="position: absolute; bottom: 15px; left: 15px; right: 15px; height: 20px; font-family: 'Courier New', monospace; font-size: 12px; color: #888;">Add caption</div>
+                </div>
+                <div style="position: relative; width: 35%; height: 35%; background: white; padding: 15px 15px 70px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(-1deg);">
+                    <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+                    <div style="position: absolute; bottom: 15px; left: 15px; right: 15px; height: 40px; font-family: 'Courier New', monospace; font-size: 16px; color: #888;">Add caption</div>
+                </div>
+            </div>`;
+    } else if (templateName === "template7") {
+    // Minimalist Black
+    collageContainer.innerHTML = `
+        <div style="position: relative; width: 100%; height: 100%; background: #333; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1px; overflow: hidden;">
+            <div class="template-box" style="background: #444; border: 20px solid #333; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">Drop Image Here</div>
+            <div class="template-box" style="background: #444; border: 20px solid #333; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">Drop Image Here</div>
+            <div class="template-box" style="background: #444; border: 20px solid #333; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">Drop Image Here</div>
+            <div class="template-box" style="background: #444; border: 20px solid #333; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">Drop Image Here</div>
+        </div>`;  
+}else if (templateName === "template8") {
+    // Retro Frame
+    collageContainer.innerHTML = `
+        <div style="position: relative; width: 100%; height: 100%; background: #e0e0e0; display: flex; flex-wrap: wrap; justify-content: space-around; padding: 20px; gap: 20px;">
+            <div style="width: 30%; height: 40%; background: #fff3e6; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: 10px solid #e0aaff; transform: rotate(5deg);">
+                <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+            </div>
+            <div style="width: 30%; height: 40%; background: #fff3e6; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: 10px solid #e0aaff; transform: rotate(-3deg);">
+                <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+            </div>
+        </div>`;  
+}
+else if (templateName === "template9") {
+    // Mosaic Wall
+    collageContainer.innerHTML = `
+        <div style="position: relative; width: 100%; height: 100%; background: #ececec; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
+            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
+            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
+            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
+            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
+            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
+            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
+            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
+        </div>`;  
+}
+
+else if (templateName === "template10") {
+    // Framed Grid
+    collageContainer.innerHTML = `
+        <div style="position: relative; width: 100%; height: 100%; background: #fafafa; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px;">
+            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
+        </div>`;  
+}else if (templateName === "template11") {
         // Side by Side
         collageContainer.innerHTML = `
             <div style="display: flex; gap: 10px; width: 100%; height: 100%; padding: 10px;">
                 <div class="template-box" style="flex: 1;">Drop Image Here</div>
                 <div class="template-box" style="flex: 1;">Drop Image Here</div>
             </div>`;
-    } else if (templateName === "template2") {
-        // 2x2 Grid
-        collageContainer.innerHTML = `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; height: 100%; padding: 10px;">
-                <div class="template-box">Drop Image Here</div>
-                <div class="template-box">Drop Image Here</div>
-                <div class="template-box">Drop Image Here</div>
-                <div class="template-box">Drop Image Here</div>
-            </div>`;
-    } else if (templateName === "template3") {
+    } else if (templateName === "template13") {
         // Vertical Split
         collageContainer.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; height: 100%; padding: 10px;">
@@ -382,7 +558,7 @@ let currentDrawingCtx = null;
                 <div class="template-box" style="flex: 1;">Drop Image Here</div>
                 <div class="template-box" style="flex: 1;">Drop Image Here</div>
             </div>`;
-    } else if (templateName === "template4") {
+    } else if (templateName === "template14") {
         // Horizontal Split
         collageContainer.innerHTML = `
             <div style="display: flex; gap: 10px; width: 100%; height: 100%; padding: 10px;">
@@ -390,27 +566,7 @@ let currentDrawingCtx = null;
                 <div class="template-box" style="flex: 1;">Drop Image Here</div>
                 <div class="template-box" style="flex: 1;">Drop Image Here</div>
             </div>`;
-    } else if (templateName === "template5") {
-        // Left Large + 2 Right Small
-        collageContainer.innerHTML = `
-            <div style="display: flex; gap: 10px; height: 100%; padding: 10px;">
-                <div class="template-box" style="width: 66%;">Drop Image Here</div>
-                <div style="display: flex; flex-direction: column; gap: 10px; width: 34%;">
-                    <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                    <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                </div>
-            </div>`;
-    } else if (templateName === "template6") {
-        // Top Large + 2 Bottom Small
-        collageContainer.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 10px; height: 100%; padding: 10px;">
-                <div class="template-box" style="height: 50%;">Drop Image Here</div>
-                <div style="display: flex; gap: 10px; height: 50%;">
-                    <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                    <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                </div>
-            </div>`;
-    } else if (templateName === "template7") {
+    }  else if (templateName === "template17") {
         // Quad Mix (Asymmetrical)
         collageContainer.innerHTML = `
             <div style="display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; height: 100%; padding: 10px;">
@@ -418,36 +574,7 @@ let currentDrawingCtx = null;
                 <div class="template-box">Drop Image Here</div>
                 <div class="template-box">Drop Image Here</div>
             </div>`;
-    } else if (templateName === "template8") {
-        // 3 Columns
-        collageContainer.innerHTML = `
-            <div style="display: flex; gap: 10px; height: 100%; padding: 10px;">
-                <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                <div class="template-box" style="flex: 1;">Drop Image Here</div>
-            </div>`;
-    } else if (templateName === "template9") {
-        // 1 Big Center + 4 Corners
-        collageContainer.innerHTML = `
-            <div style="position: relative; width: 100%; height: 100%; padding: 10px; box-sizing: border-box;">
-                <div class="template-box" style="position: absolute; top: 0; left: 0; width: 30%; height: 30%;">Drop Image Here</div>
-                <div class="template-box" style="position: absolute; top: 0; right: 0; width: 30%; height: 30%;">Drop Image Here</div>
-                <div class="template-box" style="position: absolute; bottom: 0; left: 0; width: 30%; height: 30%;">Drop Image Here</div>
-                <div class="template-box" style="position: absolute; bottom: 0; right: 0; width: 30%; height: 30%;">Drop Image Here</div>
-                <div class="template-box" style="position: absolute; top: 25%; left: 25%; width: 50%; height: 50%;">Drop Image Here</div>
-            </div>`;
-    } else if (templateName === "template10") {
-        // Diagonal Split
-        collageContainer.innerHTML = `
-            <div style="position: relative; width: 100%; height: 100%; padding: 10px; box-sizing: border-box;">
-                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; top: 0; left: 0;">
-                    <polygon points="0,0 100,0 0,100" style="fill: #eee; stroke: #aaa; stroke-width: 0.5;"></polygon>
-                    <polygon points="100,0 100,100 0,100" style="fill: #ddd; stroke: #aaa; stroke-width: 0.5;"></polygon>
-                </svg>
-                <div class="template-box" style="position: absolute; top: 10%; left: 10%; width: 35%; height: 35%;">Drop Image Here</div>
-                <div class="template-box" style="position: absolute; bottom: 10%; right: 10%; width: 35%; height: 35%;">Drop Image Here</div>
-            </div>`;
-    }
+    } 
         }
 
         templateSelect.addEventListener("change", function () {
@@ -745,13 +872,22 @@ function updateBrushSettings() {
     const colorInput = document.getElementById('drawingColor');
     const sizeInput = document.getElementById('brushSize');
     
-    // Remove old event listeners to avoid duplicates
+    // Ensure we have valid elements
+    if (!colorInput || !sizeInput) return;
+    
+    // Remove old event listeners
     colorInput.oninput = null;
     sizeInput.oninput = null;
     
-    // Set current values
-    colorInput.value = currentColor;
-    sizeInput.value = brushSize;
+    // Force sync with current values
+    currentColor = colorInput.value;
+    brushSize = parseInt(sizeInput.value);
+    
+    // Update drawing context if exists
+    if (currentDrawingCtx) {
+        currentDrawingCtx.strokeStyle = currentColor;
+        currentDrawingCtx.lineWidth = brushSize;
+    }
     
     // Add new event listeners
     colorInput.addEventListener('input', function() {
@@ -768,7 +904,6 @@ function updateBrushSettings() {
         }
     });
 }
-    
     function openImages() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -1211,6 +1346,7 @@ ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, boxWi
     if (selectedImage) {
         selectedImage.classList.remove('selected');
         disableResize();
+        disableTilt();
         disableDrawing();
         disableEraser();
     }
@@ -1218,7 +1354,15 @@ ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, boxWi
     selectedImage = img;
     img.classList.add('selected');
     
-    // Find or create drawing canvas for this image
+    // Ensure we have current values
+    if (typeof currentColor === 'undefined') {
+        currentColor = document.getElementById('drawingColor').value;
+    }
+    if (typeof brushSize === 'undefined') {
+        brushSize = parseInt(document.getElementById('brushSize').value);
+    }
+    
+    // Find or create drawing canvas
     let drawingCanvas = img.nextElementSibling;
     if (!drawingCanvas || !drawingCanvas.classList.contains('drawing-canvas')) {
         drawingCanvas = document.createElement('canvas');
@@ -1227,7 +1371,6 @@ ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, boxWi
         drawingCanvas.height = img.offsetHeight;
         img.parentNode.insertBefore(drawingCanvas, img.nextSibling);
         
-        // Set canvas style to match image
         drawingCanvas.style.position = 'absolute';
         drawingCanvas.style.left = img.style.left;
         drawingCanvas.style.top = img.style.top;
@@ -1243,9 +1386,9 @@ ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, boxWi
     currentDrawingCtx.lineCap = 'round';
     currentDrawingCanvas = drawingCanvas;
     
-    // Update event listeners
     updateBrushSettings();
 }
+
     function rotateSelected(angle) {
         if (!selectedImage) return;
         let rotation = parseInt(selectedImage.dataset.rotation) || 0;
@@ -1267,16 +1410,22 @@ ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, boxWi
   
 
 
-function enableResize() {
+    function enableResize() {
     if (!selectedImage) {
         alert("Please select an image first");
         return;
     }
     
-    if (isResizingEnabled) return;
+    if (isResizingEnabled) {
+        disableResize();
+        return;
+    }
     
-    // Clear any existing handles
-    disableResize();
+    // Disable other modes
+    if (isTiltingEnabled) disableTilt();
+    if (isCropping) resetCrop();
+    if (isDrawingEnabled) disableDrawing();
+    if (isEraserEnabled) disableEraser();
     
     // Create four resize handles
     const handlePositions = [
@@ -1290,10 +1439,18 @@ function enableResize() {
     const handlesContainer = document.createElement('div');
     handlesContainer.className = 'resize-handles-container';
     handlesContainer.style.position = 'absolute';
-    handlesContainer.style.left = selectedImage.style.left;
-    handlesContainer.style.top = selectedImage.style.top;
-    handlesContainer.style.width = selectedImage.offsetWidth + 'px';
-    handlesContainer.style.height = selectedImage.offsetHeight + 'px';
+    
+    // Get initial position and dimensions
+    const computedStyle = window.getComputedStyle(selectedImage);
+    const width = parseFloat(computedStyle.width);
+    const height = parseFloat(computedStyle.height);
+    const left = parseFloat(selectedImage.style.left) || 0;
+    const top = parseFloat(selectedImage.style.top) || 0;
+    
+    handlesContainer.style.left = left + 'px';
+    handlesContainer.style.top = top + 'px';
+    handlesContainer.style.width = width + 'px';
+    handlesContainer.style.height = height + 'px';
     handlesContainer.style.pointerEvents = 'none';
     
     collageContainer.appendChild(handlesContainer);
@@ -1314,7 +1471,6 @@ function enableResize() {
         handlesContainer.appendChild(handle);
         resizeHandles.push(handle);
         
-        // Handle mouse events
         handle.addEventListener('mousedown', function(e) {
             e.stopPropagation();
             e.preventDefault();
@@ -1324,16 +1480,24 @@ function enableResize() {
     
     // Update container position when image moves
     const observer = new MutationObserver(() => {
-        handlesContainer.style.left = selectedImage.style.left;
-        handlesContainer.style.top = selectedImage.style.top;
+        const computedStyle = window.getComputedStyle(selectedImage);
+        const width = parseFloat(computedStyle.width);
+        const height = parseFloat(computedStyle.height);
+        const left = parseFloat(selectedImage.style.left) || 0;
+        const top = parseFloat(selectedImage.style.top) || 0;
+        
+        handlesContainer.style.left = left + 'px';
+        handlesContainer.style.top = top + 'px';
+        handlesContainer.style.width = width + 'px';
+        handlesContainer.style.height = height + 'px';
     });
     
+    resizeHandles.observer = observer;
     observer.observe(selectedImage, { 
         attributes: true,
         attributeFilter: ['style']
     });
     
-    resizeHandles.observer = observer;
     isResizingEnabled = true;
 }
 
@@ -1344,17 +1508,18 @@ function startResize(e, direction) {
     isResizing = true;
     resizeDirection = direction;
     
-    const img = selectedImage;
     startX = e.clientX;
     startY = e.clientY;
-    startWidth = img.offsetWidth;
-    startHeight = img.offsetHeight;
-    startLeft = parseInt(img.style.left) || 0;
-    startTop = parseInt(img.style.top) || 0;
+    
+    // Get initial dimensions from computed style (ignores transforms)
+    const computedStyle = window.getComputedStyle(selectedImage);
+    startWidth = parseFloat(computedStyle.width);
+    startHeight = parseFloat(computedStyle.height);
+    startLeft = parseFloat(selectedImage.style.left) || 0;
+    startTop = parseFloat(selectedImage.style.top) || 0;
     
     // Store aspect ratio
-    const aspectRatio = startWidth / startHeight;
-    resizeHandles.aspectRatio = aspectRatio;
+    resizeHandles.aspectRatio = startWidth / startHeight;
     
     // Add event listeners
     document.addEventListener('mousemove', doResize);
@@ -1363,7 +1528,19 @@ function startResize(e, direction) {
     // Prevent text selection during resize
     document.body.style.userSelect = 'none';
 }
-
+function stopResize() {
+    if (!isResizing) return;
+    
+    isResizing = false;
+    resizeDirection = null;
+    
+    // Remove event listeners
+    document.removeEventListener('mousemove', doResize);
+    document.removeEventListener('mouseup', stopResize);
+    
+    // Restore text selection
+    document.body.style.userSelect = '';
+}
 function doResize(e) {
     if (!isResizing) return;
     
@@ -1373,14 +1550,17 @@ function doResize(e) {
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
     
-    let newWidth = startWidth;
-    let newHeight = startHeight;
-    let newLeft = startLeft;
-    let newTop = startTop;
+    // Get current dimensions without transformations
+    const computedStyle = window.getComputedStyle(selectedImage);
+    let newWidth = parseFloat(computedStyle.width);
+    let newHeight = parseFloat(computedStyle.height);
+    let newLeft = parseFloat(selectedImage.style.left) || 0;
+    let newTop = parseFloat(selectedImage.style.top) || 0;
     
     const maintainAspect = e.shiftKey;
-    const aspectRatio = resizeHandles.aspectRatio;
+    const aspectRatio = startWidth / startHeight;
     
+    // Calculate changes based on direction
     switch(resizeDirection) {
         case 'nw':
             newWidth = Math.max(50, startWidth - dx);
@@ -1408,68 +1588,38 @@ function doResize(e) {
             break;
     }
     
-    // Resize the image
+    // Apply new dimensions
     selectedImage.style.width = newWidth + 'px';
     selectedImage.style.height = newHeight + 'px';
     selectedImage.style.left = newLeft + 'px';
     selectedImage.style.top = newTop + 'px';
     
-    // Resize the drawing canvas
+    // Update drawing canvas
     const drawingCanvas = selectedImage.nextElementSibling;
     if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
-        // Save current drawing context settings
-        const currentStrokeStyle = currentDrawingCtx.strokeStyle;
-        const currentLineWidth = currentDrawingCtx.lineWidth;
-        const currentLineJoin = currentDrawingCtx.lineJoin;
-        const currentLineCap = currentDrawingCtx.lineCap;
-        
-        // Calculate scale factors
-        const scaleX = newWidth / startWidth;
-        const scaleY = newHeight / startHeight;
-        
-        // Create a temporary canvas to preserve the drawing
+        // Create temp canvas to preserve drawing
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
         tempCanvas.width = drawingCanvas.width;
         tempCanvas.height = drawingCanvas.height;
         tempCtx.drawImage(drawingCanvas, 0, 0);
         
-        // Resize the drawing canvas
-        // Resize and preserve drawings
-const ctx = drawingCanvas.getContext('2d');
-tempCanvas = document.createElement('canvas');
-tempCanvas.width = drawingCanvas.width;
-tempCanvas.height = drawingCanvas.height;
-tempCanvas.getContext('2d').drawImage(drawingCanvas, 0, 0);
-
-// Resize canvas and restore content
-drawingCanvas.width = newWidth;
-drawingCanvas.height = newHeight;
-drawingCanvas.style.width = newWidth + 'px';
-drawingCanvas.style.height = newHeight + 'px';
-
-ctx.imageSmoothingEnabled = false;
-ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height,
-              0, 0, newWidth, newHeight);
-
-        // Restore drawing context settings
-        ctx.strokeStyle = currentColor;
-ctx.lineWidth = brushSize;
-ctx.lineJoin = 'round';
-ctx.lineCap = 'round';
-currentDrawingCtx = ctx;
-
+        // Resize canvas
+        drawingCanvas.width = newWidth;
+        drawingCanvas.height = newHeight;
+        const ctx = drawingCanvas.getContext('2d');
         
-        // Update drawing canvas position and size
+        // Scale drawing
+        ctx.save();
+        ctx.scale(newWidth / tempCanvas.width, newHeight / tempCanvas.height);
+        ctx.drawImage(tempCanvas, 0, 0);
+        ctx.restore();
+        
+        // Update canvas position and size
         drawingCanvas.style.width = newWidth + 'px';
         drawingCanvas.style.height = newHeight + 'px';
         drawingCanvas.style.left = newLeft + 'px';
         drawingCanvas.style.top = newTop + 'px';
-        
-        // Update brush size to maintain relative size
-        if (currentDrawingCtx) {
-            currentDrawingCtx.lineWidth = brushSize * Math.min(scaleX, scaleY);
-        }
     }
     
     // Update handles container
@@ -1481,27 +1631,10 @@ currentDrawingCtx = ctx;
         container.style.height = newHeight + 'px';
     }
 }
-function stopResize() {
-    if (!isResizing) return;
-    
-    isResizing = false;
-    resizeDirection = null;
-    
-    // Remove event listeners
-    document.removeEventListener('mousemove', doResize);
-    document.removeEventListener('mouseup', stopResize);
-    
-    // Restore text selection
-    document.body.style.userSelect = '';
-    
-    // Reset brush size to original value
-    if (currentDrawingCtx) {
-        currentDrawingCtx.lineWidth = brushSize;
-    }
-}
-
 function disableResize() {
-    // Remove all resize handles
+    if (!isResizingEnabled) return;
+    
+    // Remove all resize handles and containers
     const containers = document.querySelectorAll('.resize-handles-container');
     containers.forEach(container => {
         if (container.parentNode) {
@@ -1512,6 +1645,7 @@ function disableResize() {
     // Disconnect observer if it exists
     if (resizeHandles.observer) {
         resizeHandles.observer.disconnect();
+        delete resizeHandles.observer;
     }
     
     // Clear resize handles array
@@ -1520,23 +1654,224 @@ function disableResize() {
     
     // Ensure any active resize is stopped
     stopResize();
+    
+    // Reset cursor
+    document.body.style.cursor = '';
+}
+let isTiltingEnabled = false;
+let tiltHandles = [];
+let isTilting = false;
+let tiltDirection = null;
+let tiltStartX, tiltStartY;
+let currentSkewX = 0;
+let currentSkewY = 0;
+
+function enableTilt() {
+    if (!selectedImage) {
+        alert("Please select an image first");
+        return;
+    }
+    
+    if (isTiltingEnabled) {
+        disableTilt();
+        return;
+    }
+    
+    // Disable other modes if active
+    if (isResizingEnabled) disableResize();
+    if (isCropping) resetCrop();
+    if (isDrawingEnabled) disableDrawing();
+    if (isEraserEnabled) disableEraser();
+    
+    // Create four tilt handles (top, right, bottom, left)
+    const handlePositions = [
+        { class: 'top', cursor: 'ns-resize' },
+        { class: 'right', cursor: 'ew-resize' },
+        { class: 'bottom', cursor: 'ns-resize' },
+        { class: 'left', cursor: 'ew-resize' }
+    ];
+    
+    // Create a container for the handles
+    const handlesContainer = document.createElement('div');
+    handlesContainer.className = 'tilt-handles-container';
+    handlesContainer.style.position = 'absolute';
+    handlesContainer.style.left = selectedImage.style.left;
+    handlesContainer.style.top = selectedImage.style.top;
+    handlesContainer.style.width = selectedImage.offsetWidth + 'px';
+    handlesContainer.style.height = selectedImage.offsetHeight + 'px';
+    handlesContainer.style.pointerEvents = 'none';
+    
+    collageContainer.appendChild(handlesContainer);
+    
+    handlePositions.forEach(pos => {
+        const handle = document.createElement('div');
+        handle.className = `tilt-handle ${pos.class}`;
+        handle.style.cursor = pos.cursor;
+        handle.dataset.direction = pos.class;
+        handle.style.pointerEvents = 'auto';
+        
+        handlesContainer.appendChild(handle);
+        tiltHandles.push(handle);
+        
+        // Handle mouse events
+        handle.addEventListener('mousedown', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            startTilt(e, pos.class);
+        });
+    });
+    
+    // Update container position when image moves
+    const observer = new MutationObserver(() => {
+        handlesContainer.style.left = selectedImage.style.left;
+        handlesContainer.style.top = selectedImage.style.top;
+        handlesContainer.style.width = selectedImage.offsetWidth + 'px';
+        handlesContainer.style.height = selectedImage.offsetHeight + 'px';
+    });
+    
+    tiltHandles.observer = observer;
+    observer.observe(selectedImage, { 
+        attributes: true,
+        attributeFilter: ['style']
+    });
+    
+    isTiltingEnabled = true;
 }
 
-function applyTransformations(img) {
-    const rotation = img.dataset.rotation;
-    const flipX = img.dataset.flipX;
-    const flipY = img.dataset.flipY;
-    img.style.transform = `rotate(${rotation}deg) scale(${flipX}, ${flipY})`;
+function startTilt(e, direction) {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    isTilting = true;
+    tiltDirection = direction;
+    tiltStartX = e.clientX;
+    tiltStartY = e.clientY;
+    
+    // Store current skew values
+    const transform = selectedImage.style.transform || '';
+    const skewXMatch = transform.match(/skewX\(([-\d.]+)deg\)/);
+    const skewYMatch = transform.match(/skewY\(([-\d.]+)deg\)/);
+    
+    currentSkewX = skewXMatch ? parseFloat(skewXMatch[1]) : 0;
+    currentSkewY = skewYMatch ? parseFloat(skewYMatch[1]) : 0;
+    
+    // Add event listeners
+    document.addEventListener('mousemove', doTilt);
+    document.addEventListener('mouseup', stopTilt);
+    
+    // Prevent text selection during tilt
+    document.body.style.userSelect = 'none';
+}
+
+function doTilt(e) {
+    if (!isTilting) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const dx = e.clientX - tiltStartX;
+    const dy = e.clientY - tiltStartY;
+    
+    let newSkewX = currentSkewX;
+    let newSkewY = currentSkewY;
+    
+    // Adjust skew based on direction
+    switch(tiltDirection) {
+        case 'top':
+            newSkewY = currentSkewY + (dx * 0.2);
+            break;
+        case 'right':
+            newSkewX = currentSkewX + (dy * 0.2);
+            break;
+        case 'bottom':
+            newSkewY = currentSkewY - (dx * 0.2);
+            break;
+        case 'left':
+            newSkewX = currentSkewX - (dy * 0.2);
+            break;
+    }
+    
+    // Limit skew to reasonable values
+    newSkewX = Math.max(-45, Math.min(45, newSkewX));
+    newSkewY = Math.max(-45, Math.min(45, newSkewY));
+    
+    // Apply the skew transformation
+    applyTransformations(selectedImage, newSkewX, newSkewY);
+}
+
+function stopTilt() {
+    if (!isTilting) return;
+    
+    isTilting = false;
+    tiltDirection = null;
+    
+    // Remove event listeners
+    document.removeEventListener('mousemove', doTilt);
+    document.removeEventListener('mouseup', stopTilt);
+    
+    // Restore text selection
+    document.body.style.userSelect = '';
+}
+
+function disableTilt() {
+    // Remove all tilt handles
+    const containers = document.querySelectorAll('.tilt-handles-container');
+    containers.forEach(container => {
+        if (container.parentNode) {
+            container.parentNode.removeChild(container);
+        }
+    });
+    
+    // Disconnect observer if it exists
+    if (tiltHandles.observer) {
+        tiltHandles.observer.disconnect();
+    }
+    
+    // Clear tilt handles array
+    tiltHandles = [];
+    isTiltingEnabled = false;
+    
+    // Ensure any active tilt is stopped
+    stopTilt();
+}
+
+// Update the applyTransformations function to include skew
+function applyTransformations(img, skewX = null, skewY = null) {
+    const rotation = img.dataset.rotation || 0;
+    const flipX = img.dataset.flipX || 1;
+    const flipY = img.dataset.flipY || 1;
+    
+    // Use provided skew values or parse from current transform
+    if (skewX === null || skewY === null) {
+        const transform = img.style.transform || '';
+        const skewXMatch = transform.match(/skewX\(([-\d.]+)deg\)/);
+        const skewYMatch = transform.match(/skewY\(([-\d.]+)deg\)/);
+        
+        skewX = skewXMatch ? parseFloat(skewXMatch[1]) : 0;
+        skewY = skewYMatch ? parseFloat(skewYMatch[1]) : 0;
+    }
+    
+    img.style.transform = `
+        rotate(${rotation}deg) 
+        scale(${flipX}, ${flipY}) 
+        skewX(${skewX}deg) 
+        skewY(${skewY}deg)
+    `.trim();
     
     // Apply same transformations to drawing canvas
     const drawingCanvas = img.nextElementSibling;
     if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
-        drawingCanvas.style.transform = `rotate(${rotation}deg) scale(${flipX}, ${flipY})`;
+        drawingCanvas.style.transform = `
+            rotate(${rotation}deg) 
+            scale(${flipX}, ${flipY}) 
+            skewX(${skewX}deg) 
+            skewY(${skewY}deg)
+        `.trim();
     }
 }
-
     function deleteSelectedImage() {
     if (!selectedImage) return;
+    disableTilt();
     
     // Find and remove the associated drawing canvas
     const drawingCanvas = selectedImage.nextElementSibling;

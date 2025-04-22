@@ -1148,10 +1148,24 @@ function makeDraggable(element) {
             if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
                 drawingCanvas.style.left = element.style.left;
                 drawingCanvas.style.top = element.style.top;
-                drawingCanvas.width = boxWidth;
-                drawingCanvas.height = boxHeight;
-                drawingCanvas.style.width = boxWidth + 'px';
-                drawingCanvas.style.height = boxHeight + 'px';
+                // Save current drawing
+const tempCanvas = document.createElement('canvas');
+tempCanvas.width = drawingCanvas.width;
+tempCanvas.height = drawingCanvas.height;
+const tempCtx = tempCanvas.getContext('2d');
+tempCtx.drawImage(drawingCanvas, 0, 0);
+
+// Resize the drawing canvas
+drawingCanvas.width = boxWidth;
+drawingCanvas.height = boxHeight;
+drawingCanvas.style.width = boxWidth + 'px';
+drawingCanvas.style.height = boxHeight + 'px';
+
+// Redraw preserved drawing, scaled
+const ctx = drawingCanvas.getContext('2d');
+ctx.clearRect(0, 0, boxWidth, boxHeight);
+ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, boxWidth, boxHeight);
+
             }
 
             break; // Only apply to first matching box

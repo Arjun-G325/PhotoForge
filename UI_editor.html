@@ -534,32 +534,42 @@ function commitPaint() {
         return;
     }
 
-    // For batch mode, we need to handle all images
     if (isBatchProcessing) {
         const originalIndex = currentImageIndex;
         for (let i = 0; i < imageList.length; i++) {
-            mergePaintOntoImage(i, paintCanvas);
+            mergePaintOntoImage(i, paintCanvas, () => {
+                displayImage(i);
+                currentImageIndex = i;
+                pushToHistory(); // Only push after visual change
+            });
         }
         currentImageIndex = originalIndex;
         displayImage(originalIndex);
     } else {
-        // For single image mode
-        mergePaintOntoImage(currentImageIndex, paintCanvas);
-        displayImage(currentImageIndex);
+        mergePaintOntoImage(currentImageIndex, paintCanvas, () => {
+            displayImage(currentImageIndex);
+            pushToHistory(); // Only push after the paint has been merged
+        });
     }
 
     removePaintCanvas();
     isPainting = false;
+
+    // Reset UI
     document.getElementById("paintBtn").style.backgroundColor = "transparent";
     document.getElementById("paintColor").style.display = "none";
     document.getElementById("paintSizeContainer").style.display = "none";
     document.getElementById("clearPaintBtn").style.display = "none";
+    document.getElementById("commitPaintBtn").style.display = "none";
+    document.getElementById("eraserBtn").style.display = "none";
+    document.getElementById("eraserSizeContainer").style.display = "none";
     document.getElementById("image-area").style.cursor = "default";
 }
 
-function mergePaintOntoImage(index, paintCanvas) {
+function mergePaintOntoImage(index, paintCanvas, callback) {
+    const state = imageStates[index];
     const tempImg = new Image();
-    tempImg.src = imageList[index];
+    tempImg.src = state.src;  // Use current state, not baseSrc
 
     tempImg.onload = () => {
         const imgWidth = tempImg.naturalWidth;
@@ -570,32 +580,16 @@ function mergePaintOntoImage(index, paintCanvas) {
         mergedCanvas.height = imgHeight;
         const ctx = mergedCanvas.getContext("2d");
 
-        // Draw the original image
         ctx.drawImage(tempImg, 0, 0, imgWidth, imgHeight);
+        ctx.drawImage(paintCanvas, 0, 0, paintCanvas.width, paintCanvas.height, 0, 0, imgWidth, imgHeight);
 
-        // Calculate the scaling factors based on the original image and displayed size
-        const displayedImg = document.getElementById("image-area");
-        const displayWidth = displayedImg.clientWidth;
-        const displayHeight = displayedImg.clientHeight;
-        
-        const scaleX = imgWidth / displayWidth;
-        const scaleY = imgHeight / displayHeight;
-
-        // Draw the paintCanvas with proper scaling to match the original image dimensions
-        ctx.drawImage(paintCanvas, 
-            0, 0, paintCanvas.width, paintCanvas.height,
-            0, 0, imgWidth, imgHeight);
-
-        // Save result
         const result = mergedCanvas.toDataURL();
         imageList[index] = result;
-        const state = imageStates[index];
         state.src = result;
-        pushToHistory();
+        
+        if (callback) callback();
     };
 }
-
-
 
 function applyFiltersToAll(askForConfirmation = true) {
     if (imageList.length === 0) {
@@ -697,6 +691,7 @@ function applyStateProperties(state) {
 function initImageEntry() {
     const defaultState = {
         src: "",
+        baseSrc: "",
         width: "",
         height: "",
         filter: "",
@@ -751,17 +746,15 @@ function initImageEntry() {
 
     // Push current state to history
     function pushToHistory() {
-        const history = getCurrentHistory();
-        const state = getCurrentState();
-        if (!history || !state) return;
-        
-        // Only push if different from last state
-        if (history.undoStack.length === 0 || 
-            JSON.stringify(state) !== JSON.stringify(history.undoStack[history.undoStack.length - 1])) {
-            history.undoStack.push(JSON.parse(JSON.stringify(state)));
-            history.redoStack = [];
-        }
-    }
+    const history = getCurrentHistory();
+    const state = getCurrentState();
+    if (!history || !state) return;
+
+    const copy = JSON.parse(JSON.stringify(state));
+    history.undoStack.push(copy);
+    history.redoStack = [];
+}
+
 
 function undo() {
     if (isBatchProcessing) {
@@ -800,15 +793,17 @@ function redoCurrentImage() {
     const history = getCurrentHistory();
     if (!history || history.redoStack.length === 0) return;
 
-    // Current state goes back to undo stack
+    // Move current state to undo stack
     const currentState = getCurrentState();
     history.undoStack.push(JSON.parse(JSON.stringify(currentState)));
 
-    // Get next state from redo stack
+    // Apply the redo state
     const nextState = history.redoStack.pop();
     Object.assign(imageStates[currentImageIndex], nextState);
     restoreState(nextState);
+
 }
+
 
 function undoAllImages() {
     // Save current index
@@ -916,6 +911,7 @@ function openImage() {
                 // Initialize new image
                 if (imageHistories[index].undoStack.length === 0) {
                     state.src = imageList[index];
+                    state.baseSrc = imageList[index]; // Store clean base for merging
                     state.display = "block";
                     aspectRatio = state.aspectRatio = image.naturalWidth / image.naturalHeight;
                     pushToHistory();
@@ -1871,19 +1867,13 @@ function restoreState(state) {
     }
 
     image.style.filter = state.filter || "";
-    image.style.display = state.display || "block";
-
-    if (state.rotationAngle !== undefined) rotationAngle = state.rotationAngle;
-    if (state.flipX !== undefined) flipX = state.flipX;
-    if (state.flipY !== undefined) flipY = state.flipY;
-
     image.style.transform = `rotate(${state.rotationAngle || 0}deg) scale(${state.flipX || 1}, ${state.flipY || 1})`;
+    image.style.display = state.display || "block";
 
     updateUIControls(state);
 
     suppressResize = false;  // Re-enable normal behavior
 }
-
 
 // Helper function to reset all image settings
 function resetImageSettings() {

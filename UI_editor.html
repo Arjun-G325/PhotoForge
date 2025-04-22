@@ -928,6 +928,17 @@ function openImage() {
         }, 10);
     }
 
+    function toggleBatchProcessing() {
+    isBatchProcessing = !isBatchProcessing;
+    document.getElementById("batchCheckbox").checked = isBatchProcessing;
+    
+    // If paint mode is active, recreate the paint canvas
+    if (document.getElementById("paintBtn").style.backgroundColor === "rgb(30, 144, 255)") {
+        removePaintCanvas();
+        enablePaintCanvas();
+    }
+}
+
 function prevImage() {
     if (currentImageIndex > 0) {
         currentImageIndex--;

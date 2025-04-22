@@ -1818,6 +1818,8 @@ function RemoveImage() {
     // Remove current image from both arrays
     imageList.splice(currentImageIndex, 1);
     imageStates.splice(currentImageIndex, 1);
+    imageSavePaths.splice(currentImageIndex, 1); // Also remove from save paths
+    imageHistories.splice(currentImageIndex, 1); // And from histories
 
     // Decide new index to show
     if (imageList.length === 0) {
@@ -1830,8 +1832,9 @@ function RemoveImage() {
         currentImageIndex = imageList.length - 1;
     }
 
-    // Show next valid image
+    // Show next valid image and update counter
     displayImage(currentImageIndex);
+    document.getElementById("image-count").innerText = `Image ${currentImageIndex + 1} of ${imageList.length}`;
 }
 
 function restoreState(state) {

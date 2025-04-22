@@ -150,6 +150,8 @@
         .resize-handles-container {
     pointer-events: none;
     z-index: 20;
+    transform: none !important;
+
 }
 
 .resize-handle {
@@ -1433,21 +1435,30 @@ function doResize(e) {
         tempCtx.drawImage(drawingCanvas, 0, 0);
         
         // Resize the drawing canvas
-        drawingCanvas.width = newWidth;
-        drawingCanvas.height = newHeight;
-        const ctx = drawingCanvas.getContext('2d');
-        
-        // Clear and redraw with proper scaling
-        ctx.clearRect(0, 0, newWidth, newHeight);
-        ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 
-                      0, 0, newWidth, newHeight);
-        
+        // Resize and preserve drawings
+const ctx = drawingCanvas.getContext('2d');
+tempCanvas = document.createElement('canvas');
+tempCanvas.width = drawingCanvas.width;
+tempCanvas.height = drawingCanvas.height;
+tempCanvas.getContext('2d').drawImage(drawingCanvas, 0, 0);
+
+// Resize canvas and restore content
+drawingCanvas.width = newWidth;
+drawingCanvas.height = newHeight;
+drawingCanvas.style.width = newWidth + 'px';
+drawingCanvas.style.height = newHeight + 'px';
+
+ctx.imageSmoothingEnabled = false;
+ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height,
+              0, 0, newWidth, newHeight);
+
         // Restore drawing context settings
-        ctx.strokeStyle = currentStrokeStyle;
-        ctx.lineWidth = currentLineWidth;
-        ctx.lineJoin = currentLineJoin;
-        ctx.lineCap = currentLineCap;
-        currentDrawingCtx = ctx;
+        ctx.strokeStyle = currentColor;
+ctx.lineWidth = brushSize;
+ctx.lineJoin = 'round';
+ctx.lineCap = 'round';
+currentDrawingCtx = ctx;
+
         
         // Update drawing canvas position and size
         drawingCanvas.style.width = newWidth + 'px';

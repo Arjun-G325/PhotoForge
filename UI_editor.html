@@ -326,15 +326,23 @@ function enablePaintCanvas() {
     paintCanvas.style.left = imageRect.left - containerRect.left + "px";
     paintCanvas.style.width = imageRect.width + "px";
     paintCanvas.style.height = imageRect.height + "px";
-    paintCanvas.width = imageRect.width;
-    paintCanvas.height = imageRect.height;
+    
+    // Set canvas resolution to match natural image dimensions
+    const scaleX = image.naturalWidth / imageRect.width;
+    const scaleY = image.naturalHeight / imageRect.height;
+    paintCanvas.width = image.naturalWidth;
+    paintCanvas.height = image.naturalHeight;
+    
+    // Store scaling factors
+    paintCanvas.dataset.scaleX = scaleX;
+    paintCanvas.dataset.scaleY = scaleY;
+    
     paintCanvas.style.zIndex = "10";
     paintCanvas.style.pointerEvents = "auto";
     paintCanvas.style.cursor = "crosshair";
 
-    container.appendChild(paintCanvas);
-
     paintCtx = paintCanvas.getContext("2d");
+    paintCtx.scale(scaleX, scaleY); // Scale the drawing context
     paintCtx.lineJoin = "round";
     paintCtx.lineCap = "round";
     paintCtx.lineWidth = paintSize;
@@ -361,17 +369,18 @@ function startPaint(e) {
     
     isPainting = true;
     const rect = paintCanvas.getBoundingClientRect();
-    lastPaintX = e.clientX - rect.left;
-    lastPaintY = e.clientY - rect.top;
+    const scaleX = parseFloat(paintCanvas.dataset.scaleX) || 1;
+    const scaleY = parseFloat(paintCanvas.dataset.scaleY) || 1;
+    
+    lastPaintX = (e.clientX - rect.left) * scaleX;
+    lastPaintY = (e.clientY - rect.top) * scaleY;
     
     if (isErasing) {
-        // Start erasing
         paintCtx.globalCompositeOperation = "destination-out";
         paintCtx.beginPath();
-        paintCtx.arc(lastPaintX, lastPaintY, eraserSize/2, 0, Math.PI * 2);
+        paintCtx.arc(lastPaintX, lastPaintY, (eraserSize/2) * Math.max(scaleX, scaleY), 0, Math.PI * 2);
         paintCtx.fill();
     } else {
-        // Start painting
         paintCtx.globalCompositeOperation = "source-over";
         paintCtx.beginPath();
         paintCtx.moveTo(lastPaintX, lastPaintY);
@@ -380,7 +389,6 @@ function startPaint(e) {
     }
 }
 
-// Modify the paint function to be:
 function paint(e) {
     const btn = document.getElementById("paintBtn");
     const isPaintActive = btn.style.backgroundColor === "rgb(30, 144, 255)";
@@ -388,19 +396,20 @@ function paint(e) {
     if (!isPainting || !isPaintActive) return;
     
     const rect = paintCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = parseFloat(paintCanvas.dataset.scaleX) || 1;
+    const scaleY = parseFloat(paintCanvas.dataset.scaleY) || 1;
+    
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
     if (isErasing) {
-        // Erase mode
         paintCtx.globalCompositeOperation = "destination-out";
         paintCtx.beginPath();
-        paintCtx.arc(x, y, eraserSize/2, 0, Math.PI * 2);
+        paintCtx.arc(x, y, (eraserSize/2) * Math.max(scaleX, scaleY), 0, Math.PI * 2);
         paintCtx.fill();
     } else {
-        // Paint mode
         paintCtx.globalCompositeOperation = "source-over";
-        paintCtx.lineWidth = paintSize;
+        paintCtx.lineWidth = paintSize * Math.max(scaleX, scaleY);
         paintCtx.strokeStyle = paintColor;
         paintCtx.lineTo(x, y);
         paintCtx.stroke();
@@ -409,6 +418,7 @@ function paint(e) {
     lastPaintX = x;
     lastPaintY = y;
 }
+
 function isPaintToolActive() {
     const btn = document.getElementById("paintBtn");
     return btn.style.backgroundColor === "rgb(30, 144, 255)";
@@ -477,7 +487,9 @@ function updatePaintColor() {
 function updatePaintSize() {
     paintSize = parseInt(document.getElementById("paintSize").value);
     if (paintCtx) {
-        paintCtx.lineWidth = paintSize;
+        const scaleX = parseFloat(paintCanvas.dataset.scaleX) || 1;
+        const scaleY = parseFloat(paintCanvas.dataset.scaleY) || 1;
+        paintCtx.lineWidth = paintSize * Math.max(scaleX, scaleY);
     }
 }
 
@@ -564,7 +576,7 @@ function commitPaint() {
 function mergePaintOntoImage(index, paintCanvas, callback) {
     const state = imageStates[index];
     const tempImg = new Image();
-    tempImg.src = state.src;  // Use current state, not baseSrc
+    tempImg.src = state.src;
 
     tempImg.onload = () => {
         const imgWidth = tempImg.naturalWidth;
@@ -575,8 +587,11 @@ function mergePaintOntoImage(index, paintCanvas, callback) {
         mergedCanvas.height = imgHeight;
         const ctx = mergedCanvas.getContext("2d");
 
+        // Draw the original image
         ctx.drawImage(tempImg, 0, 0, imgWidth, imgHeight);
-        ctx.drawImage(paintCanvas, 0, 0, paintCanvas.width, paintCanvas.height, 0, 0, imgWidth, imgHeight);
+        
+        // Draw the paint canvas (already at correct resolution)
+        ctx.drawImage(paintCanvas, 0, 0);
 
         const result = mergedCanvas.toDataURL();
         imageList[index] = result;
@@ -1757,6 +1772,14 @@ window.onload = function () {
         widthInput.value = "";
         resizeImage();
     }, 300));
+    const imageContainer = document.getElementById("image-container");
+    const resizeObserver = new ResizeObserver(() => {
+        if (document.getElementById("paintBtn").style.backgroundColor === "rgb(30, 144, 255)") {
+            removePaintCanvas();
+            enablePaintCanvas();
+        }
+    });
+    resizeObserver.observe(imageContainer);
 };
 
 function applyFilters() {

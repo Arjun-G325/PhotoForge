@@ -794,13 +794,17 @@ function redoCurrentImage() {
     if (!history || history.redoStack.length === 0) return;
 
     // Move current state to undo stack
-    const currentState = getCurrentState();
-    history.undoStack.push(JSON.parse(JSON.stringify(currentState)));
-
-    // Apply the redo state
     const nextState = history.redoStack.pop();
-    Object.assign(imageStates[currentImageIndex], nextState);
-    restoreState(nextState);
+if (!nextState) return;
+
+// Only push to undoStack if it's different from the top
+const topUndo = history.undoStack[history.undoStack.length - 1];
+if (!topUndo || JSON.stringify(topUndo) !== JSON.stringify(nextState)) {
+    history.undoStack.push(JSON.parse(JSON.stringify(nextState)));
+}
+
+Object.assign(imageStates[currentImageIndex], nextState);
+restoreState(nextState);
 
 }
 

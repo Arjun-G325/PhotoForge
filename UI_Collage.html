@@ -324,14 +324,14 @@
     <option value="template4">Photo Strip</option>
     <option value="template5">Elegant Shadow Box</option>
     <option value="template6">Vintage Polaroid Mix</option>
-    <option value="template7">Modern Collage (Multi Image)</option>
+    <option value="template7">Modern Grid with Accent Colors</option>
     <option value="template8">Symmetrical Grid</option>
     <option value="template9">Random Split</option>
     <option value="template10">Mosaic Style</option>
     <option value="template11"> Side by Side</option>
-    <option value="template13">Vertical Split</option>
-    <option value="template14">Horizontal Split</option>
-    <option value="template17">Quad Mix</option>
+    <option value="template13">Minimalist Two-Column with Gradient Background</option>
+    <option value="template14">Geometric Color Blocks</option>
+    <option value="template17">Asymmetrical Grid with Neutral Colors</option>
     
     
 </select>
@@ -402,7 +402,7 @@ document.addEventListener("DOMContentLoaded", function() {
     updateBrushSettings();
 });
 
-    document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
         const templateSelect = document.getElementById("templateSelect");
         const collageContainer = document.getElementById("collage-container");
         
@@ -493,16 +493,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     <div style="position: absolute; bottom: 15px; left: 15px; right: 15px; height: 40px; font-family: 'Courier New', monospace; font-size: 16px; color: #888;">Add caption</div>
                 </div>
             </div>`;
-    } else if (templateName === "template7") {
-    // Minimalist Black
-    collageContainer.innerHTML = `
-        <div style="position: relative; width: 100%; height: 100%; background: #333; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1px; overflow: hidden;">
-            <div class="template-box" style="background: #444; border: 20px solid #333; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">Drop Image Here</div>
-            <div class="template-box" style="background: #444; border: 20px solid #333; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">Drop Image Here</div>
-            <div class="template-box" style="background: #444; border: 20px solid #333; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">Drop Image Here</div>
-            <div class="template-box" style="background: #444; border: 20px solid #333; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">Drop Image Here</div>
-        </div>`;  
-}else if (templateName === "template8") {
+    } else if (templateName === "template8") {
     // Retro Frame
     collageContainer.innerHTML = `
         <div style="position: relative; width: 100%; height: 100%; background: #e0e0e0; display: flex; flex-wrap: wrap; justify-content: space-around; padding: 20px; gap: 20px;">
@@ -553,37 +544,49 @@ else if (templateName === "template11") {
         </div>`;
 }
 
-else if (templateName === "template13") {
-    // Vertical Split (Designer)
+else if (templateName === "template7") {
+    // Modern Grid with Accent Colors
     collageContainer.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 20px; width: 100%; height: 100%; background: #f9f9f9; padding: 20px;">
-            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #444; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
-            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #444; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
-            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #444; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
+        <div style="position: relative; width: 100%; height: 100%; background: #f8f9fa; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 15px; padding: 15px;">
+            <div class="template-box" style="background: #ffffff; border: 2px solid #e63946; box-shadow: 0 2px 8px rgba(230, 57, 70, 0.2);">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 2px solid #457b9d; box-shadow: 0 2px 8px rgba(69, 123, 157, 0.2);">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 2px solid #1d3557; box-shadow: 0 2px 8px rgba(29, 53, 87, 0.2);">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 2px solid #a8dadc; box-shadow: 0 2px 8px rgba(168, 218, 220, 0.2);">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 2px solid #f1faee; box-shadow: 0 2px 8px rgba(241, 250, 238, 0.2);">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 2px solid #e63946; box-shadow: 0 2px 8px rgba(230, 57, 70, 0.2);">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 2px solid #457b9d; box-shadow: 0 2px 8px rgba(69, 123, 157, 0.2);">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 2px solid #1d3557; box-shadow: 0 2px 8px rgba(29, 53, 87, 0.2);">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 2px solid #a8dadc; box-shadow: 0 2px 8px rgba(168, 218, 220, 0.2);">Drop Image Here</div>
+        </div>`;
+} else if (templateName === "template13") {
+    // Minimalist Two-Column with Gradient Background
+    collageContainer.innerHTML = `
+        <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 30px;">
+            <div class="template-box" style="background: rgba(255,255,255,0.9); border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">Drop Image Here</div>
+            <div class="template-box" style="background: rgba(255,255,255,0.9); border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">Drop Image Here</div>
+        </div>`;
+} else if (templateName === "template14") {
+    // Geometric Color Blocks
+    collageContainer.innerHTML = `
+        <div style="position: relative; width: 100%; height: 100%; background: #2b2d42; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; padding: 10px;">
+            <div class="template-box" style="background: #8d99ae; grid-column: span 2; border: none;">Drop Image Here</div>
+            <div class="template-box" style="background: #ef233c; border: none;">Drop Image Here</div>
+            <div class="template-box" style="background: #d90429; border: none;">Drop Image Here</div>
+            <div class="template-box" style="background: #edf2f4; grid-column: span 2; border: none;">Drop Image Here</div>
+        </div>`;
+} else if (templateName === "template17") {
+    // Asymmetrical Grid with Neutral Colors
+    collageContainer.innerHTML = `
+        <div style="position: relative; width: 100%; height: 100%; background: #f1f1f1; display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px; padding: 15px;">
+            <div class="template-box" style="background: #ffffff; grid-row: span 2; border: 1px solid #ddd; box-shadow: 0 3px 10px rgba(0,0,0,0.05);">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 1px solid #ddd; box-shadow: 0 3px 10px rgba(0,0,0,0.05);">Drop Image Here</div>
+            <div class="template-box" style="background: #ffffff; border: 1px solid #ddd; box-shadow: 0 3px 10px rgba(0,0,0,0.05);">Drop Image Here</div>
         </div>`;
 }
 
-else if (templateName === "template14") {
-    // Horizontal Split (Designer)
-    collageContainer.innerHTML = `
-        <div style="display: flex; gap: 20px; width: 100%; height: 100%; background: #f8f8f8; padding: 20px;">
-            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #222; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
-            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #222; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
-            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #222; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
-        </div>`;
-}
-
-else if (templateName === "template17") {
-    // Quad Mix (Asymmetrical Designer)
-    collageContainer.innerHTML = `
-        <div style="display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; height: 100%; padding: 20px; background: #f5f5f5;">
-            <div class="template-box" style="grid-row: span 2; background: #fff; border: 5px solid #555; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
-            <div class="template-box" style="background: #fff; border: 5px solid #555; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
-            <div class="template-box" style="background: #fff; border: 5px solid #555; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
-        </div>`;
-}
 
         }
+
 
         templateSelect.addEventListener("change", function () {
             const selectedTemplate = templateSelect.value;
@@ -1998,10 +2001,9 @@ function applyTransformations(img, skewX = null, skewY = null) {
     const fs = require('fs');
 
     function downloadCollage() {
+    // First check if there are any images
     const images = collageContainer.querySelectorAll('img');
-    const hasLoadedImage = Array.from(images).some(img => img.complete && img.naturalWidth > 0);
-
-    if (!hasLoadedImage) {
+    if (images.length === 0) {
         ipcRenderer.send("show-error-dialog", {
             title: "Save Error",
             message: "Please add at least one image to the collage before saving."
@@ -2009,136 +2011,168 @@ function applyTransformations(img, skewX = null, skewY = null) {
         return;
     }
 
-    // Create a temporary container
-    const tempContainer = document.createElement('div');
-    tempContainer.style.position = 'absolute';
-    tempContainer.style.left = '-9999px';
-    tempContainer.style.width = collageContainer.offsetWidth + 'px';
-    tempContainer.style.height = collageContainer.offsetHeight + 'px';
+    // Create a clone of the entire collage container
+    const containerClone = collageContainer.cloneNode(true);
+    
+    // Remove selection borders from all images
+    containerClone.querySelectorAll('.selected').forEach(el => {
+        el.classList.remove('selected');
+    });
 
-    // Process each image with its drawings
-    const processPromises = Array.from(images).map(img => {
+    // Hide any active resize/tilt handles
+    containerClone.querySelectorAll('.resize-handles-container, .tilt-handles-container').forEach(el => {
+        el.style.display = 'none';
+    });
+
+    // Process each image to bake in filters and combine with drawings
+    const processPromises = Array.from(containerClone.querySelectorAll('img')).map(img => {
         return new Promise((resolve) => {
-            if (img.style.filter && img.style.filter !== 'none') {
-                bakeAllSliderFilters(img);
-            }
-
-            const drawingCanvas = img.nextElementSibling;
+            // Create a new image element to ensure it's loaded
+            const tempImg = new Image();
+            tempImg.crossOrigin = 'Anonymous';
             
-            if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
-                // Create a new canvas that combines the image and drawings
-                const combinedCanvas = document.createElement('canvas');
-                const ctx = combinedCanvas.getContext('2d');
+            tempImg.onload = () => {
+                // Create canvas for the image
+                const imgCanvas = document.createElement('canvas');
+                const ctx = imgCanvas.getContext('2d');
                 
-                // Wait for image to load
-                const tempImg = new Image();
-                tempImg.onload = () => {
-                    // Set canvas dimensions to match the displayed size
-                    combinedCanvas.width = img.offsetWidth;
-                    combinedCanvas.height = img.offsetHeight;
+                // Set canvas dimensions to natural image size
+                imgCanvas.width = tempImg.naturalWidth;
+                imgCanvas.height = tempImg.naturalHeight;
+                
+                // Apply filters if any
+                if (img.style.filter && img.style.filter !== 'none') {
+                    ctx.filter = img.style.filter;
+                }
+                
+                // Draw the image
+                ctx.drawImage(tempImg, 0, 0, imgCanvas.width, imgCanvas.height);
+                
+                // Get the drawing canvas if exists
+                const drawingCanvas = img.nextElementSibling;
+                if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
+                    // Create a temporary canvas for the drawing
+                    const tempDrawCanvas = document.createElement('canvas');
+                    const tempDrawCtx = tempDrawCanvas.getContext('2d');
                     
-                    // Draw the image (scaled to canvas size)
-                    ctx.drawImage(tempImg, 0, 0, combinedCanvas.width, combinedCanvas.height);
+                    // Scale drawing canvas to match image dimensions
+                    tempDrawCanvas.width = imgCanvas.width;
+                    tempDrawCanvas.height = imgCanvas.height;
                     
-                    // Draw the drawings
-                    ctx.drawImage(drawingCanvas, 0, 0);
+                    // Draw the scaled drawing
+                    tempDrawCtx.drawImage(
+                        drawingCanvas, 
+                        0, 0, drawingCanvas.width, drawingCanvas.height,
+                        0, 0, tempDrawCanvas.width, tempDrawCanvas.height
+                    );
                     
-                    // Create a new image element with the combined content
-                    const combinedImg = document.createElement('img');
-                    combinedImg.src = combinedCanvas.toDataURL();
-                    combinedImg.style.position = 'absolute';
-                    combinedImg.style.left = img.style.left;
-                    combinedImg.style.top = img.style.top;
-                    combinedImg.style.width = img.style.width;
-                    combinedImg.style.height = img.style.height;
+                    // Combine with the image
+                    ctx.drawImage(tempDrawCanvas, 0, 0);
                     
-                    resolve(combinedImg);
-                };
-                tempImg.src = img.src;
-            } else {
-                // If no drawing canvas, just clone the image
-                const clone = img.cloneNode(true);
-                clone.style.position = 'absolute';
-                clone.style.left = img.style.left;
-                clone.style.top = img.style.top;
-                clone.style.width = img.style.width;
-                clone.style.height = img.style.height;
-                resolve(clone);
-            }
+                    // Remove the drawing canvas from clone
+                    drawingCanvas.remove();
+                }
+                
+                // Replace the image with the combined version
+                img.src = imgCanvas.toDataURL();
+                img.style.width = img.style.width; // Preserve original display size
+                img.style.height = img.style.height;
+                img.style.transform = img.style.transform; // Preserve transforms
+                
+                resolve();
+            };
+            
+            tempImg.onerror = () => {
+                console.error("Failed to load image:", img.src);
+                resolve(); // Resolve anyway to not block the process
+            };
+            
+            tempImg.src = img.src;
         });
     });
 
-    // Wait for all images to be processed
-    Promise.all(processPromises).then(processedImages => {
-        // Add all processed images to temp container
-        processedImages.forEach(img => {
-            tempContainer.appendChild(img);
-        });
+    // After processing all images, capture the entire container
+    Promise.all(processPromises).then(() => {
+        // Position the clone off-screen
+        containerClone.style.position = 'absolute';
+        containerClone.style.left = '-9999px';
+        containerClone.style.top = '0';
+        document.body.appendChild(containerClone);
 
-        document.body.appendChild(tempContainer);
-
-        html2canvas(tempContainer, {
-            backgroundColor: null,
-            ignoreElements: (element) => element === collageContainer
-        }).then(canvas => {
-            document.body.removeChild(tempContainer);
-            
-            ipcRenderer.send("request-save-dialog");
-            
-            ipcRenderer.once("save-file-path", (event, { filePath, extension }) => {
-                const mimeMap = {
-                    png: 'image/png',
-                    jpg: 'image/jpeg',
-                    jpeg: 'image/jpeg',
-                    webp: 'image/webp',
-                    bmp: 'image/bmp',
-                    tif: 'image/tiff',
-                    tiff: 'image/tiff'
-                };
-
-                const mime = mimeMap[extension] || 'image/png';
-
-                if (extension === 'tif' || extension === 'tiff') {
-                    canvas.toBlob(blob => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                            const buffer = Buffer.from(reader.result);
-                            ipcRenderer.send('save-as-tiff', { filePath, buffer });
-                        };
-                        reader.readAsArrayBuffer(blob);
-                    }, 'image/png');
-                } else {
-                    canvas.toBlob(blob => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                            const buffer = Buffer.from(reader.result);
-                            fs.writeFile(filePath, buffer, err => {
-                                if (err) {
-                                    console.error("Failed to save image:", err);
-                                    ipcRenderer.send("show-error-dialog", {
-                                        title: "Save Error",
-                                        message: "Failed to save the image. Please try again."
-                                    });
-                                } else {
-                                    console.log("Saved:", filePath);
-                                    ipcRenderer.send("show-success-dialog", {
-                                        title: "Success",
-                                        message: "Collage saved successfully!"
-                                    });
-                                }
-                            });
-                        };
-                        reader.readAsArrayBuffer(blob);
-                    }, mime);
+        // Add slight delay to ensure DOM is ready
+        setTimeout(() => {
+            html2canvas(containerClone, {
+                backgroundColor: null,
+                scale: 2, // Higher quality
+                logging: false,
+                useCORS: true,
+                allowTaint: true,
+                ignoreElements: (element) => {
+                    // Ignore any remaining resize handles or other UI elements
+                    return element.classList.contains('resize-handles-container') || 
+                           element.classList.contains('tilt-handles-container');
                 }
+            }).then(canvas => {
+                document.body.removeChild(containerClone);
+                
+                ipcRenderer.send("request-save-dialog");
+                
+                ipcRenderer.once("save-file-path", (event, { filePath, extension }) => {
+                    const mimeMap = {
+                        png: 'image/png',
+                        jpg: 'image/jpeg',
+                        jpeg: 'image/jpeg',
+                        webp: 'image/webp',
+                        bmp: 'image/bmp',
+                        tif: 'image/tiff',
+                        tiff: 'image/tiff'
+                    };
+
+                    const mime = mimeMap[extension] || 'image/png';
+
+                    if (extension === 'tif' || extension === 'tiff') {
+                        canvas.toBlob(blob => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                const buffer = Buffer.from(reader.result);
+                                ipcRenderer.send('save-as-tiff', { filePath, buffer });
+                            };
+                            reader.readAsArrayBuffer(blob);
+                        }, 'image/png');
+                    } else {
+                        canvas.toBlob(blob => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                const buffer = Buffer.from(reader.result);
+                                fs.writeFile(filePath, buffer, err => {
+                                    if (err) {
+                                        console.error("Failed to save image:", err);
+                                        ipcRenderer.send("show-error-dialog", {
+                                            title: "Save Error",
+                                            message: "Failed to save the image. Please try again."
+                                        });
+                                    } else {
+                                        console.log("Saved:", filePath);
+                                        ipcRenderer.send("show-success-dialog", {
+                                            title: "Success",
+                                            message: "Collage saved successfully!"
+                                        });
+                                    }
+                                });
+                            };
+                            reader.readAsArrayBuffer(blob);
+                        }, mime);
+                    }
+                });
+            }).catch(err => {
+                console.error("Error generating collage:", err);
+                document.body.removeChild(containerClone);
+                ipcRenderer.send("show-error-dialog", {
+                    title: "Error",
+                    message: "Failed to generate collage. Please try again."
+                });
             });
-        }).catch(err => {
-            console.error("Error generating collage:", err);
-            ipcRenderer.send("show-error-dialog", {
-                title: "Error",
-                message: "Failed to generate collage. Please try again."
-            });
-        });
+        }, 100);
     });
 }
 </script>

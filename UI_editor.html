@@ -1644,6 +1644,22 @@ else if ((e.ctrlKey || e.metaKey) && key === "h") {
     e.preventDefault();
     goHome();
 }
+// Arrow Right (Next Image)
+else if (key === "arrowright") {
+    e.preventDefault();
+    nextImage();
+}
+// Arrow Left (Previous Image)
+else if (key === "arrowleft") {
+    e.preventDefault();
+    prevImage();
+}
+// Ctrl + B (Toggle Batch Mode)
+else if ((e.ctrlKey || e.metaKey) && key === "b") {
+    e.preventDefault();
+    toggleBatchProcessing();
+}
+
 });
 
 };

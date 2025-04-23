@@ -319,21 +319,18 @@
 <select id="templateSelect">
     <option value="">-- Select a template --</option>
     <option value="template1">Modern Frame (White Border)</option>
-    <option value="template2">Polaroid Style</option>
+    <option value="template2">Colorful Floating Frames</option>
     <option value="template3">Instagram Grid</option>
     <option value="template4">Photo Strip</option>
-    <option value="template5">Elegant Shadow Box</option>
+    <option value="template12">Geometric Gradient Grid</option>
     <option value="template6">Vintage Polaroid Mix</option>
     <option value="template7">Modern Grid with Accent Colors</option>
     <option value="template8">Symmetrical Grid</option>
-    <option value="template9">Random Split</option>
-    <option value="template10">Mosaic Style</option>
-    <option value="template11"> Side by Side</option>
+    <option value="template15">Minimalist White Space</option>
+    <option value="template16">Bold Color Blocks</option>
     <option value="template13">Minimalist Two-Column with Gradient Background</option>
     <option value="template14">Geometric Color Blocks</option>
     <option value="template17">Asymmetrical Grid with Neutral Colors</option>
-    
-    
 </select>
 
 <div id="collageContainer" style="margin-top: 20px;"></div>
@@ -411,180 +408,150 @@ document.addEventListener("DOMContentLoaded", function () {
             collageContainer.innerHTML = "";
 
             if (templateName === "template1") {
-        // Modern Frame (White Border)
-        collageContainer.innerHTML = `
-            <div style="position: relative; width: 100%; height: 100%; background: white; padding: 20px; box-sizing: border-box;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; height: 100%;">
-                    <div class="template-box" style="background: #f5f5f5; border: 15px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">Drop Image Here</div>
-                    <div class="template-box" style="background: #f5f5f5; border: 15px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">Drop Image Here</div>
-                    <div class="template-box" style="background: #f5f5f5; border: 15px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">Drop Image Here</div>
-                    <div class="template-box" style="background: #f5f5f5; border: 15px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">Drop Image Here</div>
-                </div>
-            </div>`;
-    } else if (templateName === "template2") {
-        // Polaroid Style
-        collageContainer.innerHTML = `
-            <div style="position: relative; width: 100%; height: 100%; background: #f0f0f0; display: flex; flex-wrap: wrap; align-content: flex-start; padding: 20px; gap: 30px;">
-                <div style="position: relative; width: 40%; height: 40%; background: white; padding: 15px 15px 40px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(-5deg);">
-                    <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
-                </div>
-                <div style="position: relative; width: 40%; height: 40%; background: white; padding: 15px 15px 40px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(3deg);">
-                    <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
-                </div>
-                <div style="position: relative; width: 40%; height: 40%; background: white; padding: 15px 15px 40px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(1deg);">
-                    <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
-                </div>
-                <div style="position: relative; width: 40%; height: 40%; background: white; padding: 15px 15px 40px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(-2deg);">
-                    <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
-                </div>
-            </div>`;
-    } else if (templateName === "template3") {
-        // Instagram Grid
-        collageContainer.innerHTML = `
-            <div style="position: relative; width: 100%; height: 100%; background: #fafafa; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 2px;">
-                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
-                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
-                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
-                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
-                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
-                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
-                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
-                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
-                <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
-            </div>`;
-    } else if (templateName === "template4") {
-        // Photo Strip
-        collageContainer.innerHTML = `
-            <div style="position: relative; width: 100%; height: 100%; background: #333; display: flex; justify-content: center; align-items: center; padding: 20px;">
-                <div style="display: flex; height: 80%; gap: 15px;">
-                    <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
-                    <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
-                    <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
-                    <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
-                    <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
-                </div>
-            </div>`;
-    }  else if (templateName === "template5") {
-        // Elegant Shadow Box
-        collageContainer.innerHTML = `
-            <div style="position: relative; width: 100%; height: 100%; background: #f8f8f8; display: flex; justify-content: center; align-items: center;">
-                <div style="width: 90%; height: 90%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px;">
-                    <div class="template-box" style="background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 4px;">Drop Image Here</div>
-                    <div class="template-box" style="background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 4px;">Drop Image Here</div>
-                    <div class="template-box" style="background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 4px;">Drop Image Here</div>
-                    <div class="template-box" style="background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 4px;">Drop Image Here</div>
-                </div>
-            </div>`;
-    } 
-    else if (templateName === "template6") {
-    // Vintage Polaroid Mix
+                // Modern Frame (White Border) - remains the same
+                collageContainer.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: white; padding: 20px; box-sizing: border-box;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; height: 100%;">
+                            <div class="template-box" style="background: #f5f5f5; border: 15px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">Drop Image Here</div>
+                            <div class="template-box" style="background: #f5f5f5; border: 15px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">Drop Image Here</div>
+                            <div class="template-box" style="background: #f5f5f5; border: 15px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">Drop Image Here</div>
+                            <div class="template-box" style="background: #f5f5f5; border: 15px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">Drop Image Here</div>
+                        </div>
+                    </div>`;
+            } else if (templateName === "template2") {
+    // Colorful Floating Frames
     collageContainer.innerHTML = `
-        <div style="position: relative; width: 100%; height: 100%; background: #e8e8e8; display: flex; flex-wrap: wrap; align-content: flex-start; padding: 20px; gap: 30px;">
-            <div style="position: relative; width: 30%; height: 40%; background: white; padding: 15px 15px 60px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(-3deg);">
-                <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
-                <div contenteditable="true" style="position: absolute; bottom: 15px; left: 15px; right: 15px; height: 30px; font-family: 'Courier New', monospace; font-size: 14px; color: #888; outline: none;">Click to add caption</div>
-            </div>
-            <div style="position: relative; width: 30%; height: 30%; background: white; padding: 15px 15px 50px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(2deg);">
-                <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
-                <div contenteditable="true" style="position: absolute; bottom: 15px; left: 15px; right: 15px; height: 20px; font-family: 'Courier New', monospace; font-size: 12px; color: #888; outline: none;">Click to add caption</div>
-            </div>
-            <div style="position: relative; width: 35%; height: 35%; background: white; padding: 15px 15px 70px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(-1deg);">
-                <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
-                <div contenteditable="true" style="position: absolute; bottom: 15px; left: 15px; right: 15px; height: 40px; font-family: 'Courier New', monospace; font-size: 16px; color: #888; outline: none;">Click to add caption</div>
-            </div>
+        <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%); display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 30px; padding: 20px;">
+            <div class="template-box" style="width: 40%; height: 40%; background: white; border: 12px solid white; box-shadow: 0 15px 25px rgba(0,0,0,0.2), 0 0 0 8px #ff6b6b, 0 0 0 12px white;">Drop Image Here</div>
+            <div class="template-box" style="width: 40%; height: 40%; background: white; border: 12px solid white; box-shadow: 0 15px 25px rgba(0,0,0,0.2), 0 0 0 8px #4ecdc4, 0 0 0 12px white;">Drop Image Here</div>
+            <div class="template-box" style="width: 40%; height: 40%; background: white; border: 12px solid white; box-shadow: 0 15px 25px rgba(0,0,0,0.2), 0 0 0 8px #ffd166, 0 0 0 12px white;">Drop Image Here</div>
+            <div class="template-box" style="width: 40%; height: 40%; background: white; border: 12px solid white; box-shadow: 0 15px 25px rgba(0,0,0,0.2), 0 0 0 8px #06d6a0, 0 0 0 12px white;">Drop Image Here</div>
         </div>`;
-}
-    else if (templateName === "template8") {
-    // Retro Frame
-    collageContainer.innerHTML = `
-        <div style="position: relative; width: 100%; height: 100%; background: #e0e0e0; display: flex; flex-wrap: wrap; justify-content: space-around; padding: 20px; gap: 20px;">
-            <div style="width: 30%; height: 40%; background: #fff3e6; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: 10px solid #e0aaff; transform: rotate(5deg);">
-                <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
-            </div>
-            <div style="width: 30%; height: 40%; background: #fff3e6; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: 10px solid #e0aaff; transform: rotate(-3deg);">
-                <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
-            </div>
-        </div>`;  
-}
-else if (templateName === "template9") {
-    // Mosaic Wall
-    collageContainer.innerHTML = `
-        <div style="position: relative; width: 100%; height: 100%; background: #ececec; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
-            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
-            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
-            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
-            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
-            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
-            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
-            <div class="template-box" style="background: #ddd;">Drop Image Here</div>
-        </div>`;  
-}
-
-else if (templateName === "template10") {
-    // Framed Grid
-    collageContainer.innerHTML = `
-        <div style="position: relative; width: 100%; height: 100%; background: #fafafa; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px;">
-            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
-        </div>`;  
-}
-else if (templateName === "template11") {
-    // Side by Side (Designer)
-    collageContainer.innerHTML = `
-        <div style="display: flex; gap: 20px; width: 100%; height: 100%; background: #f0f0f0; padding: 20px;">
-            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #333; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
-            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #333; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
-        </div>`;
-}
-
-else if (templateName === "template7") {
-    // Modern Grid with Accent Colors
-    collageContainer.innerHTML = `
-        <div style="position: relative; width: 100%; height: 100%; background: #f8f9fa; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 15px; padding: 15px;">
-            <div class="template-box" style="background: #ffffff; border: 2px solid #e63946; box-shadow: 0 2px 8px rgba(230, 57, 70, 0.2);">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 2px solid #457b9d; box-shadow: 0 2px 8px rgba(69, 123, 157, 0.2);">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 2px solid #1d3557; box-shadow: 0 2px 8px rgba(29, 53, 87, 0.2);">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 2px solid #a8dadc; box-shadow: 0 2px 8px rgba(168, 218, 220, 0.2);">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 2px solid #f1faee; box-shadow: 0 2px 8px rgba(241, 250, 238, 0.2);">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 2px solid #e63946; box-shadow: 0 2px 8px rgba(230, 57, 70, 0.2);">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 2px solid #457b9d; box-shadow: 0 2px 8px rgba(69, 123, 157, 0.2);">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 2px solid #1d3557; box-shadow: 0 2px 8px rgba(29, 53, 87, 0.2);">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 2px solid #a8dadc; box-shadow: 0 2px 8px rgba(168, 218, 220, 0.2);">Drop Image Here</div>
-        </div>`;
-} else if (templateName === "template13") {
-    // Minimalist Two-Column with Gradient Background
-    collageContainer.innerHTML = `
-        <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 30px;">
-            <div class="template-box" style="background: rgba(255,255,255,0.9); border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">Drop Image Here</div>
-            <div class="template-box" style="background: rgba(255,255,255,0.9); border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">Drop Image Here</div>
-        </div>`;
-} else if (templateName === "template14") {
-    // Geometric Color Blocks
-    collageContainer.innerHTML = `
-        <div style="position: relative; width: 100%; height: 100%; background: #2b2d42; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; padding: 10px;">
-            <div class="template-box" style="background: #8d99ae; grid-column: span 2; border: none;">Drop Image Here</div>
-            <div class="template-box" style="background: #ef233c; border: none;">Drop Image Here</div>
-            <div class="template-box" style="background: #d90429; border: none;">Drop Image Here</div>
-            <div class="template-box" style="background: #edf2f4; grid-column: span 2; border: none;">Drop Image Here</div>
-        </div>`;
-} else if (templateName === "template17") {
-    // Asymmetrical Grid with Neutral Colors
-    collageContainer.innerHTML = `
-        <div style="position: relative; width: 100%; height: 100%; background: #f1f1f1; display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px; padding: 15px;">
-            <div class="template-box" style="background: #ffffff; grid-row: span 2; border: 1px solid #ddd; box-shadow: 0 3px 10px rgba(0,0,0,0.05);">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 1px solid #ddd; box-shadow: 0 3px 10px rgba(0,0,0,0.05);">Drop Image Here</div>
-            <div class="template-box" style="background: #ffffff; border: 1px solid #ddd; box-shadow: 0 3px 10px rgba(0,0,0,0.05);">Drop Image Here</div>
-        </div>`;
-}
-
+} else if (templateName === "template3") {
+                // Instagram Grid - remains the same
+                collageContainer.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: #fafafa; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 2px;">
+                        <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                        <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                        <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                        <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                        <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                        <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                        <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                        <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                        <div class="template-box" style="background: #e0e0e0;">Drop Image Here</div>
+                    </div>`;
+            } else if (templateName === "template4") {
+                // Photo Strip - remains the same
+                collageContainer.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: #333; display: flex; justify-content: center; align-items: center; padding: 20px;">
+                        <div style="display: flex; height: 80%; gap: 15px;">
+                            <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
+                            <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
+                            <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
+                            <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
+                            <div class="template-box" style="width: 20%; background: #f5f5f5; border: 5px solid white; box-shadow: 0 0 0 10px #333;">Drop Image Here</div>
+                        </div>
+                    </div>`;
+            } else if (templateName === "template12") {
+                // Geometric Gradient Grid
+                collageContainer.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; padding: 10px;">
+                        <div class="template-box" style="background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">Drop Image Here</div>
+                        <div class="template-box" style="background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">Drop Image Here</div>
+                        <div class="template-box" style="background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">Drop Image Here</div>
+                        <div class="template-box" style="background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">Drop Image Here</div>
+                        <div class="template-box" style="background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">Drop Image Here</div>
+                        <div class="template-box" style="background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">Drop Image Here</div>
+                        <div class="template-box" style="background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">Drop Image Here</div>
+                        <div class="template-box" style="background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">Drop Image Here</div>
+                        <div class="template-box" style="background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">Drop Image Here</div>
+                    </div>`;
+            } else if (templateName === "template15") {
+                // Minimalist White Space
+                collageContainer.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: #f9f9f9; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; padding: 40px;">
+                        <div class="template-box" style="background: white; border: 1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">Drop Image Here</div>
+                        <div class="template-box" style="background: white; border: 1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">Drop Image Here</div>
+                        <div class="template-box" style="background: white; border: 1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">Drop Image Here</div>
+                        <div class="template-box" style="background: white; border: 1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.03); grid-column: span 3; height: 60%;">Drop Image Here</div>
+                    </div>`;
+            } else if (templateName === "template16") {
+                // Bold Color Blocks
+                collageContainer.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: #1a1a2e; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px; padding: 15px;">
+                        <div class="template-box" style="background: #16213e; border: 2px solid #0f3460;">Drop Image Here</div>
+                        <div class="template-box" style="background: #0f3460; border: 2px solid #16213e;">Drop Image Here</div>
+                        <div class="template-box" style="background: #533483; border: 2px solid #16213e;">Drop Image Here</div>
+                        <div class="template-box" style="background: #e94560; border: 2px solid #16213e;">Drop Image Here</div>
+                    </div>`;
+            } else if (templateName === "template6") {
+                // Vintage Polaroid Mix - remains the same
+                collageContainer.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: #e8e8e8; display: flex; flex-wrap: wrap; align-content: flex-start; padding: 20px; gap: 30px;">
+                        <div style="position: relative; width: 30%; height: 40%; background: white; padding: 15px 15px 60px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(-3deg);">
+                            <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+                            <div contenteditable="true" style="position: absolute; bottom: 15px; left: 15px; right: 15px; height: 30px; font-family: 'Courier New', monospace; font-size: 14px; color: #888; outline: none;">Click to add caption</div>
+                        </div>
+                        <div style="position: relative; width: 30%; height: 30%; background: white; padding: 15px 15px 50px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(2deg);">
+                            <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+                            <div contenteditable="true" style="position: absolute; bottom: 15px; left: 15px; right: 15px; height: 20px; font-family: 'Courier New', monospace; font-size: 12px; color: #888; outline: none;">Click to add caption</div>
+                        </div>
+                        <div style="position: relative; width: 35%; height: 35%; background: white; padding: 15px 15px 70px 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: rotate(-1deg);">
+                            <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+                            <div contenteditable="true" style="position: absolute; bottom: 15px; left: 15px; right: 15px; height: 40px; font-family: 'Courier New', monospace; font-size: 16px; color: #888; outline: none;">Click to add caption</div>
+                        </div>
+                    </div>`;
+            } else if (templateName === "template7") {
+                // Modern Grid with Accent Colors - remains the same
+                collageContainer.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: #f8f9fa; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 15px; padding: 15px;">
+                        <div class="template-box" style="background: #ffffff; border: 2px solid #e63946; box-shadow: 0 2px 8px rgba(230, 57, 70, 0.2);">Drop Image Here</div>
+                        <div class="template-box" style="background: #ffffff; border: 2px solid #457b9d; box-shadow: 0 2px 8px rgba(69, 123, 157, 0.2);">Drop Image Here</div>
+                        <div class="template-box" style="background: #ffffff; border: 2px solid #1d3557; box-shadow: 0 2px 8px rgba(29, 53, 87, 0.2);">Drop Image Here</div>
+                        <div class="template-box" style="background: #ffffff; border: 2px solid #a8dadc; box-shadow: 0 2px 8px rgba(168, 218, 220, 0.2);">Drop Image Here</div>
+                        <div class="template-box" style="background: #ffffff; border: 2px solid #f1faee; box-shadow: 0 2px 8px rgba(241, 250, 238, 0.2);">Drop Image Here</div>
+                        <div class="template-box" style="background: #ffffff; border: 2px solid #e63946; box-shadow: 0 2px 8px rgba(230, 57, 70, 0.2);">Drop Image Here</div>
+                        <div class="template-box" style="background: #ffffff; border: 2px solid #457b9d; box-shadow: 0 2px 8px rgba(69, 123, 157, 0.2);">Drop Image Here</div>
+                        <div class="template-box" style="background: #ffffff; border: 2px solid #1d3557; box-shadow: 0 2px 8px rgba(29, 53, 87, 0.2);">Drop Image Here</div>
+                        <div class="template-box" style="background: #ffffff; border: 2px solid #a8dadc; box-shadow: 0 2px 8px rgba(168, 218, 220, 0.2);">Drop Image Here</div>
+                    </div>`;
+            } else if (templateName === "template8") {
+                // Symmetrical Grid - remains the same
+                collageContainer.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: #e0e0e0; display: flex; flex-wrap: wrap; justify-content: space-around; padding: 20px; gap: 20px;">
+                        <div style="width: 30%; height: 40%; background: #fff3e6; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: 10px solid #e0aaff; transform: rotate(5deg);">
+                            <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+                        </div>
+                        <div style="width: 30%; height: 40%; background: #fff3e6; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: 10px solid #e0aaff; transform: rotate(-3deg);">
+                            <div class="template-box" style="width: 100%; height: 100%; background: #f5f5f5;">Drop Image Here</div>
+                        </div>
+                    </div>`;
+            } else if (templateName === "template13") {
+                // Minimalist Two-Column with Gradient Background - remains the same
+                collageContainer.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 30px;">
+                        <div class="template-box" style="background: rgba(255,255,255,0.9); border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">Drop Image Here</div>
+                        <div class="template-box" style="background: rgba(255,255,255,0.9); border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">Drop Image Here</div>
+                    </div>`;
+            } else if (templateName === "template14") {
+                // Geometric Color Blocks - remains the same
+                collageContainer.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: #2b2d42; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; padding: 10px;">
+                        <div class="template-box" style="background: #8d99ae; grid-column: span 2; border: none;">Drop Image Here</div>
+                        <div class="template-box" style="background: #ef233c; border: none;">Drop Image Here</div>
+                        <div class="template-box" style="background: #d90429; border: none;">Drop Image Here</div>
+                        <div class="template-box" style="background: #edf2f4; grid-column: span 2; border: none;">Drop Image Here</div>
+                    </div>`;
+            } else if (templateName === "template17") {
+                // Asymmetrical Grid with Neutral Colors - remains the same
+                collageContainer.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; background: #f1f1f1; display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px; padding: 15px;">
+                        <div class="template-box" style="background: #ffffff; grid-row: span 2; border: 1px solid #ddd; box-shadow: 0 3px 10px rgba(0,0,0,0.05);">Drop Image Here</div>
+                        <div class="template-box" style="background: #ffffff; border: 1px solid #ddd; box-shadow: 0 3px 10px rgba(0,0,0,0.05);">Drop Image Here</div>
+                        <div class="template-box" style="background: #ffffff; border: 1px solid #ddd; box-shadow: 0 3px 10px rgba(0,0,0,0.05);">Drop Image Here</div>
+                    </div>`;
+            }
 
         }
 

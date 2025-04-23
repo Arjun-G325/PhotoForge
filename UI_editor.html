@@ -1606,14 +1606,46 @@ window.onload = function () {
         resizeImage();
     }, 300));
     document.addEventListener("keydown", function (e) {
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+    // Normalize key for consistency
+    const key = e.key.toLowerCase();
+
+    // Ctrl+Z (Undo)
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === "z") {
         e.preventDefault();
         undo();
-    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+    }
+    // Ctrl+Y (Redo)
+    else if ((e.ctrlKey || e.metaKey) && key === "y") {
         e.preventDefault();
         redo();
     }
+    // Ctrl+O (Open Image)
+    else if ((e.ctrlKey || e.metaKey) && key === "o") {
+        e.preventDefault();
+        openImage();
+    }
+    // Delete key (Remove Image)
+    else if (key === "delete") {
+        e.preventDefault();
+        RemoveImage();
+    }
+    // Ctrl+S (Save)
+    else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === "s") {
+        e.preventDefault();
+        saveImage();
+    }
+    // Ctrl+Shift+S (Save As)
+    else if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === "s") {
+        e.preventDefault();
+        saveImageAs();
+    }
+    // Ctrl+H (Go Home)
+else if ((e.ctrlKey || e.metaKey) && key === "h") {
+    e.preventDefault();
+    goHome();
+}
 });
+
 };
 
 function applyFilters() {

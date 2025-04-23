@@ -1659,6 +1659,35 @@ else if ((e.ctrlKey || e.metaKey) && key === "b") {
     e.preventDefault();
     toggleBatchProcessing();
 }
+else if (!(e.ctrlKey || e.metaKey) && key=="c") {
+    e.preventDefault();
+    cropImage();
+}
+else if (!(e.ctrlKey || e.metaKey) && key=="l") {
+    e.preventDefault();
+    rotateImage(-90);
+}
+else if (!(e.ctrlKey || e.metaKey) && key=="r") {
+    e.preventDefault();
+    rotateImage(90);
+}
+else if (!(e.ctrlKey || e.metaKey) && key=="f") {
+    e.preventDefault();
+    flipImage();
+}
+// Drawing tool shortcuts
+else if (!(e.ctrlKey || e.metaKey) && key === "p") {
+    e.preventDefault();
+    togglePaintTool(); // Toggle Paint Brush
+}
+else if (!(e.ctrlKey || e.metaKey) && key === "x") {
+    e.preventDefault();
+    clearPaintCanvas(); // Clear Paint
+}
+else if (!(e.ctrlKey || e.metaKey) && key === "enter") {
+    e.preventDefault();
+    commitPaint(); // Commit Paint
+}
 
 });
 

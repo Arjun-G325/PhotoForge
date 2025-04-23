@@ -543,38 +543,46 @@ else if (templateName === "template10") {
             <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
             <div class="template-box" style="background: #ffffff; border: 5px solid #333;">Drop Image Here</div>
         </div>`;  
-}else if (templateName === "template11") {
-        // Side by Side
-        collageContainer.innerHTML = `
-            <div style="display: flex; gap: 10px; width: 100%; height: 100%; padding: 10px;">
-                <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                <div class="template-box" style="flex: 1;">Drop Image Here</div>
-            </div>`;
-    } else if (templateName === "template13") {
-        // Vertical Split
-        collageContainer.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; height: 100%; padding: 10px;">
-                <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                <div class="template-box" style="flex: 1;">Drop Image Here</div>
-            </div>`;
-    } else if (templateName === "template14") {
-        // Horizontal Split
-        collageContainer.innerHTML = `
-            <div style="display: flex; gap: 10px; width: 100%; height: 100%; padding: 10px;">
-                <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                <div class="template-box" style="flex: 1;">Drop Image Here</div>
-                <div class="template-box" style="flex: 1;">Drop Image Here</div>
-            </div>`;
-    }  else if (templateName === "template17") {
-        // Quad Mix (Asymmetrical)
-        collageContainer.innerHTML = `
-            <div style="display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; height: 100%; padding: 10px;">
-                <div class="template-box" style="grid-row: span 2;">Drop Image Here</div>
-                <div class="template-box">Drop Image Here</div>
-                <div class="template-box">Drop Image Here</div>
-            </div>`;
-    } 
+}
+else if (templateName === "template11") {
+    // Side by Side (Designer)
+    collageContainer.innerHTML = `
+        <div style="display: flex; gap: 20px; width: 100%; height: 100%; background: #f0f0f0; padding: 20px;">
+            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #333; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
+            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #333; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
+        </div>`;
+}
+
+else if (templateName === "template13") {
+    // Vertical Split (Designer)
+    collageContainer.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 20px; width: 100%; height: 100%; background: #f9f9f9; padding: 20px;">
+            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #444; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
+            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #444; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
+            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #444; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
+        </div>`;
+}
+
+else if (templateName === "template14") {
+    // Horizontal Split (Designer)
+    collageContainer.innerHTML = `
+        <div style="display: flex; gap: 20px; width: 100%; height: 100%; background: #f8f8f8; padding: 20px;">
+            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #222; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
+            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #222; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
+            <div class="template-box" style="flex: 1; background: #fff; border: 5px solid #222; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
+        </div>`;
+}
+
+else if (templateName === "template17") {
+    // Quad Mix (Asymmetrical Designer)
+    collageContainer.innerHTML = `
+        <div style="display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; height: 100%; padding: 20px; background: #f5f5f5;">
+            <div class="template-box" style="grid-row: span 2; background: #fff; border: 5px solid #555; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
+            <div class="template-box" style="background: #fff; border: 5px solid #555; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
+            <div class="template-box" style="background: #fff; border: 5px solid #555; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center;">Drop Image Here</div>
+        </div>`;
+}
+
         }
 
         templateSelect.addEventListener("change", function () {
@@ -1435,6 +1443,10 @@ ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, boxWi
   
 
 
+  
+
+
+
     function enableResize() {
     if (!selectedImage) {
         alert("Please select an image first");
@@ -1466,16 +1478,23 @@ ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, boxWi
     handlesContainer.style.position = 'absolute';
     
     // Get initial position and dimensions
-    const computedStyle = window.getComputedStyle(selectedImage);
-    const width = parseFloat(computedStyle.width);
-    const height = parseFloat(computedStyle.height);
-    const left = parseFloat(selectedImage.style.left) || 0;
-    const top = parseFloat(selectedImage.style.top) || 0;
+    const imgRect = selectedImage.getBoundingClientRect();
+    const containerRect = collageContainer.getBoundingClientRect();
+    
+    const left = imgRect.left - containerRect.left;
+    const top = imgRect.top - containerRect.top;
+    const width = imgRect.width;
+    const height = imgRect.height;
+    
+    // Apply the same transform as the image
+    const transform = window.getComputedStyle(selectedImage).transform;
     
     handlesContainer.style.left = left + 'px';
     handlesContainer.style.top = top + 'px';
     handlesContainer.style.width = width + 'px';
     handlesContainer.style.height = height + 'px';
+    handlesContainer.style.transform = transform !== 'none' ? transform : '';
+    handlesContainer.style.transformOrigin = 'center center';
     handlesContainer.style.pointerEvents = 'none';
     
     collageContainer.appendChild(handlesContainer);
@@ -1503,18 +1522,25 @@ ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, boxWi
         });
     });
     
-    // Update container position when image moves
+    // Update container position when image moves or transforms
     const observer = new MutationObserver(() => {
-        const computedStyle = window.getComputedStyle(selectedImage);
-        const width = parseFloat(computedStyle.width);
-        const height = parseFloat(computedStyle.height);
-        const left = parseFloat(selectedImage.style.left) || 0;
-        const top = parseFloat(selectedImage.style.top) || 0;
+        const imgRect = selectedImage.getBoundingClientRect();
+        const containerRect = collageContainer.getBoundingClientRect();
         
-        handlesContainer.style.left = left + 'px';
-        handlesContainer.style.top = top + 'px';
-        handlesContainer.style.width = width + 'px';
-        handlesContainer.style.height = height + 'px';
+        const left = imgRect.left - containerRect.left;
+        const top = imgRect.top - containerRect.top;
+        const width = imgRect.width;
+        const height = imgRect.height;
+        const transform = window.getComputedStyle(selectedImage).transform;
+        
+        const container = document.querySelector('.resize-handles-container');
+        if (container) {
+            container.style.left = left + 'px';
+            container.style.top = top + 'px';
+            container.style.width = width + 'px';
+            container.style.height = height + 'px';
+            container.style.transform = transform !== 'none' ? transform : '';
+        }
     });
     
     resizeHandles.observer = observer;
@@ -1553,19 +1579,7 @@ function startResize(e, direction) {
     // Prevent text selection during resize
     document.body.style.userSelect = 'none';
 }
-function stopResize() {
-    if (!isResizing) return;
-    
-    isResizing = false;
-    resizeDirection = null;
-    
-    // Remove event listeners
-    document.removeEventListener('mousemove', doResize);
-    document.removeEventListener('mouseup', stopResize);
-    
-    // Restore text selection
-    document.body.style.userSelect = '';
-}
+
 function doResize(e) {
     if (!isResizing) return;
     
@@ -1575,7 +1589,7 @@ function doResize(e) {
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
     
-    // Get current dimensions without transformations
+    // Get current dimensions from computed style (ignores transforms)
     const computedStyle = window.getComputedStyle(selectedImage);
     let newWidth = parseFloat(computedStyle.width);
     let newHeight = parseFloat(computedStyle.height);
@@ -1613,48 +1627,79 @@ function doResize(e) {
             break;
     }
     
-    // Apply new dimensions
+    // Apply new dimensions to image
     selectedImage.style.width = newWidth + 'px';
-    selectedImage.style.height = newHeight + 'px';
-    selectedImage.style.left = newLeft + 'px';
-    selectedImage.style.top = newTop + 'px';
+    selectedImage.style.height = newHeight + 'px'; // Changed from 'auto' to fixed height
+    
+    // Update position if needed
+    if (resizeDirection === 'nw' || resizeDirection === 'sw') {
+        selectedImage.style.left = newLeft + 'px';
+    }
+    if (resizeDirection === 'nw' || resizeDirection === 'ne') {
+        selectedImage.style.top = newTop + 'px';
+    }
     
     // Update drawing canvas
     const drawingCanvas = selectedImage.nextElementSibling;
     if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
-        // Create temp canvas to preserve drawing
+        // Save current transformation matrix
+        const transform = window.getComputedStyle(selectedImage).transform;
+        const transformOrigin = window.getComputedStyle(selectedImage).transformOrigin;
+        
+        // Create temp canvas with original content
         const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
         tempCanvas.width = drawingCanvas.width;
         tempCanvas.height = drawingCanvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
         tempCtx.drawImage(drawingCanvas, 0, 0);
         
-        // Resize canvas
+        // Resize the drawing canvas
         drawingCanvas.width = newWidth;
         drawingCanvas.height = newHeight;
         const ctx = drawingCanvas.getContext('2d');
         
-        // Scale drawing
-        ctx.save();
-        ctx.scale(newWidth / tempCanvas.width, newHeight / tempCanvas.height);
-        ctx.drawImage(tempCanvas, 0, 0);
-        ctx.restore();
+        // Clear and redraw with proper scaling
+        ctx.clearRect(0, 0, newWidth, newHeight);
+        ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, newWidth, newHeight);
         
-        // Update canvas position and size
+        // Update canvas style properties
         drawingCanvas.style.width = newWidth + 'px';
         drawingCanvas.style.height = newHeight + 'px';
-        drawingCanvas.style.left = newLeft + 'px';
-        drawingCanvas.style.top = newTop + 'px';
+        drawingCanvas.style.left = selectedImage.style.left;
+        drawingCanvas.style.top = selectedImage.style.top;
+        
+        // Reapply transformations
+        drawingCanvas.style.transform = transform;
+        drawingCanvas.style.transformOrigin = transformOrigin;
     }
     
     // Update handles container
-    const container = document.querySelector('.resize-handles-container');
-    if (container) {
-        container.style.left = newLeft + 'px';
-        container.style.top = newTop + 'px';
-        container.style.width = newWidth + 'px';
-        container.style.height = newHeight + 'px';
+    const handlesContainer = document.querySelector('.resize-handles-container');
+    if (handlesContainer) {
+        handlesContainer.style.left = selectedImage.style.left;
+        handlesContainer.style.top = selectedImage.style.top;
+        handlesContainer.style.width = newWidth + 'px';
+        handlesContainer.style.height = newHeight + 'px';
     }
+    
+    // Force redraw of the yellow border
+    selectedImage.classList.remove('selected');
+    void selectedImage.offsetWidth; // Trigger reflow
+    selectedImage.classList.add('selected');
+}
+
+function stopResize() {
+    if (!isResizing) return;
+    
+    isResizing = false;
+    resizeDirection = null;
+    
+    // Remove event listeners
+    document.removeEventListener('mousemove', doResize);
+    document.removeEventListener('mouseup', stopResize);
+    
+    // Restore text selection
+    document.body.style.userSelect = '';
 }
 function disableResize() {
     if (!isResizingEnabled) return;

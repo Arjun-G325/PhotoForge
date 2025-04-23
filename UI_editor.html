@@ -1605,6 +1605,15 @@ window.onload = function () {
         widthInput.value = "";
         resizeImage();
     }, 300));
+    document.addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        undo();
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redo();
+    }
+});
 };
 
 function applyFilters() {

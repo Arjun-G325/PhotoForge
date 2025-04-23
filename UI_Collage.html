@@ -742,13 +742,38 @@ function enableDrawing() {
     
     isDrawingEnabled = true;
     const drawingCanvas = selectedImage.nextElementSibling;
-    drawingCanvas.style.pointerEvents = 'auto';
+    if (!drawingCanvas || !drawingCanvas.classList.contains('drawing-canvas')) {
+        // Create new canvas if it doesn't exist
+        const newCanvas = document.createElement('canvas');
+        newCanvas.className = 'drawing-canvas';
+        newCanvas.width = selectedImage.offsetWidth;
+        newCanvas.height = selectedImage.offsetHeight;
+        newCanvas.style.position = 'absolute';
+        newCanvas.style.left = selectedImage.style.left;
+        newCanvas.style.top = selectedImage.style.top;
+        newCanvas.style.width = selectedImage.style.width;
+        newCanvas.style.height = selectedImage.style.height;
+        newCanvas.style.pointerEvents = 'none';
+        selectedImage.parentNode.insertBefore(newCanvas, selectedImage.nextSibling);
+        currentDrawingCanvas = newCanvas;
+    } else {
+        currentDrawingCanvas = drawingCanvas;
+    }
+    
+    // Set up drawing context
+    currentDrawingCtx = currentDrawingCanvas.getContext('2d');
+    currentDrawingCtx.strokeStyle = currentColor;
+    currentDrawingCtx.lineWidth = brushSize;
+    currentDrawingCtx.lineJoin = 'round';
+    currentDrawingCtx.lineCap = 'round';
+    
+    currentDrawingCanvas.style.pointerEvents = 'auto';
     document.body.style.cursor = 'crosshair';
     
-    drawingCanvas.addEventListener('mousedown', startDrawing);
-    drawingCanvas.addEventListener('mousemove', draw);
-    drawingCanvas.addEventListener('mouseup', stopDrawing);
-    drawingCanvas.addEventListener('mouseout', stopDrawing);
+    currentDrawingCanvas.addEventListener('mousedown', startDrawing);
+    currentDrawingCanvas.addEventListener('mousemove', draw);
+    currentDrawingCanvas.addEventListener('mouseup', stopDrawing);
+    currentDrawingCanvas.addEventListener('mouseout', stopDrawing);
 }
 function transformCoordinates(x, y, img) {
     const rotation = parseInt(img.dataset.rotation) || 0;
@@ -1379,6 +1404,7 @@ ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, boxWi
         drawingCanvas.style.pointerEvents = 'none';
     }
     
+    // Initialize drawing context with current settings
     currentDrawingCtx = drawingCanvas.getContext('2d');
     currentDrawingCtx.strokeStyle = currentColor;
     currentDrawingCtx.lineWidth = brushSize;
@@ -1388,7 +1414,6 @@ ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, boxWi
     
     updateBrushSettings();
 }
-
     function rotateSelected(angle) {
         if (!selectedImage) return;
         let rotation = parseInt(selectedImage.dataset.rotation) || 0;
@@ -1835,7 +1860,6 @@ function disableTilt() {
     stopTilt();
 }
 
-// Update the applyTransformations function to include skew
 function applyTransformations(img, skewX = null, skewY = null) {
     const rotation = img.dataset.rotation || 0;
     const flipX = img.dataset.flipX || 1;
@@ -1861,12 +1885,31 @@ function applyTransformations(img, skewX = null, skewY = null) {
     // Apply same transformations to drawing canvas
     const drawingCanvas = img.nextElementSibling;
     if (drawingCanvas && drawingCanvas.classList.contains('drawing-canvas')) {
+        // Preserve the current drawing content
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = drawingCanvas.width;
+        tempCanvas.height = drawingCanvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(drawingCanvas, 0, 0);
+        
+        // Apply transformations
         drawingCanvas.style.transform = `
             rotate(${rotation}deg) 
             scale(${flipX}, ${flipY}) 
             skewX(${skewX}deg) 
             skewY(${skewY}deg)
         `.trim();
+        
+        // Restore the drawing content
+        const ctx = drawingCanvas.getContext('2d');
+        ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        ctx.drawImage(tempCanvas, 0, 0);
+        
+        // Restore brush settings
+        ctx.strokeStyle = currentColor;
+        ctx.lineWidth = brushSize;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
     }
 }
     function deleteSelectedImage() {

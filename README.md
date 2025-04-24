@@ -2,7 +2,14 @@
 Introduction:
 PhotoForge is a powerful offline image editing application that allows you to edit single images or create beautiful photo collages. With an intuitive interface and a wide range of editing tools, you can enhance your photos without needing an internet connection.
 
+How to install:
+Windows:
+Download the window's installer(.exe) and run it.
+Linux:
+Download the linux installer(.AppImage) and run_script.sh and execute the script.
 Getting Started:
+Running the code:
+Assuming you have already node.js and electron.js installed in your compiler, open the compiler's terminal and execute the command "npm start". This will execute the code.
 Launching the Application:
 Open PhotoForge to see the main screen with two options:
 

@@ -63,6 +63,10 @@ Batch Processing:
 Check "Process Batch" to apply edits to all open images simultaneously.
 Useful for applying the same filters to multiple photos.
 
+Undo/Redo:
+Undo: Click undo icon or press Ctrl+Z
+Redo: Click redo icon or press Ctrl+Y
+
 Collage Maker Features:
 
 Creating a Collage:

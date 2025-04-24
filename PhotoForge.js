@@ -36,7 +36,7 @@ function openImageEditor() {
     }
   });
 
-  mainWindow.hide(); // just hide, don't close
+  mainWindow.hide();
   editorWindow.loadFile('UI_editor.html');
 
   editorWindow.on('closed', () => {
@@ -45,7 +45,7 @@ function openImageEditor() {
   });
 }
 
-// Open collage editor
+// Open collage maker
 function openCollageEditor() {
   if (collageWindow) return;
 

@@ -2141,6 +2141,26 @@ function applyTransformations(img, skewX = null, skewY = null) {
         }, 100);
     });
 }
+document.addEventListener('keydown', function(e) {
+    const key = e.key.toLowerCase();
+    const ctrl = e.ctrlKey;
+    const shift = e.shiftKey;
+
+    if (ctrl && key === 'h') { e.preventDefault(); goHome(); }
+    else if (ctrl && key === 'o') { e.preventDefault(); openImages(); }
+    else if (ctrl && key === 's') { e.preventDefault(); downloadCollage(); }
+    else if (key === 'delete') { e.preventDefault(); deleteSelectedImage(); }
+    else if (key === 'c') { e.preventDefault(); cropSelectedImage(); }
+    else if (key === 'l' && !shift) { e.preventDefault(); rotateSelected(-90); }
+    else if (key === 'l' && shift) { e.preventDefault(); rotateSelected(90); }
+    else if (key === 'f') { e.preventDefault(); flipSelected('X'); }
+    else if (key === 'v') { e.preventDefault(); flipSelected('Y'); }
+    else if (key === 't') { e.preventDefault(); enableTilt(); }
+    else if (key === 'g') { e.preventDefault(); applyFilter('grayscale'); }
+    else if (key === 'e') { e.preventDefault(); applyFilter('sepia'); }
+    else if (key === 'b') { e.preventDefault(); applyFilter('blur'); }
+});
+
 </script>
 </body>
 </html>

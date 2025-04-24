@@ -416,7 +416,7 @@ function mergePaintOntoImage(index, paintCanvas, callback) {
         const imgWidth = tempImg.naturalWidth;
         const imgHeight = tempImg.naturalHeight;
 
-        // Ensure paintCanvas matches image dimensions exactly
+        
         if (paintCanvas.width !== imgWidth || paintCanvas.height !== imgHeight) {
             const tempCanvas = document.createElement("canvas");
             tempCanvas.width = imgWidth;
@@ -432,13 +432,13 @@ function mergePaintOntoImage(index, paintCanvas, callback) {
         mergedCanvas.height = imgHeight;
         const ctx = mergedCanvas.getContext("2d");
         ctx.imageSmoothingEnabled = false;
-        ctx.mozImageSmoothingEnabled = false; // For Firefox
-        ctx.webkitImageSmoothingEnabled = false; // For Webkit browsers
-        ctx.msImageSmoothingEnabled = false; // For IE
+        ctx.mozImageSmoothingEnabled = false;  
+        ctx.webkitImageSmoothingEnabled = false; 
+        ctx.msImageSmoothingEnabled = false; 
 
         // Draw base image
         ctx.drawImage(tempImg, 0, 0, imgWidth, imgHeight);
-        // Draw paint canvas with high-quality compositing
+        // Draw paint canvas
         ctx.drawImage(paintCanvas, 0, 0, imgWidth, imgHeight);
 
         const result = mergedCanvas.toDataURL("image/png", 1.0);
@@ -1609,52 +1609,52 @@ window.onload = function () {
     // Normalize key for consistency
     const key = e.key.toLowerCase();
 
-    // Ctrl+Z (Undo)
+    // Ctrl+Z for undo
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === "z") {
         e.preventDefault();
         undo();
     }
-    // Ctrl+Y (Redo)
+    // Ctrl+Y for redo
     else if ((e.ctrlKey || e.metaKey) && key === "y") {
         e.preventDefault();
         redo();
     }
-    // Ctrl+O (Open Image)
+    // Ctrl+O to open image
     else if ((e.ctrlKey || e.metaKey) && key === "o") {
         e.preventDefault();
         openImage();
     }
-    // Delete key (Remove Image)
+    // Delete key to remove image
     else if (key === "delete") {
         e.preventDefault();
         RemoveImage();
     }
-    // Ctrl+S (Save)
+    // Ctrl+S to save image
     else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === "s") {
         e.preventDefault();
         saveImage();
     }
-    // Ctrl+Shift+S (Save As)
+    // Ctrl+Shift+S for save as
     else if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === "s") {
         e.preventDefault();
         saveImageAs();
     }
-    // Ctrl+H (Go Home)
+    // Ctrl+H to go home
 else if ((e.ctrlKey || e.metaKey) && key === "h") {
     e.preventDefault();
     goHome();
 }
-// Arrow Right (Next Image)
+// Arrow Right for next image
 else if (key === "arrowright") {
     e.preventDefault();
     nextImage();
 }
-// Arrow Left (Previous Image)
+// Arrow Left for previous image
 else if (key === "arrowleft") {
     e.preventDefault();
     prevImage();
 }
-// Ctrl + B (Toggle Batch Mode)
+// Ctrl + B to toggle batch mode
 else if ((e.ctrlKey || e.metaKey) && key === "b") {
     e.preventDefault();
     toggleBatchProcessing();
@@ -1678,15 +1678,15 @@ else if (!(e.ctrlKey || e.metaKey) && key=="f") {
 // Drawing tool shortcuts
 else if (!(e.ctrlKey || e.metaKey) && key === "p") {
     e.preventDefault();
-    togglePaintTool(); // Toggle Paint Brush
+    togglePaintTool(); // Toggle paint brush
 }
 else if (!(e.ctrlKey || e.metaKey) && key === "x") {
     e.preventDefault();
-    clearPaintCanvas(); // Clear Paint
+    clearPaintCanvas(); // Clear paint
 }
 else if (!(e.ctrlKey || e.metaKey) && key === "enter") {
     e.preventDefault();
-    commitPaint(); // Commit Paint
+    commitPaint(); // Commit paint
 }
 
 });
@@ -1983,8 +1983,6 @@ function updateUIControls(state) {
         <button onclick="prevImage()"><i class="fa-solid fa-chevron-left"></i><span class="tooltip">Previous</span></button>
         <button onclick="nextImage()"><i class="fa-solid fa-chevron-right"></i><span class="tooltip">Next</span></button>
     </div>
-
     <div id="image-count" style="color: white; margin-top: 5px;"></div>
-
 </body>
 </html>

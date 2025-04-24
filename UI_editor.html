@@ -406,6 +406,7 @@ function commitPaint() {
     document.getElementById("image-area").style.cursor = "default";
 }
 
+// Modify the mergePaintOntoImage function
 function mergePaintOntoImage(index, paintCanvas, callback) {
     const state = imageStates[index];
     const tempImg = new Image();
@@ -416,7 +417,6 @@ function mergePaintOntoImage(index, paintCanvas, callback) {
         const imgWidth = tempImg.naturalWidth;
         const imgHeight = tempImg.naturalHeight;
 
-        
         if (paintCanvas.width !== imgWidth || paintCanvas.height !== imgHeight) {
             const tempCanvas = document.createElement("canvas");
             tempCanvas.width = imgWidth;
@@ -432,18 +432,19 @@ function mergePaintOntoImage(index, paintCanvas, callback) {
         mergedCanvas.height = imgHeight;
         const ctx = mergedCanvas.getContext("2d");
         ctx.imageSmoothingEnabled = false;
-        ctx.mozImageSmoothingEnabled = false;  
-        ctx.webkitImageSmoothingEnabled = false; 
-        ctx.msImageSmoothingEnabled = false; 
 
-        // Draw base image
+        // Draw base image with filters
+        ctx.filter = state.filter || "none";
         ctx.drawImage(tempImg, 0, 0, imgWidth, imgHeight);
-        // Draw paint canvas
+        ctx.filter = "none"; // Reset filter for paint layer
+        
+        // Draw paint canvas (without filters)
         ctx.drawImage(paintCanvas, 0, 0, imgWidth, imgHeight);
 
         const result = mergedCanvas.toDataURL("image/png", 1.0);
         imageList[index] = result;
         state.src = result;
+        state.filter = "none"; // Reset filter since it's now baked into the image
 
         if (callback) callback();
     };
@@ -960,16 +961,13 @@ function saveImageToFile(filePath, extension) {
         ctx.translate(canvas.width / 2, canvas.height / 2);
         ctx.rotate(radians);
         ctx.scale(state.flipX ?? 1, state.flipY ?? 1);
-        ctx.filter = `
-            brightness(${state.brightnessValue ?? 100}%)
-            contrast(${state.contrastValue ?? 100}%)
-            saturate(${state.saturationValue ?? 100}%)
-            sepia(${state.sepiaValue ?? 0}%)
-            grayscale(${state.bwValue ?? 0}%)
-            blur(${state.blurValue ?? 0}px)
-        `.trim();
+        
+        // Apply filters to base image only
+        ctx.filter = state.filter || "none";
         ctx.drawImage(tempImg, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
+        ctx.filter = "none"; // Reset filter for paint layer
 
+        // Add paint layer (without filters)
         const paintCanvas = document.getElementById("paintCanvas");
         if (paintCanvas && !isCanvasEmpty(paintCanvas)) {
             ctx.save();

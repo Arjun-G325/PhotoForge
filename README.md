@@ -9,7 +9,7 @@ Linux:
 Download the linux installer(.AppImage) and run_script.sh and execute the script.
 Getting Started:
 Running the code:
-Assuming you have already node.js and electron.js installed in your compiler, open the compiler's terminal and execute the command "npm start". This will execute the code.
+Assuming you have already node.js, electron.js and sharp installed in your compiler, open the compiler's terminal, configure the package.json file to match the one provided, and execute the command "npm start". This will execute the code.
 Launching the Application:
 Open PhotoForge to see the main screen with two options:
 

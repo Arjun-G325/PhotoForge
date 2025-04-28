@@ -87,6 +87,98 @@
             background-color: #555;
             margin: 0 15px;
         }
+        /* Add to the style section */
+        .text-box {
+    resize: both;
+    overflow: auto;
+    min-width: 100px;
+    min-height: 30px;
+}
+.dimension-buttons {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.dimension-buttons button {
+    flex: 1;
+    padding: 3px;
+    font-size: 11px;
+}
+.text-box::-webkit-resizer {
+    background-color: #4285f4;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    border: 1px solid white;
+}
+.text-box {
+    position: absolute;
+    min-width: 100px;
+    min-height: 30px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    font-size: 20px;
+    border: 1px dashed #ccc;
+    padding: 5px;
+    outline: none;
+    font-family: Arial, sans-serif;
+    z-index: 100;
+    cursor: move;
+    resize: both;
+    overflow: auto;
+}
+
+.text-box.selected {
+    border: 2px solid yellow;
+}
+
+.text-settings-popup {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: #333;
+    color: white;
+    border: 1px solid #888;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    z-index: 999;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    width: 200px;
+}
+
+.text-settings-popup label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.text-settings-popup input[type="color"],
+.text-settings-popup input[type="number"],
+.text-settings-popup select {
+    margin-left: 5px;
+    background: #444;
+    color: white;
+    border: none;
+    padding: 3px 6px;
+    border-radius: 4px;
+}
+
+.text-settings-popup button {
+    background: #555;
+    color: white;
+    border: none;
+    padding: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.text-settings-popup button:hover {
+    background: #666;
+}
 
         .size-input-container {
             display: flex;
@@ -228,7 +320,26 @@
     left: 50%;
     cursor: ns-resize;
 }
+.dimension-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 0;
+    padding: 10px;
+    background: #444;
+    border-radius: 4px;
+}
 
+.dimension-controls label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dimension-controls input[type="number"] {
+    width: 60px;
+    margin-left: 5px;
+}
 .tilt-handle.left {
     top: 50%;
     left: 0;
@@ -303,6 +414,8 @@
         <button onclick="applyFilter('grayscale')"><i class="fa-solid fa-adjust"></i><span class="tooltip">Black & White</span></button>
         <button onclick="applyFilter('sepia')"><i class="fa-solid fa-tint"></i><span class="tooltip">Sepia</span></button>
         <button onclick="applyFilter('blur')"><i class="fa-solid fa-smog"></i><span class="tooltip">Blur</span></button>
+        <button onclick="addTextBox()"><i class="fa-solid fa-font"></i><span class="tooltip">Add Text</span></button>
+    <button onclick="toggleTextSettings()"><i class="fa-solid fa-gear"></i><span class="tooltip">Text Settings</span></button>
     </div>
     <div class="partition"></div>
 
@@ -312,6 +425,7 @@
         <button onclick="disableDrawing()"><i class="fa-solid fa-ban"></i><span class="tooltip">Stop Drawing</span></button>
         <input type="color" id="drawingColor" value="#ff0000" title="Drawing Color" style="width: 30px; height: 30px; cursor: pointer;">
         <input type="range" id="brushSize" min="1" max="50" value="5" title="Brush Size" style="width: 60px;">
+    
     </div>
 </div>
 
@@ -990,6 +1104,301 @@ function cropSelectedImage() {
     document.addEventListener('mousemove', drawCropArea);
     document.addEventListener('mouseup', endCrop);
 }
+// Add these variables at the top with other variables
+let selectedTextBox = null;
+let isTextSettingsOpen = false;
+let textSettingsPopup = null;
+
+// Add these functions to the script
+function createTextSettingsPopup() {
+    if (!textSettingsPopup) {
+        textSettingsPopup = document.createElement('div');
+        textSettingsPopup.className = 'text-settings-popup';
+        textSettingsPopup.innerHTML = `
+    <label>Font:
+        <select id="textFontFamily">
+             <option value="Arial">Arial</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Tahoma">Tahoma</option>
+                    <option value="Trebuchet MS">Trebuchet MS</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Garamond">Garamond</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Brush Script MT">Brush Script</option>
+                    <option value="Comic Sans MS">Comic Sans</option>
+                    <option value="Impact">Impact</option>
+                    <option value="Lucida Console">Lucida Console</option>
+                    <option value="Palatino">Palatino</option>
+        </select>
+    </label>
+    <label>Size:
+        <input type="number" id="textFontSize" value="20" min="8" max="72">
+    </label>
+    <label>Color:
+        <input type="color" id="textColor" value="#ffffff">
+    </label>
+    <label>Background:
+        <input type="color" id="textBackground" value="#00000080">
+    </label>
+    <div class="dimension-controls">
+        <label>Width (px):
+            <input type="number" id="textBoxWidth" value="200" min="50" max="800">
+        </label>
+        <label>Height (px):
+            <input type="number" id="textBoxHeight" value="auto" min="30" max="600">
+        </label>
+    </div>
+    <button onclick="deleteSelectedTextBox()">Delete Text Box</button>
+`;
+        document.body.appendChild(textSettingsPopup);
+        
+        // Add event listeners for the settings
+        // Add these with the other event listeners
+document.getElementById('textBoxWidth').addEventListener('change', function() {
+    if (selectedTextBox) {
+        selectedTextBox.style.width = this.value + 'px';
+    }
+});
+
+document.getElementById('textBoxHeight').addEventListener('change', function() {
+    if (selectedTextBox) {
+        const value = this.value;
+        selectedTextBox.style.height = value === 'auto' ? 'auto' : value + 'px';
+    }
+});
+        document.getElementById('textFontFamily').addEventListener('change', function() {
+            if (selectedTextBox) {
+                selectedTextBox.style.fontFamily = this.value;
+            }
+        });
+        
+        document.getElementById('textFontSize').addEventListener('change', function() {
+            if (selectedTextBox) {
+                selectedTextBox.style.fontSize = this.value + 'px';
+            }
+        });
+        
+        document.getElementById('textColor').addEventListener('input', function() {
+            if (selectedTextBox) {
+                selectedTextBox.style.color = this.value;
+            }
+        });
+        
+        document.getElementById('textBackground').addEventListener('input', function() {
+            if (selectedTextBox) {
+                selectedTextBox.style.backgroundColor = this.value;
+            }
+        });
+    }
+}
+
+function toggleTextSettings() {
+    if (!textSettingsPopup) {
+        createTextSettingsPopup();
+    }
+    
+    isTextSettingsOpen = !isTextSettingsOpen;
+    
+    if (isTextSettingsOpen) {
+        textSettingsPopup.style.display = 'flex';
+        // Update controls with current text box values
+        if (selectedTextBox) {
+            document.getElementById('textFontFamily').value = selectedTextBox.style.fontFamily || 'Arial';
+            document.getElementById('textFontSize').value = parseInt(selectedTextBox.style.fontSize) || 20;
+            document.getElementById('textColor').value = rgbToHex(selectedTextBox.style.color) || '#ffffff';
+            document.getElementById('textBackground').value = rgbToHex(selectedTextBox.style.backgroundColor) || '#00000080';
+        }
+    } else {
+        textSettingsPopup.style.display = 'none';
+    }
+}
+
+function rgbToHex(rgb) {
+    if (!rgb) return '';
+    if (rgb.startsWith('#')) return rgb;
+    
+    const match = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/);
+    if (!match) return '';
+    
+    const r = parseInt(match[1]);
+    const g = parseInt(match[2]);
+    const b = parseInt(match[3]);
+    const a = match[4] ? Math.round(parseFloat(match[4]) * 255) : 255;
+    
+    return '#' + 
+        ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1) + 
+        (a < 255 ? Math.round(a).toString(16).padStart(2, '0') : '');
+}
+
+function addTextBox() {
+    const textBox = document.createElement('div');
+    textBox.className = 'text-box';
+    textBox.contentEditable = true;
+    textBox.innerText = 'Double click to edit text';
+    textBox.style.left = '100px';
+    textBox.style.top = '100px';
+    textBox.style.width = '200px';
+    textBox.style.height = 'auto';
+    textBox.style.minHeight = '30px';
+    textBox.style.fontFamily = 'Arial';
+    textBox.style.fontSize = '20px';
+    textBox.style.color = '#ffffff';
+    textBox.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    // Use the dedicated text draggable function
+    makeTextDraggable(textBox);
+    
+    // Rest of the function remains the same...
+    textBox.addEventListener('click', function(e) {
+        e.stopPropagation();
+        selectTextBox(textBox);
+    });
+    
+    textBox.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        const range = document.createRange();
+        range.selectNodeContents(textBox);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+    });
+    
+    collageContainer.appendChild(textBox);
+    selectTextBox(textBox);
+}
+
+function selectTextBox(textBox) {
+    if (selectedTextBox) {
+        selectedTextBox.classList.remove('selected');
+    }
+    
+    selectedTextBox = textBox;
+    textBox.classList.add('selected');
+    
+    // Update settings popup if open
+    if (isTextSettingsOpen && textSettingsPopup) {
+        document.getElementById('textFontFamily').value = textBox.style.fontFamily || 'Arial';
+        document.getElementById('textFontSize').value = parseInt(textBox.style.fontSize) || 20;
+        document.getElementById('textColor').value = rgbToHex(textBox.style.color) || '#ffffff';
+        document.getElementById('textBackground').value = rgbToHex(textBox.style.backgroundColor) || '#00000080';
+        
+        // Update dimension controls
+        document.getElementById('textBoxWidth').value = 
+            parseInt(textBox.style.width) || 200;
+        document.getElementById('textBoxHeight').value = 
+            textBox.style.height === 'auto' ? 'auto' : parseInt(textBox.style.height) || 30;
+    }
+}
+
+function deleteSelectedTextBox() {
+    if (selectedTextBox) {
+        selectedTextBox.remove();
+        selectedTextBox = null;
+    }
+    toggleTextSettings(); // Close the popup
+}
+
+// Update the document click handler to deselect text boxes when clicking elsewhere
+document.addEventListener('click', function(e) {
+    if (!e.target.classList.contains('text-box') && 
+        !e.target.closest('.text-settings-popup') &&
+        !e.target.closest('button[onclick="toggleTextSettings()"]')) {
+        if (selectedTextBox) {
+            selectedTextBox.classList.remove('selected');
+            selectedTextBox = null;
+        }
+    }
+});
+function makeTextDraggable(element) {
+    let isDragging = false, startX, startY, startLeft, startTop;
+
+    element.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('resize-handle')) return;
+        
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = parseInt(element.style.left) || 0;
+        startTop = parseInt(element.style.top) || 0;
+
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('mouseup', stopDrag);
+    });
+
+    function dragMove(e) {
+        if (!isDragging) return;
+        const newLeft = startLeft + (e.clientX - startX);
+        const newTop = startTop + (e.clientY - startY);
+        
+        element.style.left = newLeft + "px";
+        element.style.top = newTop + "px";
+    }
+
+    function stopDrag() {
+        isDragging = false;
+        document.removeEventListener('mousemove', dragMove);
+        document.removeEventListener('mouseup', stopDrag);
+    }
+}
+function makeDraggable(element) {
+    let isDragging = false, startX, startY, startLeft, startTop;
+
+    element.addEventListener('mousedown', (e) => {
+        // Don't start drag if clicking on a resize handle or settings button
+        if (e.target.classList.contains('resize-handle') || 
+            e.target.closest('.text-settings-popup')) {
+            return;
+        }
+        
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = parseInt(element.style.left) || 0;
+        startTop = parseInt(element.style.top) || 0;
+
+        // Select the element if it's a text box
+        if (element.classList.contains('text-box')) {
+            selectTextBox(element);
+        }
+
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('mouseup', stopDrag);
+    });
+
+    function dragMove(e) {
+        if (!isDragging) return;
+        const newLeft = startLeft + (e.clientX - startX);
+        const newTop = startTop + (e.clientY - startY);
+        
+        element.style.left = newLeft + "px";
+        element.style.top = newTop + "px";
+    }
+
+    function stopDrag(e) {
+    isDragging = false;
+    document.removeEventListener('mousemove', dragMove);
+    document.removeEventListener('mouseup', stopDrag);
+
+    // Skip template box snapping and resizing for text boxes
+    if (element.classList.contains('text-box')) return;
+
+    // Rest of the original template box snapping code...
+    // [Keep the existing template box snapping code for images]
+}
+}
+document.addEventListener('keydown', function(e) {
+    // ... existing shortcuts ...
+    
+    // Add text box shortcuts
+    if (e.key === 'Delete' && selectedTextBox) {
+        deleteSelectedTextBox();
+    }
+    if (e.ctrlKey && e.key === 't') {
+        e.preventDefault();
+        addTextBox();
+    }
+});
 
 function startCrop(e) {
     if (!isCropping) return;

@@ -2505,16 +2505,6 @@ function applyTransformations(img, skewX = null, skewY = null) {
 
                     const mime = mimeMap[extension] || 'image/png';
 
-                    if (extension === 'tif' || extension === 'tiff') {
-                        canvas.toBlob(blob => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                                const buffer = Buffer.from(reader.result);
-                                ipcRenderer.send('save-as-tiff', { filePath, buffer });
-                            };
-                            reader.readAsArrayBuffer(blob);
-                        }, 'image/png');
-                    } else {
                         canvas.toBlob(blob => {
                             const reader = new FileReader();
                             reader.onloadend = () => {
@@ -2537,7 +2527,6 @@ function applyTransformations(img, skewX = null, skewY = null) {
                             };
                             reader.readAsArrayBuffer(blob);
                         }, mime);
-                    }
                 });
             }).catch(err => {
                 console.error("Error generating collage:", err);
